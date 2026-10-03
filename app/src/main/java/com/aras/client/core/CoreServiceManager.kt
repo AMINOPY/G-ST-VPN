@@ -156,51 +156,36 @@ object CoreServiceManager {
             val fd = pfd.detachFd()
             val uapi = AwgConfigBuilder.buildUapi(config)
             LogUtil.i(AppConfig.TAG, "StartCore-Manager: AWG UAPI:\n$uapi")
-            CoreNativeManager.awgTurnOn(fd, uapi, 1280)
+            // Must be the MTU the TUN was established with, and the profile's own MTU wins
+            // when it names one — a .conf that says MTU = 1280 was written for that
+            // endpoint and using the global 1500 instead disagrees with the server's
+            // expectation as well as with the device's buffers.
+            val mtu = config.mtu?.takeIf { it > 0 } ?: SettingsManager.getVpnMtu()
+            CoreNativeManager.awgTurnOn(fd, uapi, mtu)
             LogUtil.i(AppConfig.TAG, "StartCore-Manager: standalone AmneziaWG tunnel up")
             notifyTileState(service, AppConfig.MSG_STATE_START_SUCCESS)
             ConnectionStatsManager.onSessionStarted()
             return
         }
 
-        // An Aether profile is dialled by the aether core, a separate process holding the
-        // WARP identity and the scanned endpoint. Its outbound is a SOCKS hop to that
-        // process, so the core has to be up and listening before the Xray config that
-        // dials it is built — the same ordering constraint AmneziaWG has above.
-        if (config.configType == EConfigType.AETHER) {
-            if (!AetherCoreManager.isAvailable(service)) {
-                error("This build does not carry the aether core")
-            }
-            val core = AetherCore.of(config)
-            LogUtil.i(AppConfig.TAG, "StartCore-Manager: aether core: ${core.command}")
-            if (!AetherCoreManager.start(service, core) { line ->
-                    LogUtil.d(AppConfig.TAG, "aether | $line")
-                }
-            ) {
-                AetherCoreManager.stop()
-                error("The aether core did not start; see the log for its own error")
-            }
-        }
-
-        // A Mieru profile is dialled by the mieru client, a separate process serving a
-        // local SOCKS, so it has to be up before the config that dials it is built.
-        if (config.configType == EConfigType.MIERU) {
-            if (!MieruProcessManager.isAvailable(service)) {
-                error("This build does not carry the mieru client")
-            }
-            val port = com.aras.client.fmt.AetherFmt.listenPortOf(config.mieruListenPort)
-                ?: AppConfig.PORT_MIERU_SOCKS.toInt()
-            LogUtil.i(AppConfig.TAG, "StartCore-Manager: starting the mieru client on $port")
-            if (!MieruProcessManager.start(service, config, port)) {
-                MieruProcessManager.stop()
-                error("The mieru client did not start; see the log for its own error")
-            }
+        // An Aether or Mieru hop is dialled by a separate process serving a local SOCKS,
+        // so the daemon has to be up and listening before the config that dials it is
+        // built — the same ordering constraint AmneziaWG has above. The hop can be
+        // anywhere in the chain, not just the selected profile: an entry proxy is the
+        // outermost hop of every profile in its subscription, so its daemon is what
+        // the whole subscription depends on.
+        val helpers = HelperProcessSupport.acquire(service, CoreConfigContextBuilder.resolveChainProfiles(service, guid))
+        helpers.error?.let { reason ->
+            LogUtil.e(AppConfig.TAG, "StartCore-Manager: $reason")
+            HelperProcessSupport.reset()
+            error(reason)
         }
 
         val result = CoreConfigManager.getXrayConfig(service, guid)
         LogUtil.d(AppConfig.TAG, result.content)
         if (!result.status) {
             LogUtil.e(AppConfig.TAG, "Config build failed: ${result.errorMessage}")
+            HelperProcessSupport.reset()
             error(result.errorMessage.ifBlank { "Failed to get Xray config" })
         }
 
@@ -277,9 +262,9 @@ object CoreServiceManager {
         }
 
         // The aether core and the mieru client are child processes; stopping them here
-        // keeps them from outliving the session they were started for.
-        AetherCoreManager.stop()
-        MieruProcessManager.stop()
+        // keeps them from outliving the session they were started for. reset() also
+        // clears the refcounts HelperProcessSupport keeps for concurrent chain tests.
+        HelperProcessSupport.reset()
 
         if (isRunning()) {
             CoroutineScope(Dispatchers.IO).launch {

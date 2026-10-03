@@ -2,16 +2,22 @@ package com.aras.client.ui.server
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.aras.client.R
 import com.aras.client.enums.EConfigType
 import com.aras.client.ui.compose.FormTextField
+import com.aras.client.util.MimicPackets
 
 class ServerAmneziawgActivity : BaseServerActivity() {
 
@@ -126,5 +132,52 @@ class ServerAmneziawgActivity : BaseServerActivity() {
             state.transportPacketJunkHeader,
             { state.transportPacketJunkHeader = it }
         )
+        MimicPacketField(
+            value = state.mimicPackets,
+            onValueChange = { state.mimicPackets = it },
+        )
+    }
+}
+
+/**
+ * Mimic packets I1..I5, one spec per line.
+ *
+ * A spec the bundled core cannot parse fails the whole tunnel, not just the decoy,
+ * so the field names the offending line as you type, and the builders drop bad
+ * specs rather than handing them to the core.
+ */
+@Composable
+private fun MimicPacketField(
+    value: String,
+    onValueChange: (String) -> Unit,
+) {
+    val problems = remember(value) { MimicPackets.validateAll(value) }
+
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        FormTextField(
+            label = stringResource(R.string.server_awg_mimic_packets),
+            value = value,
+            onValueChange = onValueChange,
+        )
+        TextButton(
+            onClick = {
+                val next = (MimicPackets.specs(value) + MimicPackets.sipPreset())
+                onValueChange(MimicPackets.specs(next.joinToString("\n")).joinToString("\n"))
+            },
+            modifier = Modifier.padding(horizontal = 16.dp),
+        ) {
+            Text(stringResource(R.string.server_awg_mimic_sip_preset))
+        }
+        if (problems.isNotEmpty()) {
+            Text(
+                text = stringResource(
+                    R.string.server_awg_mimic_invalid,
+                    problems.joinToString("\n"),
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
     }
 }

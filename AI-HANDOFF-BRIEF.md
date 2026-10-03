@@ -1,72 +1,322 @@
 # ArasClient — AI Handoff Brief
-# (send this to any AI; it knows the files and what to do)
-# Owner: ArasTey (persian-speaking). Repo: https://github.com/ArasTey/ArasClient
-# Local workspace: /Users/admin/Documents/ArasClient/ArasClient
-# Extra repos: ArasTey/xray-core, ArasTey/AndroidLibXrayLite, ArasTey/freesub
 
-## PENDING TASKS (do these, v1.7.0 — DO NOT RELEASE, code changes only)
+Send this whole file to the next AI. It is the entry point; `HANDBOOK.md` is the
+deep reference. Everything below was verified, not remembered.
 
-### 1. GroupTabBar UI broken in "double / two-column" display mode
-File: app/src/main/java/com/aras/client/ui/main/GroupTabBar.kt (+ MainServerPager.kt)
-In two-column mode:
-  1. Country flag overlaps the ping needle/arrow icon
-  2. Green ping number is truncated/cut off (shown incomplete)
-  3. Overall UI is messy
-Fix: add proper spacing between flag → ping row, let ping text have min width,
-clip only the ping text itself, and verify both single and two-column layouts.
+---
 
-### 2. Right arrow in group tab bar is redundant
-File: GroupTabBar.kt (the trailing arrow/chevron next to the Aras logo area)
-When the settings menu opens, the arrow to the right of the Aras logo must be
-removed (it duplicates the menu affordance).
+## 1. Identity, repos, state
 
-### 3. Logo background box color should match theme (it's currently inverted)
-File: GroupTabBar.kt — the container behind the Aras logo.
-Light theme: box appears DARKER than surface (wrong) → make it lighter
-(surfaceContainerHigh-ish). Dark theme: it appears LIGHTER (wrong) → make it
-darker (surfaceContainerLow-ish). Use MaterialTheme.colorScheme tokens, not
-hardcoded colors.
+| | |
+|---|---|
+| Owner | **ArasTey** — Persian-speaking. Reply in Persian if they write in Persian. |
+| Git identity | `ArasTey <308009703+ArasTey@users.noreply.github.com>` — set repo-locally on both repos already. Never use a placeholder identity. |
+| App repo | `/Users/admin/Documents/ArasClient/ArasClient` — remote `ArasTey/ArasClient`, branch `main` |
+| Core repo | `~/corebuild/xray-core` — remote `ArasTey/xray-core`, branch **`feat/awg-mimic-packets`** at `478176a0`. **Local only.** The tag `aras-core-26.9.28` exists locally and is *also* local only — the `aras` remote still ends at `aras-core-26.9.27` (`d6451464`). |
+| Bindings | `~/corebuild/AndroidLibXrayLite` — remote `ArasTey/AndroidLibXrayLite` |
+| Builds | `~/Desktop/ArasClient-1.8.0/` — 5 APKs + `SHA-256SUMS.txt` + `README.txt` |
+| Current commit | one commit, unpushed; `main` is 1 ahead of `origin/main`. Run `git rev-parse --short HEAD` — a hash written *inside* the commit it describes cannot stay correct, because amending changes it. |
+| Version | `versionName 1.8.0`, `versionCode 180` (`app/build.gradle.kts`) |
+| Tests | 235 `@Test` across 33 files, 0 failures |
 
-### 4. Status subtitle text should clear after leaving the screen
-Files: app/src/main/java/com/aras/client/ui/main/MainScreen.kt →
-`MainBottomBar(subtitleOverride = ...)`, MainViewModel.formatStatus.
-Currently after a test shows:
-  "Connection succeeded in 151 ms" / "(NL) 152.55.185.184" /
-  "Connected. Tap to check connection."
-the "(Connected. Tap to check connection.)" subtitle sticks around under the
-row forever. Wanted: show it once after connect/ping; clear it afterwards
-(e.g. revert to "Tap to connect" / empty) until the next connect/ping on that
-server. Implement via a timeout or a one-shot flag in MainViewModel state.
 
-### 5. Update the cores
-Files: ~/corebuild/xray-core (branch feat/amneziawg), ~/corebuild/AndroidLibXrayLite
-- git fetch upstream, rebase onto latest Xray-core, keep all ArasClient patches:
-  - AnyTLS outbound (auth frame SHA-256 + padding, session mux, UoT for UDP)
-  - AmneziaWG 3.1 (junk params DEVICE-level, emitted BEFORE first public_key)
-  - allowInsecure restore (proto field 23)
-  - TLS proto fields 13/14 cookie/transport junk headers
-- Then: gomobile bind -androidapi 24 -trimpath
-  -ldflags='-s -w -buildid= -checklinkname=0' -o aras-core.aar ./
-  → copy to app/libs/aras-core.aar
-- Toolchain: Go 1.25+, JDK 17, NDK r27 (~/Library/Android/sdk/ndk/27.3.13750724),
-  GOPROXY=https://goproxy.cn,direct (proxy.golang.org 403s locally)
-- Verify: strings libgojni.so | grep -cE 'anytls|amnezia' > 0, 'patterniha' == 0
+The owner prefers changes kept as **one clean commit** on `main`, fully local,
+until they say otherwise. Do not push, tag, or create a GitHub release without
+being asked — that is the irreversible step.
 
-### CONSTRAINTS
-- versionName = 1.7.0 (bump versionCode accordingly)
-- DO NOT create a release, do NOT upload APKs — code changes only
-- Git identity: ArasTey <ArasTey@users.noreply.github.com> only
-- app/libs/arasc-crypto.aar is intentionally closed-source
-- Never hardcode scheme subsets when parsing links — use full
-  AngConfigManager.parseAnyLink / configFmtParsers dispatch
-- The Free sub fetches from ArasTey/freesub (config.txt) at launch + update;
-  all its configs are protected (view/edit/share blocked; ping/connect/delete OK)
-- CI: .github/workflows/build.yml builds core from public source then the app;
-  signing keystore is committed (keystore/debug.keystore + keystore.properties)
+---
 
-## CURRENT STATE (as of handoff)
-- Last commit: 17750d7 "v1.6.9: bottom bar ping colors" (already on origin/main)
-- versionName 1.6.9, versionCode 136 in build.gradle.kts (ABI offsets add +3/+4)
-- Latest release: v1.6.9 (left dot + connect button green/red by ping — shipped)
-- Free sub verified: fetches ArasTey/freesub, protected, reorder index fix done
-- Working tree clean
+## 2. Build
+
+```bash
+export JAVA_HOME=/opt/homebrew/Cellar/openjdk@17/17.0.20/libexec/openjdk.jdk/Contents/Home
+cd /Users/admin/Documents/ArasClient/ArasClient
+
+./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease :app:lintVitalRelease --no-daemon
+```
+
+That is the whole gate: tests, both assembles, and fatal lint — 5–18 minutes.
+`testDebugUnitTest` is the gate, not a formality: the house rule is that every
+bug gets a test written to look for it.
+
+APKs land in `app/build/outputs/apk/release/`, five per release (ABI splits).
+**Each split is a complete standalone app** — there is no base to install first.
+
+---
+
+## 3. Release signing — read before building a release
+
+Releases are signed with a dedicated key that exists **only on this machine**:
+
+```
+CN=ArasClient, OU=Release, O=ArasClient, L=Tehran, C=IR
+SHA-1:   65:EE:76:64:C8:0E:5B:6B:2C:D4:6B:F7:FC:20:26:A5:65:4D:86:8B
+SHA-256: 3b2a6fa9c328d002ff737976a7b384423ad844346927d208052bb49ed920b5ba
+```
+
+`keystore/arasclient-release.jks` and `keystore.properties` are **gitignored**.
+A missing `keystore.properties` is a build failure, not a silent fallback — that
+is deliberate.
+
+**Do not touch the signing config.** Every release up to and including 1.7.5 was
+signed with the Android Studio *debug* key, because the committed
+`keystore.properties` pointed at `keystore/debug.keystore`. That caused the
+"Package invalid" reports and Play Protect warnings. Fixed in `4d84df9`.
+
+If the key is ever lost, **no update can ever be shipped to an existing
+install** — everyone would have to uninstall first. Treat it as irreplaceable.
+
+Verify before shipping:
+
+```bash
+AS=~/Library/Android/sdk/build-tools/36.0.0/apksigner
+cd app/build/outputs/apk/release
+for f in *.apk; do
+  echo "$("$AS" verify --print-certs "$f" 2>/dev/null | grep 'SHA-1 digest' | head -1)  $f"
+done
+```
+
+All five must show the same SHA-1 above, and `apksigner verify --verbose` must
+say **`Number of signers: 1`** for each. v2-only signing is correct and expected
+(`minSdk 24`) — do not "fix" the missing v1 signature.
+
+CI gets the same key from four repository secrets: `KEYSTORE_B64`,
+`KEYSTORE_PASSWORD`, `KEY_ALIAS` (`arasclient`), `KEY_PASSWORD`.
+
+---
+
+## 4. Publishing (only when asked)
+
+```bash
+git -c http.postBuffer=524288000 -c http.lowSpeedLimit=0 -c http.lowSpeedTime=999999 \
+    push origin main                      # ~160 MB of native libs; plain push times out (HTTP 408)
+
+git tag -a v1.8.0 -m "v1.8.0" && git push origin v1.8.0
+gh release create v1.8.0 --title "ArasClient v1.8.0" --notes-file /tmp/notes.md --target "$(git rev-parse HEAD)"
+gh release upload v1.8.0 --repo ArasTey/ArasClient app/build/outputs/apk/release/ArasClient_*.apk --clobber
+```
+
+**The core must be published first or the release ships the old core.** This is
+the one blocker standing between the current state and a correct release.
+
+```bash
+cd ~/corebuild/xray-core
+git push aras feat/awg-mimic-packets
+git push aras aras-core-26.9.28        # the tag exists locally but is unpushed
+```
+
+Then update `ref:` in `.github/workflows/build.yml` line 27 (currently
+`aras-core-26.9.27`) to `aras-core-26.9.28`. CI builds the core from that ref
+and overwrites `app/libs/aras-core.aar`, so releasing without moving this ref
+ships a core **without** the I1–I5 mimic packets — the headline feature of
+1.8.0. The tracked `.aar` on disk does contain them, so local builds are fine;
+it is only the CI rebuild that loses them.
+
+---
+
+## 5. Rebuilding the native core
+
+Only needed when the Go core changes.
+
+```bash
+cd ~/corebuild/AndroidLibXrayLite
+go mod edit -replace=github.com/xtls/xray-core=../xray-core
+go mod tidy
+
+export ANDROID_HOME=/Users/admin/Library/Android/sdk
+export ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.3.13750724
+export GOPROXY=https://goproxy.cn,direct        # proxy.golang.org 403s from here
+export PATH="$HOME/go/bin:$PATH"                  # gomobile lives here
+gomobile bind -androidapi 24 -trimpath \
+  -ldflags='-s -w -buildid= -checklinkname=0' \
+  -o /tmp/aras-core.aar ./                       # → app/libs/aras-core.aar
+```
+
+Protoc (only when a `.proto` changes):
+
+```bash
+go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
+cd ~/corebuild/xray-core
+PATH="$HOME/go/bin:$PATH" protoc --proto_path=. --go_out=/tmp/wgproto \
+  --go_opt=paths=source_relative proxy/wireguard/config.proto
+```
+
+Then bring the generated file in **with Write/Edit**. The security hook blocks
+Bash from writing source files, so generating straight into the repo is refused.
+Verify the result is byte-identical with `diff` against the temp output.
+
+CI asserts on the built core; run the same check locally:
+
+```bash
+cd /tmp && rm -rf ck && mkdir ck && cd ck
+unzip -o -q <aar> "jni/arm64-v8a/libgojni.so"
+strings jni/arm64-v8a/libgojni.so | grep -ci anytls     # must be > 0
+strings jni/arm64-v8a/libgojni.so | grep -ci amneziawg  # must be > 0
+strings jni/arm64-v8a/libgojni.so | grep -c 'golang.zx2c4.com/wireguard'   # must be 0
+```
+
+A non-zero wireguard-go count means the amneziawg import did not take effect.
+
+---
+
+## 6. What 1.8.0 fixed — do not regress these
+
+Five defects, each with a test. They are the reason this build exists.
+
+1. **The server-card flag was only right after a ping.** The card resolved its
+   country from `GeoIPResolver`, but nothing recomposed it when the cache
+   filled — the lookup finishes after the card composes and `cached()` is not an
+   observable read. `GeoIPResolver.version` is now a `StateFlow` the card keys
+   on. (`MainServerPager.kt`, `GeoIPResolver.kt`)
+
+2. **An entry proxy that is Aether/Mieru never started its daemon**, so the whole
+   subscription reported `-1`. Both managers hold one global slot and were only
+   started when the *selected* profile was itself one of those types.
+   `HelperProcessSupport` resolves the chain and refcounts the daemons. The
+   latency test also no longer probes a chained profile's own server directly.
+   (`HelperProcessSupport.kt`, `CoreServiceManager.kt`, `RealPingWorkerService.kt`)
+
+3. **The TUN descriptor had two readers.** hev-socks5-tunnel and the standalone
+   awg-go tunnel were both handed it; tun2socks won the race and drained packets
+   into a SOCKS proxy that no core serves in AmneziaWG mode.
+   `shouldRunTun2Socks()` skips it for AMNEZIAWG. (`CoreVpnService.kt`)
+
+4. **AmneziaWG junk params were read from `[Peer]`, but AmneziaVPN writes them
+   under `[Interface]`** — they are device-level, and the UAPI parser is in peer
+   context after the first `public_key=`. The parser found nothing,
+   `applyDefaultJunkParams` substituted stock values, and the server dropped
+   every packet. It now reads `[Interface]` first, `[Peer]` as fallback.
+
+5. **`.conf` files were imported as plain WireGuard** whenever they did not spell
+   the key exactly `Jc` — the test was `contains("Jc", ignoreCase = false)`.
+   `AmneziawgFmt.looksLikeAmneziaConf()` now decides on the key set,
+   case-insensitively, including S3/S4 and I1–I5.
+
+New feature: **mimic packets (I1–I5)** — decoys sent ahead of each handshake so
+the first bytes on the wire belong to another protocol. `MimicPackets.kt`,
+`AwgConfigBuilder`, `CoreOutboundBuilder`, plus core proto fields
+`PeerConfig.mimic_packet_1..5`. A spec the core cannot parse fails the whole
+device string, so `MimicPackets.validate` gates what is written.
+
+### The trap that hides all of this
+
+**Release builds default the log level to `"warning"`, so every `LogUtil.i` is
+suppressed** — including the UAPI dump. That is why these bugs stayed invisible
+so long. To diagnose anything, build `:app:assembleDebug` (defaults to
+`"info"`) or set the log level to info in Settings. When a user reports a VPN
+problem, ask for those lines *with the log level at info*.
+
+### Config fixes do not repair stored profiles
+
+These fixes change **parsing**. A profile already imported with a broken build
+keeps the wrong values in MMKV, and nothing can tell them apart from correct
+ones. **Users must delete the profile and re-import the file.** Say this
+explicitly whenever a config fix ships.
+
+---
+
+## 7. Still open
+
+- **OpenVPN is not implemented and cannot be added the way Aether/Mieru were.**
+  No OpenVPN binary exists to ship, and no reachable Go OpenVPN client to link
+  (`go-tun2socks`'s companion, `hectap/go-openvpn`, `KaringX/go-openvpn` all 404
+  from `goproxy.cn`); patterniha v26.9.27 has no OpenVPN across all 42 refs of
+  its remotes. Do not start on the app side.
+- **The standalone AWG socket has no `protect()`.** `awg_tunnel.go` uses
+  `conn.NewDefaultBind()`. The Xray path is safe because it dials `127.0.0.1`,
+  but a tunnel owning the TUN itself normally needs its sockets protected in
+  full-tunnel mode. Not observed failing on the emulator (bypass-LAN is on by
+  default there), so this is unverified — do not "fix" it speculatively.
+- **A batch latency test cannot report an egress country.**
+  `MeasureOutboundDelay` in the gomobile shim nulls the inbounds and dials via
+  `core.Dial`, so there is no local inbound to route an IP-echo request
+  through. Needs a core change, not an app change.
+- **The entry-proxy chain fixes were never tested on a device** — they need an
+  Aether or Mieru profile to exercise.
+- `proxy/wireguard/client.go.rej` is tracked debris from an old failed patch.
+  Harmless, not compiled. Deleting it is optional cleanup.
+
+---
+
+## 8. Traps that will cost you time
+
+- **`keystore/` must never be staged.**
+  `git diff --cached --name-only | grep -iE "keystore|\.jks" && echo STOP`
+- **The security hook refuses Bash writes to source files.** Use Write/Edit; for
+  generated code, generate to a temp path and bring it in with Write.
+- **amneziawg-go must be imported directly**
+  (`github.com/amnezia-vpn/amneziawg-go/v3/...`). Never
+  `replace golang.zx2c4.com/wireguard => amneziawg-go` — that loads one module
+  under two paths and fails with `used for two different module paths`.
+- **Go ignores `replace` in a dependency's go.mod**, so you cannot point the core
+  at a local amneziawg fork. Anything new must resolve from the real proxy.
+- **amneziawg has no `address` UAPI key.** Sending one fails the tunnel with
+  `invalid UAPI device key: address`. The device is handed an already-configured
+  VpnService TUN and cannot set an address. The accepted key set is pinned by a
+  test in `AmneziaConfSectionTest`.
+- **Persian locale must stay complete.** Adding a string means adding it to
+  `values/strings.xml` *and* `values-fa/strings.xml` in the same change; 134
+  strings once went missing and half the UI rendered in English.
+- **`ProfileItem` enums persist by `name()`** — renaming a constant invalidates
+  saved profiles. `ArasShareItem` ints are a separate v2rayN wire format; 7 and 9
+  are swapped there and 1–12 must never be renumbered.
+- **The top bar wordmark must stay LTR.** It is two `Text`s in a `Row` and will
+  otherwise render "ClientAras" in Persian; it is pinned with
+  `CompositionLocalProvider`.
+- **The connect button acts on whatever profile is selected**, not the one you
+  were looking at. Select the card first.
+
+---
+
+## 9. Layout
+
+```
+app/src/main/java/com/aras/client/
+  core/            CoreConfigManager (outbound assembly), CoreOutboundBuilder
+                   (profile → outbound), CoreServiceManager (start/stop/reload),
+                   AwgConfigBuilder (standalone UAPI), CoreConfigContextBuilder
+                   (chain resolution), HelperProcessSupport, core/aether/, core/mieru/
+  service/         CoreVpnService (TUN lifecycle), RealPingWorkerService
+  fmt/             AmneziawgFmt, WireguardFmt, AetherFmt, ArasFmt — link parsers
+  ui/              Compose screens
+  handler/         AngConfigManager (import/share), MmkvManager, SettingsManager
+  dto/entities/    ProfileItem, SubscriptionItem, ServersCache
+app/libs/aras-core.aar        built from the core, tracked in git
+app/libs/<abi>/*.so           aether, mieru, psiphon, lyrebird, hev tun2socks
+.github/workflows/build.yml   builds the core, then the app; asserts on the core
+```
+
+The three files that matter most: `.github/workflows/build.yml`,
+`app/build.gradle.kts`, and `core/CoreOutboundBuilder.kt` (every config bug of
+the last session was there or in its callers).
+
+---
+
+## 10. Working agreement
+
+Ask questions freely — the owner is available and prefers being asked over being
+guessed at. Three guesses were made during 1.8.0 and all three were wrong; the
+right move is always to reproduce on the emulator, not to reason about the code.
+
+To reproduce properly:
+
+```bash
+adb push <config> /sdcard/Download/<name>.txt   # .conf files are hidden by the
+                                                # picker's filters; .txt shows up
+adb -s emulator-5554 shell appops set com.aras.client ACTIVATE_VPN allow
+adb -s emulator-5554 logcat -c
+# then tap connect in the app, and read:
+adb logcat -d | grep -E "AWG UAPI|jc=|persistent_keepalive|tunnel up|AwgTunnel|invalid UAPI"
+```
+
+Confirm traffic actually crossed the tunnel rather than the emulator's own NAT:
+
+```bash
+adb -s emulator-5554 shell ping -c 3 -W 4 1.1.1.1
+adb -s emulator-5554 shell cat /proc/net/dev | grep tun
+```
+
+Both AmneziaWG configs the owner has were verified working end-to-end this way:
+tunnel up, `jc/jmin/jmax/s1/s2` matching the file, `i1`/`i2` emitted for the
+mimic one, and 3/3 pings through the tun interface on three separate on/off
+cycles.

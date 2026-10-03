@@ -5,6 +5,7 @@ import com.aras.client.AppConfig
 import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.enums.EConfigType
 import com.aras.client.enums.NetworkType
+import com.aras.client.util.JsonUtil
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -128,6 +129,56 @@ class CoreOutboundBuilderTest {
         assertEquals(9, peer?.junkPacketCount)
         assertEquals(11, peer?.junkPacketMinSize)
         assertEquals(listOf(7, 8, 9), peer?.initPacketJunkHeader)
+    }
+
+    @Test
+    fun `amneziawg puts mimic packets on the peer under the core's json names`() {
+        val item = profile(EConfigType.AMNEZIAWG).apply {
+            publicKey = "pubkey"
+            secretKey = "secretkey"
+            mimicPackets = "<b 4f5054>\n<t>"
+        }
+
+        val peer = CoreOutboundBuilder.convert(item)?.settings?.peers?.firstOrNull()
+
+        assertEquals("<b 4f5054>", peer?.mimicPacket1)
+        assertEquals("<t>", peer?.mimicPacket2)
+        assertNull(peer?.mimicPacket3)
+
+        // The core reads proto3 json names, where mimic_packet_1 is mimicPacket1.
+        val json = JsonUtil.toJson(peer)
+        assertTrue(json.contains("\"mimicPacket1\""))
+        assertTrue(json.contains("\"mimicPacket2\""))
+    }
+
+    @Test
+    fun `amneziawg drops a malformed mimic spec before it reaches the core`() {
+        val item = profile(EConfigType.AMNEZIAWG).apply {
+            publicKey = "pubkey"
+            secretKey = "secretkey"
+            mimicPackets = "<b 4f5054>\n<nope>\n<t>"
+        }
+
+        val peer = CoreOutboundBuilder.convert(item)?.settings?.peers?.firstOrNull()
+
+        // The bad spec is dropped, so the next one fills its slot rather than
+        // leaving a hole the core would read as an absent packet.
+        assertEquals("<b 4f5054>", peer?.mimicPacket1)
+        assertEquals("<t>", peer?.mimicPacket2)
+        assertNull(peer?.mimicPacket3)
+    }
+
+    @Test
+    fun `a plain wireguard profile emits no mimic keys at all`() {
+        val item = profile(EConfigType.WIREGUARD).apply {
+            publicKey = "pubkey"
+            secretKey = "secretkey"
+        }
+
+        val peer = CoreOutboundBuilder.convert(item)?.settings?.peers?.firstOrNull()
+
+        assertNull(peer?.mimicPacket1)
+        assertNull(peer?.mimicPacket2)
     }
 
     @Test

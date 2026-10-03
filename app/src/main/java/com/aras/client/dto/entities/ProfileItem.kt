@@ -57,6 +57,7 @@ data class ProfileItem(
     var localAddress: String? = null,
     var reserved: String? = null,
     var mtu: Int? = null,
+    var keepAlive: String? = null,
 
     // AmneziaWG obfuscation parameters.
     var junkPacketCount: String? = null,
@@ -68,6 +69,8 @@ data class ProfileItem(
     var responsePacketJunkHeader: String? = null,
     var cookiePacketJunkHeader: String? = null,
     var transportPacketJunkHeader: String? = null,
+    // Mimic packets I1..I5, one obfuscation spec per line. Blank means none.
+    var mimicPackets: String? = null,
 
     var obfsPassword: String? = null,
     var portHopping: String? = null,

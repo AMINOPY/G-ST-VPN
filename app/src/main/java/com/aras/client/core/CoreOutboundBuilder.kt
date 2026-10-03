@@ -15,6 +15,7 @@ import com.aras.client.handler.MmkvManager
 import com.aras.client.util.HttpUtil
 import com.aras.client.util.JsonUtil
 import com.aras.client.util.LogUtil
+import com.aras.client.util.MimicPackets
 import com.aras.client.util.Utils
 
 /**
@@ -359,6 +360,16 @@ object CoreOutboundBuilder {
             peer.responsePacketJunkHeader = parseJunkHeader(profileItem.responsePacketJunkHeader)
             peer.cookiePacketJunkHeader = parseJunkHeader(profileItem.cookiePacketJunkHeader)
             peer.transportPacketJunkHeader = parseJunkHeader(profileItem.transportPacketJunkHeader)
+            // Mimic packets ride on the same peer object; the core lifts them back to
+            // device level when it writes the UAPI. Left null when unset, so a plain
+            // WireGuard or junk-only profile emits none of these keys.
+            val mimics = MimicPackets.specs(profileItem.mimicPackets)
+                .filter { MimicPackets.validate(it) == null }
+            peer.mimicPacket1 = mimics.getOrNull(0)
+            peer.mimicPacket2 = mimics.getOrNull(1)
+            peer.mimicPacket3 = mimics.getOrNull(2)
+            peer.mimicPacket4 = mimics.getOrNull(3)
+            peer.mimicPacket5 = mimics.getOrNull(4)
         }
         // Kernel TUN cannot apply AmneziaWG junk packets — always use the
         // userspace (gVisor) TUN for AWG profiles.

@@ -39,6 +39,7 @@ class ServerUiState(
     responsePacketJunkHeader: String = "",
     cookiePacketJunkHeader: String = "",
     transportPacketJunkHeader: String = "",
+    mimicPackets: String = "",
     obfsPassword: String = "",
     portHopping: String = "",
     portHoppingInterval: String = "",
@@ -128,6 +129,7 @@ class ServerUiState(
     var responsePacketJunkHeader by mutableStateOf(responsePacketJunkHeader)
     var cookiePacketJunkHeader by mutableStateOf(cookiePacketJunkHeader)
     var transportPacketJunkHeader by mutableStateOf(transportPacketJunkHeader)
+    var mimicPackets by mutableStateOf(mimicPackets)
     var obfsPassword by mutableStateOf(obfsPassword)
     var portHopping by mutableStateOf(portHopping)
     var portHoppingInterval by mutableStateOf(portHoppingInterval)
@@ -234,6 +236,7 @@ class ServerUiState(
             responsePacketJunkHeader = if (isAmneziawg) responsePacketJunkHeader.nullIfBlank() else null,
             cookiePacketJunkHeader = if (isAmneziawg) cookiePacketJunkHeader.nullIfBlank() else null,
             transportPacketJunkHeader = if (isAmneziawg) transportPacketJunkHeader.nullIfBlank() else null,
+        mimicPackets = if (isAmneziawg) mimicPackets.nullIfBlank() else null,
             obfsPassword = if (isHysteria2) obfsPassword else null,
             portHopping = if (isHysteria2) portHopping else null,
             portHoppingInterval = if (isHysteria2) portHoppingInterval else null,
@@ -333,6 +336,7 @@ class ServerUiState(
                 responsePacketJunkHeader = initialConfig.responsePacketJunkHeader ?: "",
                 cookiePacketJunkHeader = initialConfig.cookiePacketJunkHeader ?: "",
                 transportPacketJunkHeader = initialConfig.transportPacketJunkHeader ?: "",
+        mimicPackets = initialConfig.mimicPackets ?: "",
                 obfsPassword = initialConfig.obfsPassword ?: "",
                 portHopping = initialConfig.portHopping ?: "",
                 portHoppingInterval = initialConfig.portHoppingInterval ?: "",

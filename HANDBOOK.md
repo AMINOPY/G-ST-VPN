@@ -370,6 +370,25 @@ strings /tmp/v/*.apk >/dev/null   # then the marker checks from §4
 
 - **Core on patterniha v26.9.27**, all patches carried over, MASQUE and XDRIVE available.
   AnyTLS, AmneziaWG junk params, `allowInsecure` and `domain_strategy` verified in the binary.
+- **AmneziaWG mimic packets** (I1–I5): the decoys the core sends ahead of every handshake
+  initiation, so the first bytes on the wire belong to another protocol. One profile field
+  (`mimicPackets`, one spec per line), a SIP preset, both UAPI builders, `awg://` links, `.conf`
+  files and the `.arasc` share format all carry it. A spec the core cannot parse fails the
+  *whole* device string, so `MimicPackets.validate` is checked before anything is written.
+- **Three bugs fixed in 1.8.0**, each with a test:
+  - The server card's flag only became right after a ping: the card resolved its country from
+    the GeoIP cache, but nothing about it recomposed when the cache filled, because
+    `GeoIPResolver.cached()` is not an observable read. `GeoIPResolver.version` is now a
+    `StateFlow` the card keys on.
+  - An **entry proxy that is an Aether or Mieru profile** never started its daemon. Both
+    managers hold one global slot and were only ever started when the *selected* profile was
+    itself one of those types — but an entry proxy is the outermost hop of every profile in its
+    subscription, so the whole subscription dialled a dead loopback port and reported **-1**.
+    `HelperProcessSupport` now resolves the chain and refcounts the daemons, so a batch sharing
+    one entry proxy starts it once rather than once per profile.
+  - The latency test probed a chained profile's *own* server directly before dialling the
+    chain. An exit reachable only through the entry proxy failed that probe and was marked -1
+    without ever being tried. The probe is now skipped unless the profile is its own chain.
 - **Five config-generation bugs fixed**, each found by a test that was written to look for it:
   - AnyTLS emitted `network: "tcp"` with no `anytlsSettings` — the transport was set where
     `populateTransportSettings` immediately overwrote it, so the feature never worked at all
@@ -387,13 +406,28 @@ strings /tmp/v/*.apk >/dev/null   # then the marker checks from §4
   the built core.
 - **Release signing** with a dedicated key, out of the repository, failing loudly if absent.
 - **RTL**: the wordmark reads correctly in Persian, and Persian covers every string.
-- 178 unit tests, up from 17.
+- 212 unit tests, up from 17.
 
 ## 12. What is not done
 
-- **Nothing has been device-tested.** Every release from 1.7.5 to 1.7.10 was built and verified
+- **Nothing has been device-tested.** Every release from 1.7.5 onwards was built and verified
   but never installed. That is the largest open risk, and it covers the helper-process
-  lifecycle, the orphan reaping, the port allocation and the new button.
+  lifecycle, the orphan reaping, the port allocation, the new button and — for 1.8.0 — the
+  mimic packets and the chain fixes.
+- **OpenVPN is not implemented, and cannot be added the way the other protocols were.**
+  Unlike Aether and Mieru there is no standalone OpenVPN binary to ship, and unlike AnyTLS
+  there is no Go OpenVPN client to link: every candidate module is unreachable from the proxy,
+  and patterniha v26.9.27 has no OpenVPN outbound across all 42 refs of its remotes. Adding it
+  means either cross-compiling OpenVPN for four ABIs or writing the protocol in Go — both far
+  past what can be verified here without a device. It also needs the key's TLS auth working
+  under this app's routing, which nothing in the tree currently does.
+- **The batch latency test cannot report an egress country.** The card shows the country from
+  the *live* ping (`SpeedtestManager.getRemoteIPInfo`, which queries through the app's HTTP
+  inbound) whenever that has run, and falls back to the host's GeoIP country otherwise. A
+  "ping all" run cannot add to it: `MeasureOutboundDelay` in the gomobile shim nulls the
+  inbounds and dials the test URL through `core.Dial`, so there is no local inbound to route
+  an IP-echo request through. Learning the country for every server in a batch needs a core
+  change — a probe that fetches the IP alongside the delay — not an app change.
 - **SSH is not implemented.** There is no standalone SSH-to-SOCKS binary for Android, so it needs
   a new outbound inside the Go core using `golang.org/x/crypto/ssh` — the same shape of work as
   AnyTLS. `golang.org/x/crypto` is already in the module graph, so the dependency is free.

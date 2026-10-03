@@ -459,12 +459,7 @@ object AngConfigManager {
             return 0
         } else if (server.startsWith("[Interface]") && server.contains("[Peer]")) {
             try {
-                val isAmneziaConf = server.contains("Jc", ignoreCase = false) &&
-                    server.split('\n').any {
-                        val key = it.substringBefore('=').trim().lowercase()
-                        key in setOf("jc", "jmin", "jmax", "s1", "s2", "h1", "h2", "h3", "h4")
-                    }
-                val config = if (isAmneziaConf) {
+                val config = if (AmneziawgFmt.looksLikeAmneziaConf(server)) {
                     AmneziawgFmt.parseAmneziaConfFile(server)
                 } else {
                     WireguardFmt.parseWireguardConfFile(server)
@@ -627,7 +622,15 @@ object AngConfigManager {
                     )
                 )
             } catch (e: Exception) {
-                LogUtil.e(AppConfig.ANG_PACKAGE, "Update subscription: proxy not ready or other error", e)
+                // Expected whenever no core is serving the local proxy: the app is
+                // disconnected, or running a profile that bypasses the core entirely
+                // (AmneziaWG owns the TUN itself). The direct fetch below handles it,
+                // so this is a fallback rather than a failure — logging it at error
+                // level with a stack trace made every subscription update look broken.
+                LogUtil.w(
+                    AppConfig.ANG_PACKAGE,
+                    "Update subscription: no local proxy, fetching directly instead"
+                )
                 null
             }
             if (fetched == null || fetched.body.isEmpty()) {

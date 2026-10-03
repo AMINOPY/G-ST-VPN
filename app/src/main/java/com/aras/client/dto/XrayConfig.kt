@@ -116,7 +116,14 @@ data class XrayConfig(
                 var initPacketJunkHeader: List<Int>? = null,
                 var responsePacketJunkHeader: List<Int>? = null,
                 var cookiePacketJunkHeader: List<Int>? = null,
-                var transportPacketJunkHeader: List<Int>? = null
+                var transportPacketJunkHeader: List<Int>? = null,
+                // Mimic packets. These JSON names match the core's proto3 JSON names,
+                // where mimic_packet_1 is rendered mimicPacket1.
+                var mimicPacket1: String? = null,
+                var mimicPacket2: String? = null,
+                var mimicPacket3: String? = null,
+                var mimicPacket4: String? = null,
+                var mimicPacket5: String? = null
             )
         }
 

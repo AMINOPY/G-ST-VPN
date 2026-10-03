@@ -370,7 +370,12 @@ private fun ServerItemRow(
         ArasExportImportManager.isProtected(serverCache.guid)
     }
     val protectedDescription = stringResource(R.string.protected_config_hidden)
+    // Keyed on the GeoIP cache version as well: a lookup that lands after this card
+    // has composed used to be ignored, leaving the name-derived flag in place until a
+    // ping changed one of the other keys.
+    val geoVersion by com.aras.client.util.GeoIPResolver.version.collectAsStateWithLifecycle()
     val country = remember(
+        geoVersion,
         serverCache.guid,
         serverCache.testDelayMillis,
         serverCache.testCountryCode,
@@ -434,7 +439,12 @@ private fun ServerItemColumn(
     val isProtected = remember(serverCache.guid) {
         ArasExportImportManager.isProtected(serverCache.guid)
     }
+    // Keyed on the GeoIP cache version as well: a lookup that lands after this card
+    // has composed used to be ignored, leaving the name-derived flag in place until a
+    // ping changed one of the other keys.
+    val geoVersion by com.aras.client.util.GeoIPResolver.version.collectAsStateWithLifecycle()
     val country = remember(
+        geoVersion,
         serverCache.guid,
         serverCache.testDelayMillis,
         serverCache.testCountryCode,

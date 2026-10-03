@@ -2,6 +2,7 @@ package com.aras.client.core
 
 import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.enums.EConfigType
+import com.aras.client.util.MimicPackets
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -66,5 +67,44 @@ class AwgConfigBuilderTest {
         assertTrue(uapi.contains("allowed_ip=0.0.0.0/0\n"))
         assertTrue(uapi.contains("replace_peers=true\n"))
         assertTrue(uapi.indexOf("replace_peers=true") < uapi.indexOf("public_key="))
+    }
+
+    @Test
+    fun `mimic packets are written as i1 to i5 on the device side`() {
+        val config = userConfig().apply { mimicPackets = "<b 4f5054>\n<t>\n<dz 2>" }
+
+        val uapi = AwgConfigBuilder.buildUapi(config)
+
+        assertTrue(uapi.contains("i1=<b 4f5054>\n"))
+        assertTrue(uapi.contains("i2=<t>\n"))
+        assertTrue(uapi.contains("i3=<dz 2>\n"))
+        assertTrue(!uapi.contains("i4="))
+        assertTrue(!uapi.contains("i5="))
+        // The core is in peer context after replace_peers, where i1 is rejected.
+        assertTrue(uapi.indexOf("i1=") < uapi.indexOf("public_key="))
+    }
+
+    @Test
+    fun `a malformed mimic spec is dropped rather than failing the tunnel`() {
+        val config = userConfig().apply { mimicPackets = "<b 4f5054>\n<nope>" }
+
+        val uapi = AwgConfigBuilder.buildUapi(config)
+
+        assertTrue(uapi.contains("i1=<b 4f5054>\n"))
+        assertTrue(!uapi.contains("i2="))
+    }
+
+    @Test
+    fun `a profile with no mimic packets writes none`() {
+        assertTrue(!AwgConfigBuilder.buildUapi(userConfig()).contains("i1="))
+    }
+
+    @Test
+    fun `the SIP preset survives a round trip through the UAPI`() {
+        val preset = MimicPackets.sipPreset()
+
+        val uapi = AwgConfigBuilder.buildUapi(userConfig().apply { mimicPackets = preset })
+
+        assertTrue(uapi.contains("i1=$preset\n"))
     }
 }

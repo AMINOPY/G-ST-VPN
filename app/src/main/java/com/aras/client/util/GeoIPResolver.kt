@@ -3,6 +3,9 @@ package com.aras.client.util
 import com.aras.client.AppConfig
 import com.aras.client.handler.MmkvManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -29,6 +32,19 @@ object GeoIPResolver {
     private const val DNS_TIMEOUT_MS = 4000L
 
     private val memCache = ConcurrentHashMap<String, String>()
+
+    /**
+     * Bumped whenever a lookup is written into the cache.
+     *
+     * The server card resolves its flag from this cache, but nothing about the card
+     * changes when the cache fills: the lookup is finished after the card has already
+     * composed, and reading [cached] is not an observable read. Without this the card
+     * kept whatever the profile's *name* suggested until something else — a ping —
+     * forced it to recompose, which is why the flag only became right after a test.
+     */
+    private val cacheVersion = MutableStateFlow(0)
+    val version: StateFlow<Int> = cacheVersion.asStateFlow()
+
     private val refreshMutex = Mutex()
     private val validIsoCodes by lazy {
         Locale.getISOCountries().map { it.uppercase(Locale.ROOT) }.toSet()
@@ -38,6 +54,10 @@ object GeoIPResolver {
             .connectTimeout(8, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .build()
+    }
+
+    private fun publish() {
+        cacheVersion.value = cacheVersion.value + 1
     }
 
     fun cached(host: String): String {
@@ -101,12 +121,15 @@ object GeoIPResolver {
                         ) ?: return@forEach
                         codeByIp[ip] = code
                     }
+                    var wrote = false
                     resolved.forEach { (host, ip) ->
                         codeByIp[ip]?.let { code ->
                             memCache[host] = code
                             MmkvManager.encodeSettings(CACHE_PREFIX + host, code)
+                            wrote = true
                         }
                     }
+                    if (wrote) publish()
                 }
             } catch (e: Exception) {
                 LogUtil.w(AppConfig.TAG, "GeoIP batch lookup failed: ${e.message}")

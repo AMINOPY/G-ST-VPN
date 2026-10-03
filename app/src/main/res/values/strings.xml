@@ -249,6 +249,9 @@
     <string name="server_awg_response_header">H2 — response packet header (optional)</string>
     <string name="server_awg_cookie_header">H3 — cookie packet header (optional)</string>
     <string name="server_awg_transport_header">H4 — transport packet header (optional)</string>
+    <string name="server_awg_mimic_packets">Mimic packets I1–I5 (one spec per line, optional)</string>
+    <string name="server_awg_mimic_sip_preset">Add a SIP decoy</string>
+    <string name="server_awg_mimic_invalid">Ignored when connecting:\n%1$s</string>
     <string name="server_lab_kcp_mtu">mKCP MTU (optional, core default 1350)</string>
     <string name="server_lab_kcp_tti">mKCP TTI (optional, core default 50)</string>
     <string name="toast_success">Success</string>

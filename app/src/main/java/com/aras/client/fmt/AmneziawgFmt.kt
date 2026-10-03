@@ -6,8 +6,10 @@ import com.aras.client.enums.EConfigType
 import com.aras.client.extension.idnHost
 import com.aras.client.extension.nullIfBlank
 import com.aras.client.extension.removeWhiteSpace
+import com.aras.client.util.MimicPackets
 import com.aras.client.util.Utils
 import java.net.URI
+import java.util.Locale
 
 object AmneziawgFmt : FmtBase() {
 
@@ -50,6 +52,12 @@ object AmneziawgFmt : FmtBase() {
         // H3 was previously only read from a .conf peer block (as "h3") and never
         // carried in a share link, so it was silently dropped on export/import.
         config.cookiePacketJunkHeader = queryParam["cookiePacketJunkHeader"]?.nullIfBlank()
+        // Mimic packets travel as i1..i5 — the same names the AmneziaWG UAPI uses,
+        // so a link can be read against either without translation.
+        config.mimicPackets = (1..MimicPackets.MAX_PACKETS)
+            .mapNotNull { queryParam["i$it"]?.nullIfBlank() }
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString("\n")
 
         applyDefaultJunkParams(config)
         return config
@@ -76,6 +84,38 @@ object AmneziawgFmt : FmtBase() {
         config.responsePacketJunkHeader = "2"
         config.cookiePacketJunkHeader = "3"
         config.transportPacketJunkHeader = "4"
+    }
+
+    /**
+     * Every key that only AmneziaWG writes, in either case.
+     *
+     * S3/S4 and the I1-I5 mimic packets count: a config carrying only those is
+     * still AmneziaWG, and treating it as plain WireGuard throws the whole
+     * obfuscation setup away.
+     */
+    private val AMNEZIA_ONLY_KEYS = setOf(
+        "jc", "jmin", "jmax", "s1", "s2", "s3", "s4",
+        "h1", "h2", "h3", "h4",
+        "i1", "i2", "i3", "i4", "i5",
+        "junkpacketcount", "junkpacketminsize", "junkpacketmaxsize",
+        "initpacketjunksize", "responsepacketjunksize",
+    )
+
+    /**
+     * Whether a `.conf` is AmneziaWG rather than plain WireGuard.
+     *
+     * Deciding on the key set is case-insensitive and complete. The previous
+     * test was `server.contains("Jc", ignoreCase = false)`, so a file writing
+     * `jc` or `JC` was imported as stock WireGuard: the profile kept its keys
+     * but none of the obfuscation parameters were applied, so it dialled as
+     * plain WireGuard, the server dropped every packet, and the editor offered
+     * no AmneziaWG fields to show that anything was missing.
+     */
+    fun looksLikeAmneziaConf(text: String): Boolean = text.lineSequence().any { line ->
+        val key = line.substringBefore('=', missingDelimiterValue = "")
+            .trim()
+            .lowercase(Locale.US)
+        key.isNotEmpty() && key in AMNEZIA_ONLY_KEYS
     }
 
     /**
@@ -141,16 +181,31 @@ object AmneziawgFmt : FmtBase() {
             config.serverPort = ""
         }
         config.reserved = peerParams["reserved"] ?: "0,0,0"
+        config.keepAlive = peerParams["persistentkeepalive"]?.nullIfBlank()
 
-        config.junkPacketCount = peerParams["jc"]?.nullIfBlank()
-        config.junkPacketMinSize = peerParams["jmin"]?.nullIfBlank()
-        config.junkPacketMaxSize = peerParams["jmax"]?.nullIfBlank()
-        config.initPacketJunkSize = peerParams["s1"]?.nullIfBlank()
-        config.responsePacketJunkSize = peerParams["s2"]?.nullIfBlank()
-        config.initPacketJunkHeader = peerParams["h1"]?.nullIfBlank()
-        config.responsePacketJunkHeader = peerParams["h2"]?.nullIfBlank()
-        config.cookiePacketJunkHeader = peerParams["h3"]?.nullIfBlank()
-        config.transportPacketJunkHeader = peerParams["h4"]?.nullIfBlank()
+        // The obfuscation parameters are DEVICE-level, so AmneziaVPN writes them under
+// [Interface] — they have to, because the UAPI parser is in peer context after
+        // the first "public_key=" line. Reading only [Peer] found nothing in a
+        // normal export, applyDefaultJunkParams then filled in AmneziaWG's stock
+        // values, and the server silently dropped every packet: the tunnel came
+        // up carrying nothing. Read both, [Interface] first, so a file that puts
+        // them in either place works.
+        val obfuscation = { key: String ->
+            interfaceParams[key]?.nullIfBlank() ?: peerParams[key]?.nullIfBlank()
+        }
+        config.junkPacketCount = obfuscation("jc")
+        config.junkPacketMinSize = obfuscation("jmin")
+        config.junkPacketMaxSize = obfuscation("jmax")
+        config.initPacketJunkSize = obfuscation("s1")
+        config.responsePacketJunkSize = obfuscation("s2")
+        config.initPacketJunkHeader = obfuscation("h1")
+        config.responsePacketJunkHeader = obfuscation("h2")
+        config.cookiePacketJunkHeader = obfuscation("h3")
+        config.transportPacketJunkHeader = obfuscation("h4")
+        config.mimicPackets = (1..MimicPackets.MAX_PACKETS)
+            .mapNotNull { obfuscation("i$it") }
+            .takeIf { it.isNotEmpty() }
+            ?.joinToString("\n")
 
         applyDefaultJunkParams(config)
         return config
@@ -185,6 +240,9 @@ object AmneziawgFmt : FmtBase() {
         config.responsePacketJunkHeader?.nullIfBlank()?.let { dicQuery["responsePacketJunkHeader"] = it }
         config.transportPacketJunkHeader?.nullIfBlank()?.let { dicQuery["transportPacketJunkHeader"] = it }
         config.cookiePacketJunkHeader?.nullIfBlank()?.let { dicQuery["cookiePacketJunkHeader"] = it }
+        MimicPackets.specs(config.mimicPackets).forEachIndexed { index, spec ->
+            dicQuery["i${index + 1}"] = spec
+        }
 
         return toUri(config, config.secretKey, dicQuery)
     }

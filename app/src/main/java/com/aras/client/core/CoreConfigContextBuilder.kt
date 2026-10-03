@@ -57,6 +57,25 @@ object CoreConfigContextBuilder {
     }
 
     /**
+     * The profiles [guid]'s chain resolves to, in the order the outbound is built:
+     * innermost first, entry proxy last. A single profile when it is not chained.
+     *
+     * Callers use this to ask what a profile will actually have to traverse — to
+     * decide whether connecting straight to its own server means anything, and
+     * which hops an external helper process has to serve. The profile's own
+     * configType answers neither question.
+     */
+    fun resolveChainProfiles(context: Context, guid: String): List<ProfileItem> {
+        val config = MmkvManager.decodeServerConfig(guid) ?: return emptyList()
+        if (config.configType == EConfigType.CUSTOM) return listOf(config)
+        return when (config.configType) {
+            EConfigType.POLICYGROUP -> resolvePolicyGroupProfiles(config)
+            EConfigType.PROXYCHAIN -> resolveProxyChainProfiles(config)
+            else -> resolveProxyChainProfilesFromGroup(config)
+        }
+    }
+
+    /**
      * Resolve one outbound target into a normalized outbound entry.
      *
      * Custom profiles are ignored at this stage and produce no entry.

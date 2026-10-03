@@ -1,9 +1,11 @@
 package com.aras.client.service
 
 import android.content.Context
+import com.aras.client.AppConfig
+import com.aras.client.core.CoreConfigContextBuilder
 import com.aras.client.core.CoreConfigManager
 import com.aras.client.core.CoreNativeManager
-import com.aras.client.core.aether.AetherCoreManager
+import com.aras.client.core.HelperProcessSupport
 import com.aras.client.dto.RealPingEvent
 import com.aras.client.enums.EConfigType
 import com.aras.client.extension.isComplexType
@@ -11,6 +13,7 @@ import com.aras.client.extension.isNotNullEmpty
 import com.aras.client.handler.MmkvManager
 import com.aras.client.handler.SettingsManager
 import com.aras.client.handler.SpeedtestManager
+import com.aras.client.util.LogUtil
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -109,7 +112,13 @@ class RealPingWorkerService(
         val retFailure = -1L
 
         val config = MmkvManager.decodeServerConfig(guid) ?: return retFailure
-        if (!config.configType.isComplexType()
+        val chain = CoreConfigContextBuilder.resolveChainProfiles(context, guid)
+        // Only a profile that is its own chain is worth probing straight to. A profile
+        // that hops through an entry or exit proxy may be reachable *only* through it,
+        // and the direct probe rejected the whole subscription before the chain was
+        // ever dialled — which is what made an entry proxy mark every server -1.
+        if (chain.size <= 1
+            && !config.configType.isComplexType()
             && config.configType != EConfigType.HYSTERIA2
             && config.configType != EConfigType.WIREGUARD
             && config.configType != EConfigType.AMNEZIAWG
@@ -134,17 +143,23 @@ class RealPingWorkerService(
             return retFailure
         }
         return RealPingExecutionLimiter.run(config.configType) {
-            // An Aether profile is measured through the core's loopback SOCKS, so the
-            // core has to be listening or the number means nothing.
-            if (config.configType == EConfigType.AETHER) {
-                AetherCoreManager.withSession(context, config) {
-                    CoreNativeManager.measureOutboundDelay(
-                        configResult.content,
-                        SettingsManager.getDelayTestUrl(),
-                    )
-                }
-            } else {
-                CoreNativeManager.measureOutboundDelay(configResult.content, SettingsManager.getDelayTestUrl())
+            // Any Aether or Mieru hop in the resolved chain lowers to a SOCKS hop on
+            // loopback, so its daemon has to be listening or every measurement through
+            // it is -1. The refcounts here mean a batch of profiles sharing one entry
+            // proxy starts that daemon once, not once per profile.
+            val helpers = HelperProcessSupport.acquire(context, chain)
+            if (!helpers.ok) {
+                LogUtil.w(AppConfig.TAG, "RealPing: ${helpers.error}")
+                HelperProcessSupport.release(helpers)
+                return@run retFailure
+            }
+            try {
+                CoreNativeManager.measureOutboundDelay(
+                    configResult.content,
+                    SettingsManager.getDelayTestUrl(),
+                )
+            } finally {
+                HelperProcessSupport.release(helpers)
             }
         }
     }
