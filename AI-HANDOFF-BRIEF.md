@@ -12,7 +12,7 @@ deep reference. Everything below was verified, not remembered.
 | Owner | **ArasTey** — Persian-speaking. Reply in Persian if they write in Persian. |
 | Git identity | `ArasTey <308009703+ArasTey@users.noreply.github.com>` — set repo-locally on both repos already. Never use a placeholder identity. |
 | App repo | `/Users/admin/Documents/ArasClient/ArasClient` — remote `ArasTey/ArasClient`, branch `main` |
-| Core repo | `~/corebuild/xray-core` — remote `ArasTey/xray-core`, branch **`feat/awg-mimic-packets`** at `478176a0`. **Local only.** The tag `aras-core-26.9.28` exists locally and is *also* local only — the `aras` remote still ends at `aras-core-26.9.27` (`d6451464`). |
+| Core repo | `~/corebuild/xray-core` — remote `ArasTey/xray-core`, branch **`feat/awg-mimic-packets`** at `478176a0`. **Pushed**, together with the tag `aras-core-26.9.28`; both remote refs resolve to `478176a0`. |
 | Bindings | `~/corebuild/AndroidLibXrayLite` — remote `ArasTey/AndroidLibXrayLite` |
 | Builds | `~/Desktop/ArasClient-1.8.0/` — 5 APKs + `SHA-256SUMS.txt` + `README.txt` |
 | Current commit | one commit, unpushed; `main` is 1 ahead of `origin/main`. Run `git rev-parse --short HEAD` — a hash written *inside* the commit it describes cannot stay correct, because amending changes it. |
@@ -96,21 +96,15 @@ gh release create v1.8.0 --title "ArasClient v1.8.0" --notes-file /tmp/notes.md 
 gh release upload v1.8.0 --repo ArasTey/ArasClient app/build/outputs/apk/release/ArasClient_*.apk --clobber
 ```
 
-**The core must be published first or the release ships the old core.** This is
-the one blocker standing between the current state and a correct release.
-
-```bash
-cd ~/corebuild/xray-core
-git push aras feat/awg-mimic-packets
-git push aras aras-core-26.9.28        # the tag exists locally but is unpushed
-```
-
-Then update `ref:` in `.github/workflows/build.yml` line 27 (currently
-`aras-core-26.9.27`) to `aras-core-26.9.28`. CI builds the core from that ref
-and overwrites `app/libs/aras-core.aar`, so releasing without moving this ref
-ships a core **without** the I1–I5 mimic packets — the headline feature of
-1.8.0. The tracked `.aar` on disk does contain them, so local builds are fine;
-it is only the CI rebuild that loses them.
+**The core must be published first or the release ships the old core.** That
+blocker is now **cleared**: `feat/awg-mimic-packets` and the tag
+`aras-core-26.9.28` are both pushed to `aras`, and `.github/workflows/build.yml`
+line 27 is pinned to `aras-core-26.9.28`. Do not re-pin it to
+`aras-core-26.9.27`. CI builds the core from that ref and overwrites
+`app/libs/aras-core.aar`, so the old ref ships a core **without** the I1–I5
+mimic packets — the headline feature of 1.8.0. The tracked `.aar` on disk does
+contain them, so local builds are fine; only a CI rebuild from the wrong ref
+loses them.
 
 ---
 
