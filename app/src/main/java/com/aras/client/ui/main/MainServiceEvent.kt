@@ -12,7 +12,7 @@ sealed class MainServiceEvent {
     data class StateStartFailure(val message: String?) : MainServiceEvent()
     data object StateStopSuccess : MainServiceEvent()
     data class MeasureDelayResult(val result: ConnectionTestResult) : MainServiceEvent()
-    data object MeasureConfigSuccess : MainServiceEvent()
+    data class MeasureConfigSuccess(val guid: String) : MainServiceEvent()
     data class MeasureConfigNotify(val progress: String) : MainServiceEvent()
     data class MeasureConfigFinish(val finishedCount: String?) : MainServiceEvent()
     data class QuickConnectFinished(val result: QuickConnectResult) : MainServiceEvent()

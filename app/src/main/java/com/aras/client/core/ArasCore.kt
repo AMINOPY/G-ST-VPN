@@ -12,6 +12,12 @@ object ArasCore {
     fun checkVersionX() = libv2ray.Libv2ray.checkVersionX()
     fun measureOutboundDelay(config: String?, testUrl: String?) =
         libv2ray.Libv2ray.measureOutboundDelay(config, testUrl)
+    fun measureOutboundDelayWithInfo(
+        config: String?,
+        testUrl: String?,
+        ipApiUrl: String?
+    ): libv2ray.OutboundDelayResult =
+        libv2ray.Libv2ray.measureOutboundDelayWithInfo(config, testUrl, ipApiUrl)
     fun newCoreController(handler: CoreCallbackHandler?) =
         libv2ray.Libv2ray.newCoreController(handler)
     fun fetchQuicCertSha256(request: String) =

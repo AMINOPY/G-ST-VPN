@@ -104,6 +104,28 @@ object CoreNativeManager {
     }
 
     /**
+     * Measure outbound connection delay AND fetch egress IP/country info through
+     * the same core.Dial path.
+     *
+     * @param config The configuration JSON string
+     * @param testUrl The URL to test against
+     * @param ipApiUrl The IP API URL for egress country lookup
+     * @return OutboundDelayResult with delay/country/ip, or null on failure
+     */
+    fun measureOutboundDelayWithInfo(config: String, testUrl: String, ipApiUrl: String): libv2ray.OutboundDelayResult? {
+        return try {
+            ArasCore.measureOutboundDelayWithInfo(config, testUrl, ipApiUrl)?.also { r ->
+                // Kotlin property access on the gomobile proxy: keep nulls tidy.
+                if (r.getCountry()?.isBlank() == true) r.setCountry(null)
+                if (r.getIP()?.isBlank() == true) r.setIP(null)
+            }
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.TAG, "Failed to measure outbound delay with info", e)
+            null
+        }
+    }
+
+    /**
      * Create a new core controller instance.
      *
      * @param handler The callback handler for core events

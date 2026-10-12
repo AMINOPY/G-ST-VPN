@@ -193,16 +193,22 @@ class MainViewModel(
                 }
             }
 
-            MainServiceEvent.MeasureConfigSuccess -> {
+            is MainServiceEvent.MeasureConfigSuccess -> {
                 val round = testRounds.current ?: return
                 if (!round.dispatched || round.finishing) return
-                viewModelScope.launch {
-                    val loaded = withContext(ioDispatcher) {
-                        loadGroup(round.groupId, forceRefresh = true)
-                    }
-                    // A cancelled/replaced round must not publish a late cache refresh.
-                    if (testRounds.isCurrent(round) && !round.finishing) {
-                        updateGroupUi(round.groupId, loaded)
+                if (event.guid.isBlank() || event.guid !in round.candidates) return
+                // Incremental update: patch the single tested server into the live
+                // list instead of rebuilding the whole group cache. A full
+                // loadGroup(forceRefresh) per result re-decoded every profile once
+                // per ping — with a hundred configs that recomposed the list a
+                // hundred times mid-batch and showed up as dropped frames.
+                val aff = dataSource.decodeAffiliationInfo(event.guid)
+                mutableServersForGroup(round.groupId).update { current ->
+                    current.map { cache ->
+                        if (cache.guid == event.guid) cache.copy(
+                            testDelayMillis = aff?.testDelayMillis ?: cache.testDelayMillis,
+                            testCountryCode = aff?.countryCode ?: cache.testCountryCode,
+                        ) else cache
                     }
                 }
             }

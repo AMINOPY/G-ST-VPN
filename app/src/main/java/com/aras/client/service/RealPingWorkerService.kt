@@ -66,9 +66,20 @@ class RealPingWorkerService(
             scope.launch {
                 runningCount.incrementAndGet()
                 try {
-                    val result = if (onlyTcp) startTcping(guid) else startRealPing(guid)
+                    val result = if (onlyTcp) {
+                        PingResult(startTcping(guid))
+                    } else {
+                        startRealPing(guid)
+                    }
                     if (scope.isActive) {
-                        onEvent(RealPingEvent.Result(guid, result))
+                        onEvent(
+                            RealPingEvent.Result(
+                                guid = guid,
+                                delayMillis = result.delayMillis,
+                                country = result.country,
+                                ipAddress = result.ipAddress,
+                            )
+                        )
                     }
                 } catch (_: Throwable) {
                     // ignore
@@ -108,8 +119,15 @@ class RealPingWorkerService(
         }
     }
 
-    private suspend fun startRealPing(guid: String): Long {
-        val retFailure = -1L
+    /** A delay measurement plus whatever egress info the dial path carried back. */
+    internal data class PingResult(
+        val delayMillis: Long,
+        val country: String? = null,
+        val ipAddress: String? = null,
+    )
+
+    private suspend fun startRealPing(guid: String): PingResult {
+        val retFailure = PingResult(-1L)
 
         val config = MmkvManager.decodeServerConfig(guid) ?: return retFailure
         val chain = CoreConfigContextBuilder.resolveChainProfiles(context, guid)
@@ -154,10 +172,18 @@ class RealPingWorkerService(
                 return@run retFailure
             }
             try {
-                CoreNativeManager.measureOutboundDelay(
+                val info = CoreNativeManager.measureOutboundDelayWithInfo(
                     configResult.content,
                     SettingsManager.getDelayTestUrl(),
+                    MmkvManager.decodeSettingsString(AppConfig.PREF_IP_API_URL)
+                        .takeIf { !it.isNullOrBlank() }
+                        ?: AppConfig.IP_API_URL,
                 )
+                if (info != null) {
+                    PingResult(info.getDelay(), info.getCountry(), info.getIP())
+                } else {
+                    PingResult(-1L)
+                }
             } finally {
                 HelperProcessSupport.release(helpers)
             }

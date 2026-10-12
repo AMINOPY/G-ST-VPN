@@ -160,6 +160,16 @@ class CoreTestService : Service() {
                     MmkvManager.decodeServerConfig(event.guid) != null
                 ) {
                     MmkvManager.encodeServerTestDelayMillis(event.guid, event.delayMillis)
+                    // The batch measurement can carry the egress country back through
+                    // the same core dial path — persist it so cards show a flag
+                    // without a separate IP-echo request.
+                    if (event.delayMillis >= 0 && (event.country != null || event.ipAddress != null)) {
+                        MmkvManager.encodeServerTestCountry(
+                            guid = event.guid,
+                            country = event.country,
+                            ipAddress = event.ipAddress,
+                        )
+                    }
                     MessageHelper.sendMsg2UI(this, AppConfig.MSG_MEASURE_CONFIG_SUCCESS, event.guid)
                 }
             }
