@@ -167,6 +167,13 @@ object RootProxyManager {
             // mark the device's own packets into the tun (Root mode only)
             if (captureDeviceTraffic) {
                 append(buildMangleMarking("iptables", appUid, perAppEnabled, bypassApps, selectedUids))
+                // DNS DNAT: rewrite the device's own DNS queries destined for LAN/private
+                // resolvers to a public IP, so the core's routing can resolve them via the
+                // configured remote DNS instead of a geoip:private → direct rule sending
+                // the query back to the LAN resolver (ISP DNS poisoning / CDN
+                // mis-resolution). Best-effort: never break the working proxy over it.
+                appendLine("set +e")
+                append(buildDnsDnat("iptables"))
             }
             // optionally route hotspot / USB-tethered clients through the tun too
             if (lanShare) {
@@ -181,6 +188,7 @@ object RootProxyManager {
                     appendLine("ip -6 route replace default dev $TUN table $TABLE 2>/dev/null || true")
                     appendLine("ip -6 rule add fwmark $MARK table $TABLE priority $PRIORITY 2>/dev/null || true")
                     append(buildMangleMarking("ip6tables", appUid, perAppEnabled, bypassApps, selectedUids))
+                    append(buildDnsDnat("ip6tables"))
                 } else {
                     // v6 disabled: blackhole native v6 egress for the captured apps so they
                     // fall back to v4-through-proxy, matching what a v4-only VpnService does.
@@ -421,6 +429,38 @@ object RootProxyManager {
         }
     }
 
+    // -------------------------------------------------- DNS DNAT (device, root mode)
+
+    /**
+     * DNAT the device's own DNS queries (port 53) destined for LAN/private resolvers to a
+     * public IP.
+     *
+     * In root mode the query reaches the core's SOCKS inbound as a UDP relay to the original
+     * resolver address (e.g. 192.168.1.1:53). The routing rule sending port-53 to dns-out
+     * should intercept it, but when the resolver is a private IP the query also matches a
+     * user's `geoip:private → direct` rule, which sends it straight back to the LAN resolver
+     * (ISP DNS) — the "some sites work, some don't" symptom. Rewriting the destination to a
+     * public IP prevents geoip:private from matching, so dns-out resolves via the configured
+     * remote DNS through the proxy. Same resolver selection as [buildLanShareSetup].
+     */
+    private fun buildDnsDnat(cmd: String): String {
+        val dnsChain = AppConfig.ROOT_DNS_OUT_CHAIN
+        val dns = SettingsManager.getRemoteDnsServers()
+            .firstOrNull { Utils.isPureIpAddress(it) && !it.contains(":") }
+            ?: AppConfig.ROOT_LAN_DNS
+        val lanCidrs = if (cmd == "ip6tables") bypassCidrsV6 else bypassCidrs
+        return buildString {
+            appendLine("$cmd -t nat -N $dnsChain 2>/dev/null || true")
+            appendLine("$cmd -t nat -F $dnsChain")
+            lanCidrs.forEach {
+                appendLine("$cmd -t nat -A $dnsChain -d $it -p udp --dport 53 -j DNAT --to $dns")
+                appendLine("$cmd -t nat -A $dnsChain -d $it -p tcp --dport 53 -j DNAT --to $dns")
+            }
+            appendLine("$cmd -t nat -D OUTPUT -j $dnsChain 2>/dev/null || true")
+            appendLine("$cmd -t nat -A OUTPUT -j $dnsChain")
+        }
+    }
+
     // ---------------------------------------------------------------- teardown
 
     private fun buildTeardown(context: Context): String {
@@ -444,6 +484,12 @@ object RootProxyManager {
             appendLine("ip -6 rule del fwmark $MARK table $TABLE priority $PRIORITY 2>/dev/null || true")
             appendLine("ip route flush table $TABLE 2>/dev/null || true")
             appendLine("ip -6 route flush table $TABLE 2>/dev/null || true")
+            // DNS DNAT chain (device, root mode; both families, harmless if absent)
+            for (cmd in listOf("iptables", "ip6tables")) {
+                appendLine("$cmd -t nat -D OUTPUT -j ${AppConfig.ROOT_DNS_OUT_CHAIN} 2>/dev/null || true")
+                appendLine("$cmd -t nat -F ${AppConfig.ROOT_DNS_OUT_CHAIN} 2>/dev/null || true")
+                appendLine("$cmd -t nat -X ${AppConfig.ROOT_DNS_OUT_CHAIN} 2>/dev/null || true")
+            }
             // LAN / tethering sharing (always cleaned, harmless if it was never set up)
             appendLine("iptables -D FORWARD -j ${AppConfig.ROOT_FWD_CHAIN} 2>/dev/null || true")
             appendLine("iptables -F ${AppConfig.ROOT_FWD_CHAIN} 2>/dev/null || true")

@@ -160,7 +160,12 @@
     <string-array name="streamsecurity_utls" translatable="false">
         <item />
         <item>chrome</item>
+        <item>hellochrome_120</item>
+        <item>hellochrome_131</item>
+        <item>hellochrome_133</item>
         <item>firefox</item>
+        <item>hellofirefox_120</item>
+        <item>hellofirefox_148</item>
         <item>safari</item>
         <item>ios</item>
         <item>android</item>

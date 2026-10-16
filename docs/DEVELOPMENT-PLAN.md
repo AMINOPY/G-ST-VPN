@@ -147,3 +147,68 @@ Keep remark flags, speed up batch ping, fix test-time stutter
 - Per-test results patch a single card instead of rebuilding the whole
   group cache, which dropped frames during long batches.
 ```
+---
+
+## 6. Round 2026-10-16/17: core update to patterniha v26.10.13 + PattNG parity
+
+Everything in this section is committed/planned LOCALLY ONLY — the owner
+ordered no pushes until they say so.
+
+### 6.1 Remarks are immutable on import
+
+Follow-up audit after the owner reported flags still being deleted: the
+installed 1.8.0 APK was built from the pre-fix working tree, so the *shipped*
+build still stripped flags. The current source never strips them and never
+rewrites a non-empty remark: every parser fills a default name only when the
+fragment is empty. `RemarkPreservationTest.kt` pins the AWG flag remark
+byte-for-byte through parse and a share-link round trip, plus the vless
+flag case and the empty-remark default. **Reinstall from a fresh build to
+see it.**
+
+### 6.2 Root-mode DNS DNAT (upstream fix ported)
+
+v2rayNG/PattNG merged upstream #6298: in root mode, a DNS query to a private
+resolver (e.g. 192.168.1.1) also matches a user's `geoip:private → direct`
+rule and leaks to the ISP resolver. Ported into `RootProxyManager` as
+`buildDnsDnat(iptables|ip6tables)` (teardown included) + `ROOT_DNS_OUT_CHAIN`
+const. Owner-verified on device is still pending.
+
+### 6.3 Fingerprint list
+
+The picker now exposes `hellochrome_120/131/133`, `hellofirefox_120/148` —
+all already supported by the core (`tls.go` ModernFingerprints). PattNG had
+only hellochrome_120. No string resources touched (translatable=false).
+
+### 6.4 Core updated to patterniha v26.10.13
+
+Branch `feat/awg-mimic-packets-26.10` (local): our two patches
+(ArasClient port + AWG mimic packets) rebased onto patterniha's
+`v26.10.13` (`709648e0`), 91 upstream commits newer than the previous base.
+Key conflicts resolved:
+
+- `insecure_skip_verify` renumbered proto field 23 → **24** — upstream added
+  `use_system_ca = 23`; the wire number changed together with the field
+  (config.proto regenerated via protoc; check `config.pb.go` is byte-identical).
+- `common/singbridge` restored from the 26.9.27 base — upstream's SS2022
+  refactor deleted it, but our AnyTLS port still imports it.
+- masque/tun: upstream now types the tun against stock wireguard-go;
+  `masque/server.go` retyped to amneziawg-go's `tun.Device`.
+- Core `go build ./...` green; AAR rebuilt, symbols verified
+  (anytls/amneziawg>0, stock-wg=0), `MeasureOutboundDelayWithInfo` present.
+
+Tag created locally: `aras-core-26.10.13` → commit `3c378877`. CI's
+`build.yml` now points at it. **Nothing pushed yet.**
+
+### 6.5 Native libs — surveyed, thehlen state
+
+| lib | ours | PattNG latest | action |
+|---|---|---|---|
+| amneziawg-go | v3.1.20260828 (= latest upstream tag) | same | none needed |
+| hev-socks5-tunnel (VPN) | 2.18.0-era binary, identical hevsockstun | 2.18.0 | none needed |
+| aether | v2.1.0 release | bumped submodule (Rust, full CI build) | needs Rust toolchain build — separate round |
+| mieru/psiphon/lyrebird | prebuilt, no newer release found | same | none |
+
+### 6.6 Versions
+
+App stays `versionName 1.8.1 / versionCode 181` when the owner green-lights
+push (1.8.0 already published). Nothing bumped in the tree yet.
