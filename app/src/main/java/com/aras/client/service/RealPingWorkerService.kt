@@ -131,30 +131,6 @@ class RealPingWorkerService(
 
         val config = MmkvManager.decodeServerConfig(guid) ?: return retFailure
         val chain = CoreConfigContextBuilder.resolveChainProfiles(context, guid)
-        // Only a profile that is its own chain is worth probing straight to. A profile
-        // that hops through an entry or exit proxy may be reachable *only* through it,
-        // and the direct probe rejected the whole subscription before the chain was
-        // ever dialled — which is what made an entry proxy mark every server -1.
-        if (chain.size <= 1
-            && !config.configType.isComplexType()
-            && config.configType != EConfigType.HYSTERIA2
-            && config.configType != EConfigType.WIREGUARD
-            && config.configType != EConfigType.AMNEZIAWG
-            && config.configType != EConfigType.ANYTLS
-            && config.configType != EConfigType.MASQUE
-            && config.configType != EConfigType.AETHER
-            && config.configType != EConfigType.MIERU
-            && config.alpn?.startsWith("h3") != true
-            && config.server.isNotNullEmpty()
-            && config.serverPort?.toIntOrNull() != null
-        ) {
-            val url = config.server.orEmpty()
-            val port = config.serverPort.orEmpty().toInt()
-            val tcpTime = SpeedtestManager.socketConnectTime(url, port, 1000)
-            if (tcpTime <= -1L) {
-                return retFailure
-            }
-        }
 
         val configResult = CoreConfigManager.getXrayConfig4Speedtest(context, guid)
         if (!configResult.status) {

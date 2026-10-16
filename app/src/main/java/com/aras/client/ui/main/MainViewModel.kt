@@ -1043,15 +1043,6 @@ class MainViewModel(
                 withContext(ioDispatcher) {
                     dataSource.clearAllTestDelayResults(round.candidates)
                     cacheMutex.withLock { groupDataCache.remove(groupId) }
-                    try {
-                        com.aras.client.util.GeoIPResolver.refresh(
-                            servers.mapNotNull { it.profile.server?.takeIf { h -> h.isNotBlank() } }
-                        )
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (e: Exception) {
-                        LogUtil.w(AppConfig.TAG, "GeoIP pre-warm failed: ${e.message}")
-                    }
                 }
                 ensureActive()
                 if (!testRounds.isCurrent(round)) return@launch
@@ -1066,6 +1057,21 @@ class MainViewModel(
                         onlyTcp = onlyTcp
                     )
                 )
+                // GeoIP pre-warm used to run BEFORE the dispatch and blocked the
+                // start of every ping round behind DNS + a HTTP batch lookup
+                // (up to seconds on large groups). It only pre-fills the flag
+                // cache, so it belongs after the tests are already running.
+                withContext(ioDispatcher) {
+                    try {
+                        com.aras.client.util.GeoIPResolver.refresh(
+                            servers.mapNotNull { it.profile.server?.takeIf { h -> h.isNotBlank() } }
+                        )
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (e: Exception) {
+                        LogUtil.w(AppConfig.TAG, "GeoIP pre-warm failed: ${e.message}")
+                    }
+                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (e: Exception) {
