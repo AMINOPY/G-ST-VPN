@@ -27,12 +27,16 @@ what the provider wrote; only the display composes.
 `remarks imported with a flag keep the flag`; the existing card-title test
 documents why `withoutFlags` still exists.
 
-### 1.2 Batch "ping all" is faster — two changes
+### 1.2 Batch "ping all" is faster — one change
 
-**(a) One attempt instead of two** — `~/corebuild/AndroidLibXrayLite/libv2ray_utils.go`,
-`measureInstDelay`: the measurement loop ran 2 HTTP attempts per profile and
-kept the min. Every profile in a batch paid double wall time for a marginal
-min-vs-single difference. `attempts = 2` → `attempts = 1`.
+**(REVERSED) "One attempt instead of two"** — this change (bindings `bec1a8d`)
+was a mistake and was reverted in bindings `1f8bbc1`. min-of-2 is not a jitter
+smoother; it IS the measurement: attempt 1 pays the cold path (AWG handshake +
+TCP + TLS ≈ 4-5 round trips), attempt 2 rides the warm keep-alive connection and
+reads ≈ one real RTT. With a single attempt every delay read ~5× the truth on
+that network (a real-100ms profile displayed ~500ms; 1.7.9 read ~130). Verified
+on the host against gstatic over one keep-alive connection: attempt 1 = 362 ms,
+attempt 2 = 104 ms.
 
 **(b) Egress country rides the delay measurement** — this closes the "batch
 test cannot report a country" defect from brief §7. New gomobile shim:
