@@ -210,5 +210,29 @@ Tag created locally: `aras-core-26.10.13` → commit `3c378877`. CI's
 
 ### 6.6 Versions
 
-App stays `versionName 1.8.1 / versionCode 181` when the owner green-lights
-push (1.8.0 already published). Nothing bumped in the tree yet.
+App bumped to `versionName 1.8.1 / versionCode 181` locally — v1.8.0 is already
+published on GitHub, so the next shipped APK set has to upgrade cleanly over
+it. Full gate (tests + both assembles + lintVital) green, APK names are
+`ArasClient_1.8.1_*.apk`.
+
+### 6.7 Readiness checklist for the owner's "push" command
+
+Everything is local and verified. Push in this exact order or CI fails:
+
+1. **Core** `~/corebuild/xray-core`: push `feat/awg-mimic-packets-26.10`
+   and the tag `aras-core-26.10.13` (both resolve to `3c378877`). CI
+   checks out the app build with `ref: aras-core-26.10.13`, so without the
+   tag the CI core build fails immediately.
+2. **Bindings** `~/corebuild/AndroidLibXrayLite`: push `main` (`470676e`,
+   2 ahead of remote `bec1a8d`). CI builds the AAR from `ref: main`;
+   without it the app does not compile (`measureOutboundDelayWithInfo`
+   missing from the bindings the CI builds).
+3. **App**: push `main` with the postBuffer flags (brief §4), 3 commits.
+4. Tag `v1.8.1` + `gh release create v1.8.1` + upload the five
+   `ArasClient_1.8.1_*.apk`.
+5. Watch CI end-to-end green, including the Restore signing key step
+   (the env-mapping fix is in `44e6050`).
+
+Local debris: `proxy/wireguard/client.go.rej` is still tracked in the core
+repo (came with the 26.9.27 port commit). Harmless, not compiled; delete in a
+later cleanup round.
