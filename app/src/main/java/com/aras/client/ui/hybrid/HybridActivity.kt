@@ -69,10 +69,15 @@ class HybridActivity : BaseComponentActivity() {
                     statusMessage = null
                 }
                 AppConfig.MSG_STATE_START_FAILURE -> {
-                    statusResource = null
-                    statusMessage = message.getStringExtra("content")
+                    val failure = message.getStringExtra("content")
                         ?.takeIf { it.isNotBlank() }
                         ?: getString(R.string.hybrid_start_failed)
+                    statusResource = R.string.hybrid_status_stopping
+                    statusMessage = null
+                    HybridConnectManager.stop(this@HybridActivity) {
+                        statusResource = null
+                        statusMessage = failure
+                    }
                 }
                 AppConfig.MSG_STATE_STOP_SUCCESS -> {
                     if (HybridConnectManager.hasSession()) {
@@ -90,8 +95,13 @@ class HybridActivity : BaseComponentActivity() {
             } else {
                 startAfterPermission = null
                 HybridConnectManager.stop(this)
-                statusResource = R.string.hybrid_status_idle
-                statusMessage = getString(R.string.hybrid_permission_denied)
+                statusResource = R.string.hybrid_status_stopping
+                val failure = getString(R.string.hybrid_permission_denied)
+                statusMessage = null
+                HybridConnectManager.stop(this) {
+                    statusResource = null
+                    statusMessage = failure
+                }
             }
         }
 
@@ -149,9 +159,13 @@ class HybridActivity : BaseComponentActivity() {
             statusResource = R.string.hybrid_status_request_sent
             statusMessage = null
         } else {
-            statusResource = null
-            statusMessage = getString(R.string.hybrid_start_failed)
-            HybridConnectManager.stop(this)
+            statusResource = R.string.hybrid_status_stopping
+            val failure = getString(R.string.hybrid_start_failed)
+            statusMessage = null
+            HybridConnectManager.stop(this) {
+                statusResource = null
+                statusMessage = failure
+            }
         }
     }
 
@@ -186,7 +200,6 @@ private fun HybridScreen(
 ) {
     val context = LocalContext.current
     var configText by rememberSaveable { mutableStateOf("") }
-    var isSubmitting by rememberSaveable { mutableStateOf(false) }
 
     BackHandler(onBack = onBack)
 
@@ -263,7 +276,7 @@ private fun HybridScreen(
                 )
                 OutlinedTextField(
                     value = configText,
-                    onValueChange = { configText = it; isSubmitting = false },
+                    onValueChange = { configText = it },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 5,
                     maxLines = 9,
@@ -285,12 +298,11 @@ private fun HybridScreen(
                                 ?.coerceToText(context)
                                 ?.toString()
                                 .orEmpty()
-                            isSubmitting = false
                         }
                     ) { Text(stringResource(R.string.hybrid_paste)) }
                     OutlinedButton(
                         modifier = Modifier.weight(1f),
-                        onClick = { configText = ""; isSubmitting = false }
+                        onClick = { configText = "" }
                     ) { Text(stringResource(R.string.hybrid_clear)) }
                 }
             }
@@ -318,14 +330,12 @@ private fun HybridScreen(
 
             Button(
                 onClick = {
-                    isSubmitting = true
                     onConnect(configText)
-                    isSubmitting = false
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = configText.isNotBlank() && !isSubmitting
+                enabled = configText.isNotBlank() && statusResource !in setOf(\n                    R.string.hybrid_status_starting,\n                    R.string.hybrid_status_request_sent,\n                    R.string.hybrid_status_connected,\n                    R.string.hybrid_status_stopping,\n                )
             ) {
-                if (isSubmitting) {
+                if (statusResource == R.string.hybrid_status_starting) {
                     CircularProgressIndicator(
                         modifier = Modifier.height(18.dp),
                         strokeWidth = 2.dp
