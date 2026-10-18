@@ -1,10 +1,12 @@
 package com.aras.client.ui.hybrid
 
-import android.content.ClipData
+import android.app.Activity
 import android.content.ClipboardManager
 import android.content.Context
+import android.net.VpnService
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,52 +16,148 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import com.aras.client.R
+import com.aras.client.core.HybridConnectManager
+import com.aras.client.core.LauncherManager
+import com.aras.client.handler.SettingsManager
 import com.aras.client.ui.base.BaseComponentActivity
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class HybridActivity : BaseComponentActivity() {
+    private var startAfterPermission: (() -> Unit)? = null
+
+    private val vpnPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                startAfterPermission?.invoke()
+            } else {
+                startAfterPermission = null
+                HybridConnectManager.stop(this)
+                statusResource = R.string.hybrid_status_idle
+                statusMessage = getString(R.string.hybrid_permission_denied)
+            }
+        }
+
+    private var statusResource by mutableStateOf<Int?>(R.string.hybrid_status_idle)
+    private var statusMessage by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
     }
 
     @Composable
     override fun ScreenContent() {
-        HybridScreen(onBack = { finish() })
+        HybridScreen(
+            statusResource = statusResource,
+            statusMessage = statusMessage,
+            onBack = { leaveHybrid() },
+            onConnect = { rawConfig -> connectHybrid(rawConfig) },
+            onDisconnect = { leaveHybrid() },
+        )
+    }
+
+    private fun connectHybrid(rawConfig: String) {
+        val error = HybridConnectManager.prepare(this, rawConfig)
+        if (error != null) {
+            statusMessage = error
+            statusResource = null
+            return
+        }
+
+        statusResource = R.string.hybrid_status_starting
+        statusMessage = null
+
+        // Stop any previously selected tunnel before launching the temporary chain.
+        LauncherManager.stopService(this)
+        lifecycleScope.launch {
+            delay(1200)
+            val start = { startPreparedHybrid() }
+            if (SettingsManager.isVpnMode()) {
+                val permissionIntent = VpnService.prepare(this@HybridActivity)
+                if (permissionIntent != null) {
+                    startAfterPermission = start
+                    vpnPermissionLauncher.launch(permissionIntent)
+                } else {
+                    start()
+                }
+            } else {
+                start()
+            }
+        }
+    }
+
+    private fun startPreparedHybrid() {
+        startAfterPermission = null
+        if (HybridConnectManager.start(this)) {
+            statusResource = R.string.hybrid_status_request_sent
+            statusMessage = null
+        } else {
+            statusResource = null
+            statusMessage = getString(R.string.hybrid_start_failed)
+            HybridConnectManager.stop(this)
+        }
+    }
+
+    private fun leaveHybrid() {
+        if (!HybridConnectManager.hasSession()) {
+            finish()
+            return
+        }
+        statusResource = R.string.hybrid_status_stopping
+        statusMessage = null
+        HybridConnectManager.stop(this) {
+            finish()
+        }
+    }
+
+    override fun onDestroy() {
+        if (isFinishing && HybridConnectManager.hasSession()) {
+            HybridConnectManager.stop(this)
+        }
+        super.onDestroy()
     }
 }
 
-private enum class ChainDirection { PsiphonFirst, V2RayFirst }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HybridScreen(onBack: () -> Unit) {
+private fun HybridScreen(
+    statusResource: Int?,
+    statusMessage: String?,
+    onBack: () -> Unit,
+    onConnect: (String) -> Unit,
+    onDisconnect: () -> Unit,
+) {
     val context = LocalContext.current
     var configText by rememberSaveable { mutableStateOf("") }
-    var direction by rememberSaveable { mutableStateOf(ChainDirection.PsiphonFirst) }
-    var validationMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var isSubmitting by rememberSaveable { mutableStateOf(false) }
 
     BackHandler(onBack = onBack)
 
@@ -68,7 +166,9 @@ private fun HybridScreen(onBack: () -> Unit) {
             TopAppBar(
                 title = { Text(stringResource(R.string.hybrid_title)) },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text(stringResource(R.string.action_cancel)) }
+                    TextButton(onClick = onBack) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
                 }
             )
         }
@@ -78,98 +178,146 @@ private fun HybridScreen(onBack: () -> Unit) {
                 .fillMaxSize()
                 .padding(insets)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(horizontal = 18.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.hybrid_status_title), style = MaterialTheme.typography.titleMedium)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     Text(
-                        stringResource(R.string.hybrid_backend_notice),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium
+                        stringResource(R.string.hybrid_status_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = MaterialTheme.colorScheme.secondaryContainer
+                    ) {
+                        Text(
+                            text = stringResource(R.string.hybrid_route_badge),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                    Text(
+                        text = stringResource(R.string.hybrid_route_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = statusMessage
+                            ?: statusResource?.let { context.getString(it) }
+                            ?: stringResource(R.string.hybrid_status_idle),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (statusMessage != null) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
             }
 
-            Text(stringResource(R.string.hybrid_config_label), style = MaterialTheme.typography.titleMedium)
-            OutlinedTextField(
-                value = configText,
-                onValueChange = {
-                    configText = it
-                    validationMessage = null
-                },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 5,
-                maxLines = 10,
-                label = { Text(stringResource(R.string.hybrid_config_hint)) },
-                placeholder = { Text("vless://…  /  vmess://…  /  trojan://…") }
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = {
-                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    configText = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
-                    validationMessage = null
-                }) { Text(stringResource(R.string.hybrid_paste)) }
-                OutlinedButton(onClick = {
-                    configText = ""
-                    validationMessage = null
-                }) { Text(stringResource(R.string.hybrid_clear)) }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    stringResource(R.string.hybrid_config_label),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                OutlinedTextField(
+                    value = configText,
+                    onValueChange = { configText = it; isSubmitting = false },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 5,
+                    maxLines = 9,
+                    label = { Text(stringResource(R.string.hybrid_config_hint)) },
+                    placeholder = { Text("vless://…  ·  vmess://…  ·  trojan://…") },
+                    shape = RoundedCornerShape(18.dp)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            configText = clipboard.primaryClip
+                                ?.takeIf { it.itemCount > 0 }
+                                ?.getItemAt(0)
+                                ?.coerceToText(context)
+                                ?.toString()
+                                .orEmpty()
+                            isSubmitting = false
+                        }
+                    ) { Text(stringResource(R.string.hybrid_paste)) }
+                    OutlinedButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = { configText = ""; isSubmitting = false }
+                    ) { Text(stringResource(R.string.hybrid_clear)) }
+                }
             }
 
-            Text(stringResource(R.string.hybrid_direction_label), style = MaterialTheme.typography.titleMedium)
-            DirectionOption(
-                selected = direction == ChainDirection.PsiphonFirst,
-                title = stringResource(R.string.hybrid_psiphon_first),
-                onClick = { direction = ChainDirection.PsiphonFirst }
-            )
-            DirectionOption(
-                selected = direction == ChainDirection.V2RayFirst,
-                title = stringResource(R.string.hybrid_v2ray_first),
-                onClick = { direction = ChainDirection.V2RayFirst }
-            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        stringResource(R.string.hybrid_how_it_works),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        stringResource(R.string.hybrid_route_steps),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
             Button(
                 onClick = {
-                    val trimmed = configText.trim()
-                    val accepted = trimmed.lineSequence().any { line ->
-                        val value = line.trim().lowercase()
-                        value.startsWith("vless://") ||
-                            value.startsWith("vmess://") ||
-                            value.startsWith("trojan://") ||
-                            value.startsWith("ss://") ||
-                            value.startsWith("socks://")
-                    }
-                    validationMessage = if (accepted) {
-                        context.getString(R.string.hybrid_validation_ok)
-                    } else {
-                        context.getString(R.string.hybrid_validation_error)
-                    }
+                    isSubmitting = true
+                    onConnect(configText)
+                    isSubmitting = false
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = configText.isNotBlank()
+                enabled = configText.isNotBlank() && !isSubmitting
             ) {
-                Text(stringResource(R.string.hybrid_validate))
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.height(18.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(Modifier.height(4.dp))
+                }
+                Text(stringResource(R.string.hybrid_connect))
             }
-            validationMessage?.let { Text(it, color = MaterialTheme.colorScheme.primary) }
 
-            Spacer(Modifier.height(4.dp))
+            OutlinedButton(
+                onClick = onDisconnect,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.hybrid_stop_restore))
+            }
+
             Text(
-                stringResource(R.string.hybrid_not_connected_yet),
+                stringResource(R.string.hybrid_cleanup_notice),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-    }
-}
-
-@Composable
-private fun DirectionOption(selected: Boolean, title: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(selected = selected, onClick = onClick)
-        Text(title, modifier = Modifier.padding(start = 4.dp))
     }
 }
