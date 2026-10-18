@@ -28,6 +28,7 @@
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="PackageVisibilityPolicy,QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -157,6 +158,9 @@
             android:windowSoftInputMode="stateUnchanged|adjustResize" />
         <activity
             android:name=".ui.hybrid.HybridActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.ai.AiDiagnosticsActivity"
             android:exported="false" />
         <activity
             android:name=".ui.settings.SettingsActivity"
