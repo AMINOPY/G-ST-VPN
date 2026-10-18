@@ -873,5 +873,14 @@
     <string name="ai_network_checker">باز کردن پروژه Network Checker</string>
     <string name="ai_open_link_failed">باز کردن پیوند خارجی ناموفق بود.</string>
 
+    <string name="ai_diagnosis_internet_unvalidated">اندروید دسترسی اینترنت را تأیید نکرده است؛ ممکن است صفحه ورود شبکه، محدودیت اتصال یا مشکل داده موبایل وجود داشته باشد.</string>
+    <string name="ai_diagnosis_dns_slow">پاسخ‌گویی DNS برابر %1$d میلی‌ثانیه بود که برای یک جست‌وجوی ساده کند است. شبکه دیگری را امتحان کن یا VPN را روشن و خاموش مقایسه کن.</string>
+    <string name="ai_diagnosis_latency_high">تأخیر پاسخ HTTPS زیاد است (%1$d میلی‌ثانیه) و می‌تواند وب‌گردی و برنامه‌های تعاملی را کند کند.</string>
+    <string name="ai_diagnosis_latency_medium">تأخیر پاسخ HTTPS بالاتر از حد مطلوب است (%1$d میلی‌ثانیه). دوباره آزمایش کن تا ماندگاری آن مشخص شود.</string>
+    <string name="ai_diagnosis_signal_weak">اندروید آنتن‌دهی موبایل را ضعیف گزارش می‌کند. مکان دیگری را امتحان کن؛ این مقدار تخمینی دستگاه است.</string>
+    <string name="ai_diagnosis_download_low">سرعت دانلود اندازه‌گیری‌شده پایین است (%1$.1f مگابیت‌برثانیه). دوباره تست کن و وای‌فای/داده موبایل و وضعیت VPN را مقایسه کن.</string>
+    <string name="ai_diagnosis_upload_low">سرعت آپلود اندازه‌گیری‌شده پایین است (%1$.1f مگابیت‌برثانیه). آپلودهای پس‌زمینه، آنتن‌دهی ضعیف یا بار سرور می‌توانند اثرگذار باشند.</string>
+    <string name="ai_diagnosis_vpn_note">VPN فعال است. اگر مشکل فقط در بعضی برنامه‌ها رخ می‌دهد، نتیجه را با VPN روشن و خاموش مقایسه کن.</string>
+    <string name="ai_diagnosis_healthy">در اندازه‌گیری‌های انجام‌شده مشکل عمده‌ای دیده نشد. نتایج تخمینی‌اند و با مقصد، دستگاه و بار سرور تغییر می‌کنند.</string>
     <string name="ai_local_model_note">این نسخه از تحلیل قانون‌محور محلی استفاده می‌کند؛ اطلاعاتت به سرویس هوش مصنوعی ارسال نمی‌شود.</string>
 </resources>
