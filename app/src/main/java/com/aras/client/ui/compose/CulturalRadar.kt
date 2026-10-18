@@ -21,6 +21,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -67,10 +69,12 @@ fun CulturalRadar(
 ) {
     val sweep = remember { Animatable(0f) }
     val pulse = remember { Animatable(1f) }
+    val reducedMotion by ThemeManager.reducedMotionEnabled.collectAsState()
+    val patternIntensity by ThemeManager.patternIntensity.collectAsState()
     var connectedAt by rememberSaveable { mutableStateOf(0L) }
     var elapsedSeconds by remember { mutableStateOf(0L) }
 
-    LaunchedEffect(isRunning) {
+    LaunchedEffect(isRunning, reducedMotion) {
         if (!isRunning) {
             connectedAt = 0L
             elapsedSeconds = 0L
@@ -79,17 +83,23 @@ fun CulturalRadar(
             return@LaunchedEffect
         }
         if (connectedAt == 0L) connectedAt = SystemClock.elapsedRealtime()
+        if (reducedMotion) {
+            sweep.snapTo(0f)
+            pulse.snapTo(1f)
+        }
         coroutineScope {
-            launch {
-                while (isActive) {
-                    sweep.animateTo(360f, tween(3000, easing = LinearEasing))
-                    sweep.snapTo(0f)
+            if (!reducedMotion) {
+                launch {
+                    while (isActive) {
+                        sweep.animateTo(360f, tween(3000, easing = LinearEasing))
+                        sweep.snapTo(0f)
+                    }
                 }
-            }
-            launch {
-                while (isActive) {
-                    pulse.animateTo(1.12f, tween(1100))
-                    pulse.animateTo(0.94f, tween(1100))
+                launch {
+                    while (isActive) {
+                        pulse.animateTo(1.12f, tween(1100))
+                        pulse.animateTo(0.94f, tween(1100))
+                    }
                 }
             }
             launch {
@@ -107,7 +117,11 @@ fun CulturalRadar(
             .padding(horizontal = 12.dp, vertical = 8.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .border(1.dp, RadarGold.copy(alpha = 0.25f), RoundedCornerShape(20.dp))
+            .border(
+                1.dp,
+                RadarGold.copy(alpha = 0.08f + patternIntensity / 100f * 0.17f),
+                RoundedCornerShape(20.dp)
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -123,7 +137,7 @@ fun CulturalRadar(
                 val radius = size.minDimension * 0.46f
                 for (ring in 1..4) {
                     drawCircle(
-                        color = RadarGold.copy(alpha = if (hasConfigs) 0.12f else 0.17f),
+                        color = RadarGold.copy(alpha = (if (hasConfigs) 0.02f else 0.03f) + patternIntensity / 100f * (if (hasConfigs) 0.12f else 0.14f)),
                         radius = radius * ring / 4f,
                         center = c,
                         style = Stroke(width = 1.dp.toPx())
