@@ -10,6 +10,7 @@ import android.net.NetworkInfo
 import android.net.Uri
 import android.os.Build
 import android.telephony.TelephonyManager
+import android.net.TrafficStats
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -63,6 +64,8 @@ private data class NetworkSnapshot(
     val dns: String,
     val carrier: String,
     val radio: String,
+    val signal: String,
+    val mobileDataUsage: String,
     val advice: String,
 )
 
@@ -89,6 +92,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             speedTestResult = speedTestResult,
             speedTestRunning = speedTestRunning,
             onSpeedTest = { startSpeedTest() },
+            onShareReport = { shareReport() },
             onBack = { finish() },
             onScan = { scanNetwork() },
             onSimPermission = {
@@ -150,6 +154,17 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             val radio = if (hasPhonePermission) {
                 radioLabel(telephony.dataNetworkType)
             } else getString(R.string.ai_sim_permission_needed)
+            val signal = if (hasPhonePermission) {
+                runCatching { telephony.signalStrength?.level }
+                    .getOrNull()?.takeIf { it in 0..4 }
+                    ?.let { getString(R.string.ai_signal_level, it) }
+                    ?: getString(R.string.ai_value_unknown)
+            } else getString(R.string.ai_sim_permission_needed)
+            val rxBytes = TrafficStats.getMobileRxBytes()
+            val txBytes = TrafficStats.getMobileTxBytes()
+            val mobileDataUsage = if (rxBytes >= 0L && txBytes >= 0L) {
+                getString(R.string.ai_mobile_usage_value, formatBytes(rxBytes + txBytes))
+            } else getString(R.string.ai_value_unknown)
 
             val advice = when {
                 caps == null -> getString(R.string.ai_advice_no_network)
@@ -162,7 +177,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
                 else -> getString(R.string.ai_advice_connected)
             }
             snapshot = NetworkSnapshot(
-                connection, internet, validated, vpn, metered, dns, carrier, radio, advice
+                connection, internet, validated, vpn, metered, dns, carrier, radio, signal, mobileDataUsage, advice
             )
             scanMessage = R.string.ai_scan_complete
         } catch (_: Exception) {
@@ -298,6 +313,46 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
         }
     }
 
+    private fun shareReport() {
+        val report = snapshot?.let {
+            listOf(
+                getString(R.string.ai_report_title),
+                "${getString(R.string.ai_connection_type)}: ${it.connection}",
+                "${getString(R.string.ai_internet_status)}: ${it.internet}",
+                "${getString(R.string.ai_internet_validation)}: ${getString(if (it.validated) R.string.ai_status_validated else R.string.ai_status_not_validated)}",
+                "${getString(R.string.ai_vpn_status)}: ${getString(if (it.vpn) R.string.ai_status_active else R.string.ai_status_inactive)}",
+                "${getString(R.string.ai_metered)}: ${getString(if (it.metered) R.string.ai_metered_yes else R.string.ai_metered_no)}",
+                "${getString(R.string.ai_dns_servers)}: ${it.dns}",
+                "${getString(R.string.ai_carrier)}: ${it.carrier}",
+                "${getString(R.string.ai_mobile_radio)}: ${it.radio}",
+                "${getString(R.string.ai_signal_strength)}: ${it.signal}",
+                "${getString(R.string.ai_mobile_data_usage)}: ${it.mobileDataUsage}",
+                "${getString(R.string.ai_latency_label)}: ${latencyResult ?: getString(R.string.ai_latency_not_run)}",
+                "${getString(R.string.ai_dns_lookup_latency)}: ${dnsLookupResult ?: getString(R.string.ai_latency_not_run)}",
+                "${getString(R.string.ai_speed_title)}: ${speedTestResult ?: getString(R.string.ai_latency_not_run)}",
+                "${getString(R.string.ai_analysis_title)}: ${it.advice}",
+            ).joinToString("\n")
+        } ?: getString(R.string.ai_analysis_not_ready)
+        runCatching {
+            startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, report)
+            }, getString(R.string.ai_share_report)))
+        }.onFailure { scanMessage = R.string.ai_open_link_failed }
+    }
+
+    private fun formatBytes(bytes: Long): String {
+        if (bytes < 1024L) return "$bytes B"
+        val units = arrayOf("KB", "MB", "GB", "TB")
+        var value = bytes.toDouble()
+        var index = -1
+        do {
+            value /= 1024.0
+            index++
+        } while (value >= 1024.0 && index < units.lastIndex)
+        return String.format(Locale.US, "%.1f %s", value, units[index])
+    }
+
     private fun radioLabel(type: Int): String = when (type) {
         TelephonyManager.NETWORK_TYPE_GPRS,
         TelephonyManager.NETWORK_TYPE_EDGE,
@@ -331,6 +386,7 @@ private fun AiDiagnosticsScreen(
     speedTestResult: String?,
     speedTestRunning: Boolean,
     onSpeedTest: () -> Unit,
+    onShareReport: () -> Unit,
     onBack: () -> Unit,
     onScan: () -> Unit,
     onSimPermission: () -> Unit,
@@ -397,6 +453,8 @@ private fun AiDiagnosticsScreen(
                     ReportRow(stringResource(R.string.ai_dns_servers), snapshot?.dns ?: stringResource(R.string.ai_value_not_scanned))
                     ReportRow(stringResource(R.string.ai_carrier), snapshot?.carrier ?: stringResource(R.string.ai_value_not_scanned))
                     ReportRow(stringResource(R.string.ai_mobile_radio), snapshot?.radio ?: stringResource(R.string.ai_value_not_scanned))
+                    ReportRow(stringResource(R.string.ai_signal_strength), snapshot?.signal ?: stringResource(R.string.ai_value_not_scanned))
+                    ReportRow(stringResource(R.string.ai_mobile_data_usage), snapshot?.mobileDataUsage ?: stringResource(R.string.ai_value_not_scanned))
                     ReportRow(stringResource(R.string.ai_latency_label), latencyResult ?: stringResource(R.string.ai_latency_not_run))
                     ReportRow(stringResource(R.string.ai_dns_lookup_latency), dnsLookupResult ?: stringResource(R.string.ai_latency_not_run))
                     if (!hasPhonePermission) {
@@ -407,7 +465,7 @@ private fun AiDiagnosticsScreen(
                 }
             }
 
-            Text(stringResource(R.string.ai_analysis_title), style = MaterialTheme.typography.titleMedium,
+            OutlinedButton(onClick = onShareReport, modifier = Modifier.fillMaxWidth()) {\n                Text(stringResource(R.string.ai_share_report))\n            }\n\n            Text(stringResource(R.string.ai_analysis_title), style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold)
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
                 Text(
