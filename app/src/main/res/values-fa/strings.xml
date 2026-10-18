@@ -765,7 +765,7 @@
     <!-- Hybrid mode -->
     <string name="hybrid_title">حالت ترکیبی</string>
     <string name="menu_section_connection">حالت‌های اتصال</string>
-    <string name="menu_sub_hybrid">سایفون + ویتوری</string>
+    <string name="menu_sub_hybrid">ترکیبی</string>
     <string name="hybrid_status_title">وضعیت اتصال</string>
     <string name="hybrid_backend_notice">از این صفحه برای وارد کردن و بررسی اولیه لینک اشتراک V2Ray/Xray استفاده کن. موتور اتصال ترکیبی برنامه هنوز فعال نشده است.</string>
     <string name="hybrid_config_label">پیکربندی سرور</string>
