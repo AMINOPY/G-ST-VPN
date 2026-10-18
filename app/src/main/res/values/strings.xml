@@ -868,5 +868,14 @@
     <string name="ai_network_checker">Open Network Checker project</string>
     <string name="ai_open_link_failed">Could not open the external link.</string>
 
+    <string name="ai_diagnosis_internet_unvalidated">Android has not verified internet access. A captive portal, blocked connection, or mobile-data issue may be present.</string>
+    <string name="ai_diagnosis_dns_slow">DNS lookup took %1$d ms, which is slow for a basic lookup. Try another network or compare with VPN on and off.</string>
+    <string name="ai_diagnosis_latency_high">HTTPS response latency is high (%1$d ms). This can make browsing and interactive apps feel slow.</string>
+    <string name="ai_diagnosis_latency_medium">HTTPS response latency is elevated (%1$d ms). Retest to see whether it persists.</string>
+    <string name="ai_diagnosis_signal_weak">Android reports a weak cellular signal. Try another location; the level is a device estimate.</string>
+    <string name="ai_diagnosis_download_low">Measured download speed is low (%1$.1f Mbps). Retest and compare Wi-Fi/mobile data and VPN states.</string>
+    <string name="ai_diagnosis_upload_low">Measured upload speed is low (%1$.1f Mbps). Background uploads, weak signal, or server load may contribute.</string>
+    <string name="ai_diagnosis_vpn_note">VPN is active. If the issue occurs only in some apps, compare diagnostics with VPN on and off.</string>
+    <string name="ai_diagnosis_healthy">No major issue was detected in the measurements collected. Results are estimates and can vary by destination, device, and server load.</string>
     <string name="ai_local_model_note">This first version uses local rule-based analysis; it does not send your data to an AI service.</string>
 </resources>
