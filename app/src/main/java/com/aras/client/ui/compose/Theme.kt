@@ -196,6 +196,17 @@ val toastTextColor = Color.White // White
 object ThemeManager {
     private const val PREF_CULTURAL_PATTERN_INTENSITY = "cultural_pattern_intensity"
     private const val PREF_CULTURAL_REDUCED_MOTION = "cultural_reduced_motion"
+    private const val PREF_CULTURAL_PERSIAN_DIGITS = "cultural_persian_digits"
+
+    private val _persianDigitsEnabled = MutableStateFlow(
+        MmkvManager.decodeSettingsBool(PREF_CULTURAL_PERSIAN_DIGITS, true)
+    )
+    val persianDigitsEnabled: StateFlow<Boolean> = _persianDigitsEnabled.asStateFlow()
+
+    fun setPersianDigitsEnabled(enabled: Boolean) {
+        MmkvManager.encodeSettings(PREF_CULTURAL_PERSIAN_DIGITS, enabled)
+        _persianDigitsEnabled.value = enabled
+    }
 
     private val _patternIntensity = MutableStateFlow(
         (MmkvManager.decodeSettingsString(PREF_CULTURAL_PATTERN_INTENSITY, "5") ?: "5")
