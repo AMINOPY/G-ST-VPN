@@ -849,6 +849,11 @@
     <string name="ai_radio_4g">4G / LTE</string>
     <string name="ai_radio_5g">5G</string>
     <string name="ai_radio_unknown">نامشخص / در دسترس نیست</string>
+    <string name="ai_signal_strength">قدرت آنتن موبایل (۰ تا ۴)</string>
+    <string name="ai_signal_level">سطح %1$d از ۴ (تخمین اندروید)</string>
+    <string name="ai_mobile_data_usage">مصرف داده موبایل از زمان روشن‌شدن دستگاه</string>
+    <string name="ai_mobile_usage_value">%1$s دریافت و ارسال</string>
+    <string name="ai_share_report">اشتراک‌گذاری گزارش تشخیصی</string>
     <string name="ai_analysis_title">تحلیل هوشمند</string>
     <string name="ai_analysis_not_ready">برای دریافت پیشنهاد، ابتدا اسکن را اجرا کن.</string>
     <string name="ai_advice_no_network">شبکه فعالی پیدا نشد. وای‌فای یا داده موبایل را روشن و دوباره اسکن کن.</string>
