@@ -853,7 +853,11 @@
     <string name="ai_advice_wifi">Wi-Fi is active. Compare near the router and away from it to identify a weak local signal.</string>
     <string name="ai_advice_connected">The network appears available. Run a speed test to measure throughput and latency.</string>
     <string name="ai_speed_title">Speed tests</string>
-    <string name="ai_speed_note">Open-source speed tests run on their hosted websites. Results are not imported into this report yet.</string>
+    <string name="ai_speed_note">The in-app test transfers up to about 1.25 MB using Cloudflare speed-test endpoints. Run it manually; mobile data charges may apply. Results are approximate and can vary with VPN and server load.</string>
+    <string name="ai_speed_run">Measure download and upload speed</string>
+    <string name="ai_speed_running">Testing download and upload…</string>
+    <string name="ai_speed_result">Download: %1$s Mbps\nUpload: %2$s Mbps</string>
+    <string name="ai_speed_failed">Speed test failed. The test endpoint may be blocked or unreachable; try again or use one of the external tests below.</string>
     <string name="ai_speed_librespeed">Open LibreSpeed test</string>
     <string name="ai_speed_openspeedtest">Open OpenSpeedTest</string>
     <string name="ai_network_checker">Open Network Checker project</string>
