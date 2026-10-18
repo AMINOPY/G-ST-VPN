@@ -154,7 +154,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             val radio = if (hasPhonePermission) {
                 radioLabel(telephony.dataNetworkType)
             } else getString(R.string.ai_sim_permission_needed)
-            val signal = if (hasPhonePermission) {
+            val signal = if (hasPhonePermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 runCatching { telephony.signalStrength?.level }
                     .getOrNull()?.takeIf { it in 0..4 }
                     ?.let { getString(R.string.ai_signal_level, it) }
