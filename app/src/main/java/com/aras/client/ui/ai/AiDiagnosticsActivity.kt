@@ -218,6 +218,8 @@ private fun AiDiagnosticsScreen(
                         fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     Text(stringResource(R.string.ai_hero_subtitle), style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Text(stringResource(R.string.ai_local_model_note), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer)
                     Button(onClick = onScan, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.ai_scan_now))
                     }
