@@ -48,6 +48,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 private val RadarGold = Color(0xFFC6A45D)
 private val RadarTurquoise = Color(0xFF4FB3B0)
@@ -280,7 +281,7 @@ private fun formatRadarDuration(seconds: Long, persianDigits: Boolean): String {
     val hours = seconds / 3600L
     val minutes = (seconds % 3600L) / 60L
     val secs = seconds % 60L
-    val formatted = "%02d:%02d:%02d".format(hours, minutes, secs)
+    val formatted = String.format(Locale.ROOT, "%02d:%02d:%02d", hours, minutes, secs)
     if (!persianDigits) return formatted
     return formatted.map { ch ->
         if (ch in '0'..'9') ('۰'.code + (ch.code - '0'.code)).toChar() else ch
