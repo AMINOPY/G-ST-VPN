@@ -465,7 +465,11 @@ private fun AiDiagnosticsScreen(
                 }
             }
 
-            OutlinedButton(onClick = onShareReport, modifier = Modifier.fillMaxWidth()) {\n                Text(stringResource(R.string.ai_share_report))\n            }\n\n            Text(stringResource(R.string.ai_analysis_title), style = MaterialTheme.typography.titleMedium,
+            OutlinedButton(onClick = onShareReport, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.ai_share_report))
+            }
+
+            Text(stringResource(R.string.ai_analysis_title), style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold)
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
                 Text(
