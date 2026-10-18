@@ -813,6 +813,11 @@
     <string name="ai_dns_servers">DNS servers</string>
     <string name="ai_carrier">Mobile operator</string>
     <string name="ai_mobile_radio">Mobile radio</string>
+    <string name="ai_latency_label">HTTPS response latency (median of 3)</string>
+    <string name="ai_latency_not_run">Not measured yet</string>
+    <string name="ai_latency_running">Measuring HTTPS response time…</string>
+    <string name="ai_latency_result">%1$d ms</string>
+    <string name="ai_latency_failed">Could not measure; the probe may be blocked</string>
     <string name="ai_value_unknown">Unknown</string>
     <string name="ai_value_not_scanned">Not scanned</string>
     <string name="ai_network_none">No active network</string>
