@@ -767,7 +767,7 @@
     <string name="menu_section_connection">حالت‌های اتصال</string>
     <string name="menu_sub_hybrid">ترکیبی</string>
     <string name="hybrid_status_title">وضعیت اتصال</string>
-    <string name="hybrid_backend_notice">از این صفحه برای وارد کردن و بررسی اولیه لینک اشتراک V2Ray/Xray استفاده کن. موتور اتصال ترکیبی برنامه هنوز فعال نشده است.</string>
+    <string name="hybrid_backend_notice">این بخش یک اتصال موقت سایفون و ویتوری/Xray می‌سازد و پس از قطع، پروفایل قبلی را برمی‌گرداند.</string>
     <string name="hybrid_config_label">پیکربندی سرور</string>
     <string name="hybrid_config_hint">لینک VLESS، VMess، Trojan یا Shadowsocks را وارد کن</string>
     <string name="hybrid_paste">چسباندن از کلیپ‌بورد</string>
@@ -779,4 +779,21 @@
     <string name="hybrid_validation_ok">پیشوند لینک پشتیبانی‌شده پیدا شد. این فقط بررسی اولیه قالب است.</string>
     <string name="hybrid_validation_error">لینک پشتیبانی‌شده‌ای پیدا نشد. لینک VLESS، VMess، Trojan یا SS را وارد کن.</string>
     <string name="hybrid_not_connected_yet">اتصال از این صفحه هنوز فعال نشده است. موفقیت بررسی قالب به معنی برقرار شدن VPN نیست.</string>
+    <string name="hybrid_route_badge">سایفون ← ویتوری/Xray</string>
+    <string name="hybrid_route_description">برنامه سایفون داخلی را به‌عنوان پروکسی محلی اجرا می‌کند و اتصال ویتوری/Xray شما را از آن عبور می‌دهد.</string>
+    <string name="hybrid_how_it_works">نحوه کار زنجیره</string>
+    <string name="hybrid_route_steps">سرور ویتوری/Xray ← پروکسی محلی سایفون ← اینترنت. هسته فعلی فقط از این ترتیب پشتیبانی می‌کند.</string>
+    <string name="hybrid_status_idle">آماده دریافت کانفیگ</string>
+    <string name="hybrid_status_starting">در حال آماده‌سازی اتصال ترکیبی…</string>
+    <string name="hybrid_status_request_sent">درخواست اتصال ارسال شد. وضعیت واقعی اتصال را از اعلان VPN بررسی کن.</string>
+    <string name="hybrid_status_stopping">در حال قطع زنجیره و بازگرداندن پروفایل قبلی…</string>
+    <string name="hybrid_invalid_config">این لینک قابل‌خواندن نیست. یک لینک کامل VLESS، VMess، Trojan، Shadowsocks یا SOCKS وارد کن.</string>
+    <string name="hybrid_unsupported_config">این نوع پروفایل هنوز در حالت ترکیبی پشتیبانی نمی‌شود. از VLESS، VMess، Trojan، Shadowsocks یا SOCKS استفاده کن.</string>
+    <string name="hybrid_already_prepared">یک نشست ترکیبی موقت وجود دارد. ابتدا آن را قطع کن و به پروفایل قبلی برگرد.</string>
+    <string name="hybrid_prepare_failed">آماده‌سازی حالت ترکیبی ناموفق بود: %1$s</string>
+    <string name="hybrid_start_failed">برنامه نتوانست اتصال ترکیبی را شروع کند. حالت اتصال و گزارش‌ها را بررسی کن.</string>
+    <string name="hybrid_permission_denied">مجوز VPN داده نشد؛ پروفایل‌های موقت ترکیبی پاک‌سازی می‌شوند.</string>
+    <string name="hybrid_connect">اتصال در حالت ترکیبی</string>
+    <string name="hybrid_stop_restore">قطع اتصال و بازگشت به حالت عادی</string>
+    <string name="hybrid_cleanup_notice">لینک واردشده و پروفایل‌های کمکی موقت‌اند. با قطع این حالت، انتخاب قبلی سرور برمی‌گردد و پروفایل‌های موقت حذف می‌شوند.</string>
 </resources>
