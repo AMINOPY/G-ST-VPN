@@ -858,7 +858,11 @@
     <string name="ai_advice_wifi">وای‌فای فعال است. نزدیک و دور از روتر تست کن تا ضعف شبکه محلی مشخص شود.</string>
     <string name="ai_advice_connected">شبکه در دسترس به نظر می‌رسد. برای اندازه‌گیری سرعت واقعی و تأخیر، تست سرعت اجرا کن.</string>
     <string name="ai_speed_title">تست سرعت</string>
-    <string name="ai_speed_note">تست‌های متن‌باز در وب‌سایت‌های میزبانی‌شده اجرا می‌شوند؛ نتیجه فعلاً به گزارش این صفحه وارد نمی‌شود.</string>
+    <string name="ai_speed_note">تست داخلی با مقصدهای آزمایش سرعت Cloudflare حداکثر حدود ۱٫۲۵ مگابایت داده جابه‌جا می‌کند. فقط با زدن دکمه اجرا می‌شود؛ هزینه اینترنت همراه ممکن است اعمال شود. نتیجه تقریبی است و VPN و بار سرور روی آن اثر دارند.</string>
+    <string name="ai_speed_run">اندازه‌گیری سرعت دانلود و آپلود</string>
+    <string name="ai_speed_running">در حال آزمایش دانلود و آپلود…</string>
+    <string name="ai_speed_result">دانلود: %1$s مگابیت‌برثانیه\nآپلود: %2$s مگابیت‌برثانیه</string>
+    <string name="ai_speed_failed">تست سرعت انجام نشد. ممکن است مقصد آزمایش مسدود یا در دسترس نباشد؛ دوباره تلاش کن یا از تست‌های خارجی زیر استفاده کن.</string>
     <string name="ai_speed_librespeed">اجرای تست LibreSpeed</string>
     <string name="ai_speed_openspeedtest">اجرای OpenSpeedTest</string>
     <string name="ai_network_checker">باز کردن پروژه Network Checker</string>
