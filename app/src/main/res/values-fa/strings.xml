@@ -747,4 +747,11 @@
     <string name="theme_cultural_night_summary">نیلی، طلایی ایرانی و فیروزه‌ای</string>
     <string name="theme_ancient_paper_title">کاغذ کهن</string>
     <string name="theme_ancient_paper_summary">کرم گرم و آبی جوهری</string>
+
+    <string name="radar_no_signal">No signal</string>
+    <string name="radar_no_signal_fa">بدون سیگنال</string>
+    <string name="radar_add_config">یک کانفیگ اضافه کن</string>
+    <string name="radar_add_config_hint">برای شروع، کانفیگ VPN را وارد کن.</string>
+    <string name="radar_clipboard">از کلیپ‌بورد</string>
+    <string name="radar_scan_qr">اسکن QR</string>
 </resources>
