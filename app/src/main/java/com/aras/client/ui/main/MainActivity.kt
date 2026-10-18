@@ -36,6 +36,7 @@ import com.aras.client.handler.MmkvManager
 import com.aras.client.handler.SettingsChangeManager
 import com.aras.client.handler.SettingsManager
 import com.aras.client.ui.hybrid.HybridActivity
+import com.aras.client.ui.ai.AiDiagnosticsActivity
 import com.aras.client.ui.AboutActivity
 import com.aras.client.ui.backup.BackupActivity
 import com.aras.client.ui.base.HelperBaseComponentActivity
@@ -373,6 +374,7 @@ class MainActivity : HelperBaseComponentActivity() {
     private fun navigateTo(destination: MainDestination) {
         val intent = when (destination) {
             MainDestination.Hybrid -> Intent(this, HybridActivity::class.java)
+            MainDestination.AI -> Intent(this, AiDiagnosticsActivity::class.java)
             MainDestination.Subscriptions -> Intent(this, SubSettingActivity::class.java)
             MainDestination.Export -> Intent(this, ExportActivity::class.java)
             MainDestination.PerAppProxy -> Intent(this, PerAppProxyActivity::class.java)
