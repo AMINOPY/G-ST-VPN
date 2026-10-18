@@ -756,4 +756,22 @@
 
     <string name="theme_persian_digits">Persian numerals</string>
     <string name="theme_persian_digits_summary">Use Persian digits for the connection timer</string>
+
+    <!-- Hybrid mode -->
+    <string name="hybrid_title">Hybrid mode</string>
+    <string name="menu_section_connection">Connection modes</string>
+    <string name="menu_sub_hybrid">Psiphon + V2Ray</string>
+    <string name="hybrid_status_title">Connection status</string>
+    <string name="hybrid_backend_notice">Use this page to prepare and check a V2Ray/Xray share link. The app's combined connection engine is not active yet.</string>
+    <string name="hybrid_config_label">Server configuration</string>
+    <string name="hybrid_config_hint">Paste a VLESS, VMess, Trojan or Shadowsocks link</string>
+    <string name="hybrid_paste">Paste from clipboard</string>
+    <string name="hybrid_clear">Clear</string>
+    <string name="hybrid_direction_label">Chain order</string>
+    <string name="hybrid_psiphon_first">Psiphon first, then V2Ray/Xray</string>
+    <string name="hybrid_v2ray_first">V2Ray/Xray first, then Psiphon</string>
+    <string name="hybrid_validate">Check configuration format</string>
+    <string name="hybrid_validation_ok">The text contains a supported link prefix. This is only a basic format check.</string>
+    <string name="hybrid_validation_error">No supported link was found. Paste a VLESS, VMess, Trojan or SS link.</string>
+    <string name="hybrid_not_connected_yet">Connection is not started from this page yet. Do not treat a successful format check as a working VPN connection.</string>
 </resources>
