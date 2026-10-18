@@ -42,6 +42,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aras.client.ui.radar.RadarDisplay
+import com.aras.client.ui.radar.RadarPalette
+import com.aras.client.ui.radar.RadarState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
@@ -157,44 +160,16 @@ fun RadarDashboard(
 
             Spacer(Modifier.height(8.dp))
 
-            Box(
-                modifier = Modifier
-                    .size(228.dp)
-                    .clip(CircleShape)
-                    .background(radarBase),
-                contentAlignment = Alignment.Center
-            ) {
-                RadarGraphic(
-                    active = verification == RadarVerification.VERIFIED,
-                    base = radarBase,
-                    grid = radarGrid,
-                    signal = statusColor,
-                    isDarkTheme = isDarkTheme,
-                    modifier = Modifier.size(228.dp)
-                )
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(horizontal = 18.dp)
-                ) {
-                    Text(
-                        text = statusLabel,
-                        color = statusColor,
-                        fontSize = if (verification == RadarVerification.UNVERIFIED) 10.sp else 13.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = 1.1.sp,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(Modifier.height(5.dp))
-                    Text(
-                        text = statusDetail,
-                        color = secondaryText,
-                        fontSize = 10.sp,
-                        lineHeight = 14.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
+            RadarDisplay(
+                state = when (verification) {
+                    RadarVerification.DISCONNECTED -> RadarState.DISCONNECTED
+                    RadarVerification.CHECKING -> RadarState.CONNECTING
+                    RadarVerification.VERIFIED -> RadarState.CONNECTED_VERIFIED
+                    RadarVerification.UNVERIFIED -> RadarState.TUNNEL_IP_UNVERIFIED
+                },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,
+            )
 
             Spacer(Modifier.height(12.dp))
 
@@ -234,95 +209,6 @@ fun RadarDashboard(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 7.dp)
             )
-        }
-    }
-}
-
-@Composable
-private fun RadarGraphic(
-    active: Boolean,
-    base: Color,
-    grid: Color,
-    signal: Color,
-    isDarkTheme: Boolean,
-    modifier: Modifier = Modifier
-) {
-    val sweep = remember { androidx.compose.animation.core.Animatable(0f) }
-    LaunchedEffect(active) {
-        if (active) {
-            while (true) {
-                sweep.animateTo(
-                    targetValue = 360f,
-                    animationSpec = androidx.compose.animation.core.tween(
-                        durationMillis = 2400,
-                        easing = androidx.compose.animation.core.LinearEasing
-                    )
-                )
-                sweep.snapTo(0f)
-            }
-        } else {
-            sweep.snapTo(0f)
-        }
-    }
-
-    Canvas(modifier = modifier) {
-        val center = Offset(size.width / 2f, size.height / 2f)
-        val radius = size.minDimension * 0.46f
-        val ringColor = if (active) Color(0xFF7FE3AC) else grid
-        drawCircle(color = base, radius = radius, center = center)
-        for (fraction in listOf(0.28f, 0.52f, 0.76f, 1f)) {
-            drawCircle(
-                color = ringColor.copy(alpha = if (active) 0.62f else 0.8f),
-                radius = radius * fraction,
-                center = center,
-                style = Stroke(width = if (fraction == 1f) 1.8.dp.toPx() else 1.dp.toPx())
-            )
-        }
-        for (degree in 0 until 360 step 30) {
-            val angle = Math.toRadians(degree.toDouble())
-            val inner = radius * if (degree % 90 == 0) 0.83f else 0.91f
-            val outer = radius * 0.98f
-            drawLine(
-                color = ringColor.copy(alpha = if (degree % 90 == 0) 0.85f else 0.48f),
-                start = Offset(center.x + kotlin.math.cos(angle).toFloat() * inner, center.y + kotlin.math.sin(angle).toFloat() * inner),
-                end = Offset(center.x + kotlin.math.cos(angle).toFloat() * outer, center.y + kotlin.math.sin(angle).toFloat() * outer),
-                strokeWidth = if (degree % 90 == 0) 1.5.dp.toPx() else 1.dp.toPx()
-            )
-        }
-        drawLine(color = grid.copy(alpha = 0.55f), start = Offset(center.x - radius, center.y), end = Offset(center.x + radius, center.y), strokeWidth = 0.7.dp.toPx())
-        drawLine(color = grid.copy(alpha = 0.55f), start = Offset(center.x, center.y - radius), end = Offset(center.x, center.y + radius), strokeWidth = 0.7.dp.toPx())
-
-        if (active) {
-            rotate(sweep.value, pivot = center) {
-                drawArc(
-                    brush = Brush.sweepGradient(
-                        colors = listOf(Color.Transparent, signal.copy(alpha = 0.05f), signal.copy(alpha = 0.48f)),
-                        center = center
-                    ),
-                    startAngle = -52f,
-                    sweepAngle = 52f,
-                    useCenter = true,
-                    topLeft = Offset(center.x - radius, center.y - radius),
-                    size = Size(radius * 2, radius * 2)
-                )
-                drawLine(
-                    color = signal.copy(alpha = 0.9f),
-                    start = center,
-                    end = Offset(center.x, center.y - radius),
-                    strokeWidth = 1.6.dp.toPx()
-                )
-            }
-            val nodes = listOf(
-                Offset(center.x + radius * 0.45f, center.y - radius * 0.18f),
-                Offset(center.x - radius * 0.38f, center.y + radius * 0.42f),
-                Offset(center.x + radius * 0.12f, center.y + radius * 0.65f)
-            )
-            nodes.forEach { node ->
-                drawCircle(color = signal.copy(alpha = 0.22f), radius = 5.dp.toPx(), center = node)
-                drawCircle(color = signal, radius = 2.dp.toPx(), center = node)
-            }
-        } else {
-            drawCircle(color = grid, radius = 2.5.dp.toPx(), center = center)
         }
     }
 }
