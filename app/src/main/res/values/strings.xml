@@ -814,6 +814,8 @@
     <string name="ai_carrier">Mobile operator</string>
     <string name="ai_mobile_radio">Mobile radio</string>
     <string name="ai_latency_label">HTTPS response latency (median of 3)</string>
+    <string name="ai_dns_lookup_latency">System DNS lookup time</string>
+    <string name="ai_dns_latency_result">%1$d ms</string>
     <string name="ai_latency_not_run">Not measured yet</string>
     <string name="ai_latency_running">Measuring HTTPS response time…</string>
     <string name="ai_latency_result">%1$d ms</string>
