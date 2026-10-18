@@ -761,4 +761,22 @@
 
     <string name="theme_persian_digits">اعداد فارسی</string>
     <string name="theme_persian_digits_summary">نمایش زمان اتصال با اعداد فارسی</string>
+
+    <!-- Hybrid mode -->
+    <string name="hybrid_title">حالت ترکیبی</string>
+    <string name="menu_section_connection">حالت‌های اتصال</string>
+    <string name="menu_sub_hybrid">سایفون + ویتوری</string>
+    <string name="hybrid_status_title">وضعیت اتصال</string>
+    <string name="hybrid_backend_notice">از این صفحه برای وارد کردن و بررسی اولیه لینک اشتراک V2Ray/Xray استفاده کن. موتور اتصال ترکیبی برنامه هنوز فعال نشده است.</string>
+    <string name="hybrid_config_label">پیکربندی سرور</string>
+    <string name="hybrid_config_hint">لینک VLESS، VMess، Trojan یا Shadowsocks را وارد کن</string>
+    <string name="hybrid_paste">چسباندن از کلیپ‌بورد</string>
+    <string name="hybrid_clear">پاک کردن</string>
+    <string name="hybrid_direction_label">ترتیب زنجیره</string>
+    <string name="hybrid_psiphon_first">اول سایفون، سپس ویتوری/Xray</string>
+    <string name="hybrid_v2ray_first">اول ویتوری/Xray، سپس سایفون</string>
+    <string name="hybrid_validate">بررسی قالب کانفیگ</string>
+    <string name="hybrid_validation_ok">پیشوند لینک پشتیبانی‌شده پیدا شد. این فقط بررسی اولیه قالب است.</string>
+    <string name="hybrid_validation_error">لینک پشتیبانی‌شده‌ای پیدا نشد. لینک VLESS، VMess، Trojan یا SS را وارد کن.</string>
+    <string name="hybrid_not_connected_yet">اتصال از این صفحه هنوز فعال نشده است. موفقیت بررسی قالب به معنی برقرار شدن VPN نیست.</string>
 </resources>
