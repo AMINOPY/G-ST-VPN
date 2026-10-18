@@ -30,14 +30,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
+      - name: Set up Android SDK command-line tools
         uses: android-actions/setup-android@v3
         with:
-          packages: |
-            platform-tools
-            platforms;android-37
-            build-tools;37.0.0
           log-accepted-android-sdk-licenses: false
+
+      - name: Install required Android SDK packages
+        run: |
+          set -euo pipefail
+          sdkmanager --install "platform-tools" "platforms;android-37" "build-tools;37.0.0"
+          sdkmanager --list_installed
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
