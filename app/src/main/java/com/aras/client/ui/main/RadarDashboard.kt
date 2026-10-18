@@ -39,9 +39,9 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 
-private enum class RadarVerification { DISCONNECTED, CHECKING, VERIFIED, UNVERIFIED }
+private enum class RadarVerification { DISCONNECTED, CHECKING, VERIFIED, UNVERIFIED, TUNNEL_LOST }
 
-private data class RadarIpResult(val verified: Boolean, val ip: String? = null)
+private data class RadarIpResult(val tunnelActive: Boolean, val verified: Boolean, val ip: String? = null)
 
 @Composable
 fun RadarDashboard(
@@ -66,8 +66,11 @@ fun RadarDashboard(
         // This effect is keyed to the service state, so a disconnect cancels an older check.
         if (isRunning) {
             publicIp = result.ip
-            verification = if (result.verified) RadarVerification.VERIFIED
-            else RadarVerification.UNVERIFIED
+            verification = when {
+                !result.tunnelActive -> RadarVerification.TUNNEL_LOST
+                result.verified -> RadarVerification.VERIFIED
+                else -> RadarVerification.UNVERIFIED
+            }
         }
     }
 
@@ -81,18 +84,21 @@ fun RadarDashboard(
     val statusColor = when (verification) {
         RadarVerification.DISCONNECTED -> Color(0xFFFF525C)
         RadarVerification.CHECKING, RadarVerification.UNVERIFIED -> Color(0xFFC18A32)
+        RadarVerification.TUNNEL_LOST -> Color(0xFFFF525C)
         RadarVerification.VERIFIED -> Color(0xFF7FE3AC)
     }
     val statusLabel = when (verification) {
         RadarVerification.DISCONNECTED -> "NO SIGNAL"
         RadarVerification.CHECKING -> "VERIFYING TUNNEL"
         RadarVerification.UNVERIFIED -> "TUNNEL ACTIVE · IP UNVERIFIED"
+        RadarVerification.TUNNEL_LOST -> "NO SIGNAL"
         RadarVerification.VERIFIED -> "SIGNAL ACTIVE"
     }
     val statusDetail = when (verification) {
         RadarVerification.DISCONNECTED -> "VPN tunnel inactive"
         RadarVerification.CHECKING -> "Checking the active VPN network"
         RadarVerification.UNVERIFIED -> "Tunnel is running, but egress IP could not be verified"
+        RadarVerification.TUNNEL_LOST -> "VPN network is not active"
         RadarVerification.VERIFIED -> "SECURE TUNNEL ESTABLISHED"
     }
 
@@ -155,6 +161,7 @@ fun RadarDashboard(
                     RadarVerification.CHECKING -> RadarState.CONNECTING
                     RadarVerification.VERIFIED -> RadarState.CONNECTED_VERIFIED
                     RadarVerification.UNVERIFIED -> RadarState.TUNNEL_IP_UNVERIFIED
+                    RadarVerification.TUNNEL_LOST -> RadarState.ERROR
                 },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
                 palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,
@@ -204,18 +211,19 @@ fun RadarDashboard(
 
 private fun verifyVpnEgress(context: Context): RadarIpResult {
     val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-        ?: return RadarIpResult(false)
-    val network = connectivity.activeNetwork ?: return RadarIpResult(false)
-    val capabilities = connectivity.getNetworkCapabilities(network) ?: return RadarIpResult(false)
+        ?: return RadarIpResult(tunnelActive = false, verified = false)
+    val network = connectivity.activeNetwork ?: return RadarIpResult(tunnelActive = false, verified = false)
+    val capabilities = connectivity.getNetworkCapabilities(network)
+        ?: return RadarIpResult(tunnelActive = false, verified = false)
     if (!capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
-        return RadarIpResult(false)
+        return RadarIpResult(tunnelActive = false, verified = false)
     }
 
     val connection = try {
         network.openConnection(URL("https://api64.ipify.org")) as? HttpURLConnection
-            ?: return RadarIpResult(false)
+            ?: return RadarIpResult(tunnelActive = true, verified = false)
     } catch (_: Exception) {
-        return RadarIpResult(false)
+        return RadarIpResult(tunnelActive = true, verified = false)
     }
 
     return try {
@@ -224,12 +232,13 @@ private fun verifyVpnEgress(context: Context): RadarIpResult {
         connection.requestMethod = "GET"
         connection.setRequestProperty("Accept", "text/plain")
         val code = connection.responseCode
-        if (code !in 200..299) return RadarIpResult(false)
+        if (code !in 200..299) return RadarIpResult(tunnelActive = true, verified = false)
         val ip = connection.inputStream.bufferedReader().use { it.readText().trim() }.take(64)
         val looksLikeIp = ip.isNotBlank() && ip.matches(Regex("^[0-9a-fA-F:.]+$")) && (ip.contains('.') || ip.contains(':'))
-        if (looksLikeIp) RadarIpResult(true, ip) else RadarIpResult(false)
+        if (looksLikeIp) RadarIpResult(tunnelActive = true, verified = true, ip = ip)
+        else RadarIpResult(tunnelActive = true, verified = false)
     } catch (_: Exception) {
-        RadarIpResult(false)
+        RadarIpResult(tunnelActive = true, verified = false)
     } finally {
         connection.disconnect()
     }
