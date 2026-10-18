@@ -70,6 +70,7 @@ fun CulturalRadar(
     val pulse = remember { Animatable(1f) }
     val reducedMotion by ThemeManager.reducedMotionEnabled.collectAsState()
     val patternIntensity by ThemeManager.patternIntensity.collectAsState()
+    val persianDigits by ThemeManager.persianDigitsEnabled.collectAsState()
     var connectedAt by rememberSaveable { mutableStateOf(0L) }
     var elapsedSeconds by remember { mutableStateOf(0L) }
 
@@ -265,7 +266,7 @@ fun CulturalRadar(
             }
         } else if (isRunning) {
             Text(
-                text = formatRadarDuration(elapsedSeconds),
+                text = formatRadarDuration(elapsedSeconds, persianDigits),
                 color = RadarTurquoise,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
@@ -275,11 +276,13 @@ fun CulturalRadar(
     }
 }
 
-private fun formatRadarDuration(seconds: Long): String {
+private fun formatRadarDuration(seconds: Long, persianDigits: Boolean): String {
     val hours = seconds / 3600L
     val minutes = (seconds % 3600L) / 60L
     val secs = seconds % 60L
-    return "%02d:%02d:%02d".format(hours, minutes, secs).map { ch ->
+    val formatted = "%02d:%02d:%02d".format(hours, minutes, secs)
+    if (!persianDigits) return formatted
+    return formatted.map { ch ->
         if (ch in '0'..'9') ('۰'.code + (ch.code - '0'.code)).toChar() else ch
     }.joinToString("")
 }
