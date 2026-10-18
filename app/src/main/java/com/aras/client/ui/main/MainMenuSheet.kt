@@ -197,6 +197,19 @@ fun MainMenuSheet(
                             }
                         )
                     }
+                } else if (section.titleRes == R.string.menu_section_ai) {
+                    section.items.forEach { item ->
+                        HybridMenuCard(
+                            title = stringResource(R.string.menu_section_ai),
+                            subtitle = stringResource(R.string.menu_sub_ai),
+                            iconRes = item.destination.iconRes,
+                            accent = item.accent,
+                            onClick = {
+                                onDismiss()
+                                onNavigate(item.destination)
+                            }
+                        )
+                    }
                 } else {
                     Row(
                         modifier = Modifier
