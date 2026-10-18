@@ -16,8 +16,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +47,9 @@ fun ThemePicker(
     onSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val patternIntensity by ThemeManager.patternIntensity.collectAsState()
+    val reducedMotion by ThemeManager.reducedMotionEnabled.collectAsState()
+
     val choices = listOf(
         ThemeChoice(
             value = "0",
@@ -175,6 +182,53 @@ fun ThemePicker(
                         )
                     }
                 }
+            }
+        }
+        if (selectedValue == "3") {
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = stringResource(R.string.theme_pattern_intensity),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "$patternIntensity%",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Slider(
+                value = patternIntensity.toFloat(),
+                onValueChange = { ThemeManager.setPatternIntensity(it.toInt()) },
+                valueRange = 0f..100f,
+                steps = 99
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.theme_reduced_motion),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.theme_reduced_motion_summary),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = reducedMotion,
+                    onCheckedChange = { ThemeManager.setReducedMotionEnabled(it) }
+                )
             }
         }
         Spacer(Modifier.height(4.dp))
