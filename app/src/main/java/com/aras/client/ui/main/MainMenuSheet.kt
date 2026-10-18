@@ -220,7 +220,7 @@ fun MainMenuSheet(
                             iconRes = MainDestination.AI.iconRes,
                             label = stringResource(MainDestination.AI.labelRes),
                             subtitle = stringResource(R.string.menu_sub_ai),
-                            accent = violet,
+                            accent = Color(0xFF7C3AED),
                             onClick = {
                                 onDismiss()
                                 onNavigate(MainDestination.AI)
