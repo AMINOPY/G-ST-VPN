@@ -742,4 +742,11 @@
     <string name="theme_cultural_night_summary">Desert navy and Persian gold</string>
     <string name="theme_ancient_paper_title">Ancient paper</string>
     <string name="theme_ancient_paper_summary">Warm paper and ink blue</string>
+
+    <string name="radar_no_signal">No signal</string>
+    <string name="radar_no_signal_fa">بدون سیگنال</string>
+    <string name="radar_add_config">Add a configuration</string>
+    <string name="radar_add_config_hint">Import a VPN configuration to get started.</string>
+    <string name="radar_clipboard">From clipboard</string>
+    <string name="radar_scan_qr">Scan QR</string>
 </resources>
