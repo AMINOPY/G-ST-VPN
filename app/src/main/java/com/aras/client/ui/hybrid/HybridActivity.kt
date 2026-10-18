@@ -338,7 +338,7 @@ private fun HybridScreen(
                     onConnect(configText)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = configText.isNotBlank() && statusResource !in setOf(
+                enabled = configText.isNotBlank() && statusResource !in setOf<Int?>(
                     R.string.hybrid_status_starting,
                     R.string.hybrid_status_request_sent,
                     R.string.hybrid_status_connected,
