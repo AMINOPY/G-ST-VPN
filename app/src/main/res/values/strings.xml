@@ -753,4 +753,7 @@
     <string name="theme_pattern_intensity">Pattern intensity</string>
     <string name="theme_reduced_motion">Reduce motion</string>
     <string name="theme_reduced_motion_summary">Pause radar sweep and pulse animations</string>
+
+    <string name="theme_persian_digits">Persian numerals</string>
+    <string name="theme_persian_digits_summary">Use Persian digits for the connection timer</string>
 </resources>
