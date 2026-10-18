@@ -156,7 +156,7 @@
     <string name="export_action">Export (%d)</string>
     <string name="export_no_configs">No configs available to export</string>
     <string name="export_config_count">%d configs</string>
-    <string name="export_config_count_selected">%d of %d configs</string>
+    <string name="export_config_count_selected" formatted="false">%d of %d configs</string>
     <string name="export_ungrouped">Standalone configs</string>
     <string name="export_badge_protected">Protected · raw export blocked</string>
     <string name="export_success">Exported successfully</string>
@@ -762,7 +762,7 @@
     <string name="menu_section_connection">Connection modes</string>
     <string name="menu_sub_hybrid">Psiphon + V2Ray</string>
     <string name="hybrid_status_title">Connection status</string>
-    <string name="hybrid_backend_notice">Use this page to prepare and check a V2Ray/Xray share link. The app's combined connection engine is not active yet.</string>
+    <string name="hybrid_backend_notice">Use this page to prepare and check a V2Ray/Xray share link. The app\'s combined connection engine is not active yet.</string>
     <string name="hybrid_config_label">Server configuration</string>
     <string name="hybrid_config_hint">Paste a VLESS, VMess, Trojan or Shadowsocks link</string>
     <string name="hybrid_paste">Paste from clipboard</string>
