@@ -735,4 +735,11 @@
     <string name="title_export_sub_txt">Export subscription (TXT)</string>
     <string name="title_reset_settings">Reset settings to default</string>
     <string name="summary_reset_settings">All preferences return to factory defaults. The app restarts this screen.</string>
+
+    <string name="theme_system_title">System default</string>
+    <string name="theme_system_summary">Follow phone day/night</string>
+    <string name="theme_cultural_night_title">Cultural night</string>
+    <string name="theme_cultural_night_summary">Desert navy and Persian gold</string>
+    <string name="theme_ancient_paper_title">Ancient paper</string>
+    <string name="theme_ancient_paper_summary">Warm paper and ink blue</string>
 </resources>
