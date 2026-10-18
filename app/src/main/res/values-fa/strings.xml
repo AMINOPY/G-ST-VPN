@@ -754,4 +754,8 @@
     <string name="radar_add_config_hint">برای شروع، کانفیگ VPN را وارد کن.</string>
     <string name="radar_clipboard">از کلیپ‌بورد</string>
     <string name="radar_scan_qr">اسکن QR</string>
+
+    <string name="theme_pattern_intensity">شدت الگوهای تزئینی</string>
+    <string name="theme_reduced_motion">کاهش حرکت</string>
+    <string name="theme_reduced_motion_summary">توقف جاروب و نبض رادار</string>
 </resources>
