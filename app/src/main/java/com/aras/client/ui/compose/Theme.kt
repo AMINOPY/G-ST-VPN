@@ -194,9 +194,17 @@ val toastIconCircleBg = Color(0x33FFFFFF) // Semi-transparent White
 val toastTextColor = Color.White // White
 
 object ThemeManager {
-    private val _themeMode = MutableStateFlow(
-        MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "0") ?: "0"
-    )
+    private fun readThemeMode(): String {
+        val stored = MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "0") ?: "0"
+        // Migrate the former fixed light/dark choices to the new system-default option.
+        if (stored == "1" || stored == "2") {
+            MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, "0")
+            return "0"
+        }
+        return stored
+    }
+
+    private val _themeMode = MutableStateFlow(readThemeMode())
     val themeMode: StateFlow<String> = _themeMode.asStateFlow()
 
     private val _dynamicColorEnabled = MutableStateFlow(
@@ -215,8 +223,7 @@ object ThemeManager {
     }
 
     fun refresh() {
-        _themeMode.value =
-            MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "0") ?: "0"
+        _themeMode.value = readThemeMode()
         _dynamicColorEnabled.value =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
     }
