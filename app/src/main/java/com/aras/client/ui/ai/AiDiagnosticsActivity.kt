@@ -52,6 +52,7 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.InetAddress
 import java.net.URL
+import java.util.Locale
 
 private data class NetworkSnapshot(
     val connection: String,
@@ -70,6 +71,8 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
     private var scanMessage by mutableStateOf<Int?>(R.string.ai_scan_hint)
     private var latencyResult by mutableStateOf<String?>(null)
     private var dnsLookupResult by mutableStateOf<String?>(null)
+    private var speedTestResult by mutableStateOf<String?>(null)
+    private var speedTestRunning by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,6 +86,9 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             scanMessage = scanMessage,
             latencyResult = latencyResult,
             dnsLookupResult = dnsLookupResult,
+            speedTestResult = speedTestResult,
+            speedTestRunning = speedTestRunning,
+            onSpeedTest = { startSpeedTest() },
             onBack = { finish() },
             onScan = { scanNetwork() },
             onSimPermission = {
@@ -210,6 +216,88 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
         }
     }
 
+    /**
+     * Runs a user-triggered, bounded transfer test against Cloudflare's public speed-test
+     * endpoints. Downloads up to 1 MB and uploads 256 KB; results are approximate and
+     * depend on routing, server load, VPN state, and device conditions.
+     */
+    private fun startSpeedTest() {
+        if (speedTestRunning) return
+        speedTestRunning = true
+        speedTestResult = getString(R.string.ai_speed_running)
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val downloadBytes = 1_000_000
+                    val downloadConnection = (URL("https://speed.cloudflare.com/__down?bytes=$downloadBytes")
+                        .openConnection() as HttpURLConnection).apply {
+                        requestMethod = "GET"
+                        connectTimeout = 10_000
+                        readTimeout = 15_000
+                        useCaches = false
+                    }
+                    val downloaded: Long
+                    val downloadMillis: Long
+                    try {
+                        val started = System.nanoTime()
+                        downloaded = downloadConnection.inputStream.use { input ->
+                            val buffer = ByteArray(16 * 1024)
+                            var total = 0L
+                            while (true) {
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                total += count
+                            }
+                            total
+                        }
+                        downloadMillis = ((System.nanoTime() - started) / 1_000_000).coerceAtLeast(1)
+                        if (downloadConnection.responseCode !in 200..299 || downloaded <= 0L) {
+                            error("Download test returned no data")
+                        }
+                    } finally {
+                        downloadConnection.disconnect()
+                    }
+
+                    val uploadPayload = ByteArray(256 * 1024)
+                    java.security.SecureRandom().nextBytes(uploadPayload)
+                    val uploadConnection = (URL("https://speed.cloudflare.com/__up")
+                        .openConnection() as HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        doOutput = true
+                        connectTimeout = 10_000
+                        readTimeout = 15_000
+                        useCaches = false
+                        setRequestProperty("Content-Type", "application/octet-stream")
+                        setFixedLengthStreamingMode(uploadPayload.size)
+                    }
+                    val uploadMillis: Long
+                    try {
+                        val started = System.nanoTime()
+                        uploadConnection.outputStream.use { it.write(uploadPayload) }
+                        val code = uploadConnection.responseCode
+                        if (code !in 200..299) error("Upload test returned HTTP $code")
+                        runCatching { uploadConnection.inputStream.use { it.readBytes() } }
+                        uploadMillis = ((System.nanoTime() - started) / 1_000_000).coerceAtLeast(1)
+                    } finally {
+                        uploadConnection.disconnect()
+                    }
+
+                    val downMbps = downloaded * 8.0 / downloadMillis / 1000.0
+                    val upMbps = uploadPayload.size * 8.0 / uploadMillis / 1000.0
+                    getString(
+                        R.string.ai_speed_result,
+                        String.format(Locale.US, "%.1f", downMbps),
+                        String.format(Locale.US, "%.1f", upMbps)
+                    )
+                }.getOrElse {
+                    getString(R.string.ai_speed_failed)
+                }
+            }
+            speedTestResult = result
+            speedTestRunning = false
+        }
+    }
+
     private fun radioLabel(type: Int): String = when (type) {
         TelephonyManager.NETWORK_TYPE_GPRS,
         TelephonyManager.NETWORK_TYPE_EDGE,
@@ -240,6 +328,9 @@ private fun AiDiagnosticsScreen(
     scanMessage: Int?,
     latencyResult: String?,
     dnsLookupResult: String?,
+    speedTestResult: String?,
+    speedTestRunning: Boolean,
+    onSpeedTest: () -> Unit,
     onBack: () -> Unit,
     onScan: () -> Unit,
     onSimPermission: () -> Unit,
@@ -328,6 +419,14 @@ private fun AiDiagnosticsScreen(
             Text(stringResource(R.string.ai_speed_title), style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold)
             Text(stringResource(R.string.ai_speed_note), style = MaterialTheme.typography.bodySmall)
+            Button(onClick = onSpeedTest, enabled = !speedTestRunning, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(if (speedTestRunning) R.string.ai_speed_running else R.string.ai_speed_run))
+            }
+            speedTestResult?.let {
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                    Text(it, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyLarge)
+                }
+            }
             Button(onClick = onLibreSpeed, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.ai_speed_librespeed))
             }
