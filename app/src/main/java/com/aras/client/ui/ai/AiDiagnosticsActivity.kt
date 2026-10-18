@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.NetworkInfo
-import android.net.Uri
 import android.os.Build
 import android.telephony.TelephonyManager
 import android.net.TrafficStats
@@ -98,9 +97,6 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             onSimPermission = {
                 requestPhonePermission.launch(Manifest.permission.READ_PHONE_STATE)
             },
-            onLibreSpeed = { openExternal("https://librespeed.org") },
-            onOpenSpeedTest = { openExternal("https://openspeedtest.com") },
-            onNetworkChecker = { openExternal("https://github.com/mirarr-app/network-checker") },
         )
     }
 
@@ -109,11 +105,6 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             if (granted) scanNetwork()
             else scanMessage = R.string.ai_sim_permission_denied
         }
-
-    private fun openExternal(url: String) {
-        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-            .onFailure { scanMessage = R.string.ai_open_link_failed }
-    }
 
     @Suppress("DEPRECATION")
     private fun scanNetwork() {
@@ -390,9 +381,6 @@ private fun AiDiagnosticsScreen(
     onBack: () -> Unit,
     onScan: () -> Unit,
     onSimPermission: () -> Unit,
-    onLibreSpeed: () -> Unit,
-    onOpenSpeedTest: () -> Unit,
-    onNetworkChecker: () -> Unit,
 ) {
     val context = LocalContext.current
     val hasPhonePermission = ContextCompat.checkSelfPermission(
@@ -488,15 +476,6 @@ private fun AiDiagnosticsScreen(
                 Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
                     Text(it, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyLarge)
                 }
-            }
-            Button(onClick = onLibreSpeed, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.ai_speed_librespeed))
-            }
-            OutlinedButton(onClick = onOpenSpeedTest, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.ai_speed_openspeedtest))
-            }
-            OutlinedButton(onClick = onNetworkChecker, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.ai_network_checker))
             }
             Spacer(Modifier.height(8.dp))
         }
