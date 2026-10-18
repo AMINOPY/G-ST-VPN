@@ -65,7 +65,14 @@ private data class NetworkSnapshot(
     val radio: String,
     val signal: String,
     val mobileDataUsage: String,
+    val signalLevel: Int?,
     val advice: String,
+)
+
+private data class SpeedTestOutcome(
+    val display: String,
+    val downloadMbps: Double? = null,
+    val uploadMbps: Double? = null,
 )
 
 class AiDiagnosticsActivity : BaseComponentActivity() {
@@ -75,6 +82,11 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
     private var dnsLookupResult by mutableStateOf<String?>(null)
     private var speedTestResult by mutableStateOf<String?>(null)
     private var speedTestRunning by mutableStateOf(false)
+    private var smartAnalysis by mutableStateOf<String?>(null)
+    private var measuredLatencyMs: Long? = null
+    private var measuredDnsMs: Long? = null
+    private var measuredDownloadMbps: Double? = null
+    private var measuredUploadMbps: Double? = null
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,6 +102,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             dnsLookupResult = dnsLookupResult,
             speedTestResult = speedTestResult,
             speedTestRunning = speedTestRunning,
+            smartAnalysis = smartAnalysis,
             onSpeedTest = { startSpeedTest() },
             onShareReport = { shareReport() },
             onBack = { finish() },
@@ -108,6 +121,11 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
 
     @Suppress("DEPRECATION")
     private fun scanNetwork() {
+        measuredLatencyMs = null
+        measuredDnsMs = null
+        measuredDownloadMbps = null
+        measuredUploadMbps = null
+        speedTestResult = null
         startLatencyCheck()
         try {
             val connectivity = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -167,9 +185,15 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
                     getString(R.string.ai_advice_wifi)
                 else -> getString(R.string.ai_advice_connected)
             }
+            val signalLevel = if (hasPhonePermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                runCatching { telephony.signalStrength?.level }.getOrNull()?.takeIf { it in 0..4 }
+            } else null
             snapshot = NetworkSnapshot(
-                connection, internet, validated, vpn, metered, dns, carrier, radio, signal, mobileDataUsage, advice
+                connection, internet, validated, vpn, metered, dns, carrier, radio,
+                signal, mobileDataUsage, signalLevel, advice
             )
+            smartAnalysis = advice
+            refreshSmartAnalysis()
             scanMessage = R.string.ai_scan_complete
         } catch (_: Exception) {
             scanMessage = R.string.ai_scan_failed
@@ -215,10 +239,13 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
                 val httpMedian = if (samples.isEmpty()) null else samples.sorted()[samples.size / 2]
                 dnsElapsed to httpMedian
             }
+            measuredDnsMs = result.first
+            measuredLatencyMs = result.second
             dnsLookupResult = result.first?.let { getString(R.string.ai_dns_latency_result, it) }
                 ?: getString(R.string.ai_latency_failed)
             latencyResult = result.second?.let { getString(R.string.ai_latency_result, it) }
                 ?: getString(R.string.ai_latency_failed)
+            refreshSmartAnalysis()
         }
     }
 
@@ -232,7 +259,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
         speedTestRunning = true
         speedTestResult = getString(R.string.ai_speed_running)
         lifecycleScope.launch {
-            val result = withContext(Dispatchers.IO) {
+            val outcome = withContext(Dispatchers.IO) {
                 runCatching {
                     val downloadBytes = 1_000_000
                     val downloadConnection = (URL("https://speed.cloudflare.com/__down?bytes=$downloadBytes")
@@ -290,17 +317,64 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
 
                     val downMbps = downloaded * 8.0 / downloadMillis / 1000.0
                     val upMbps = uploadPayload.size * 8.0 / uploadMillis / 1000.0
-                    getString(
-                        R.string.ai_speed_result,
-                        String.format(Locale.US, "%.1f", downMbps),
-                        String.format(Locale.US, "%.1f", upMbps)
+                    SpeedTestOutcome(
+                        display = getString(
+                            R.string.ai_speed_result,
+                            String.format(Locale.US, "%.1f", downMbps),
+                            String.format(Locale.US, "%.1f", upMbps)
+                        ),
+                        downloadMbps = downMbps,
+                        uploadMbps = upMbps,
                     )
                 }.getOrElse {
-                    getString(R.string.ai_speed_failed)
+                    SpeedTestOutcome(getString(R.string.ai_speed_failed))
                 }
             }
-            speedTestResult = result
+            speedTestResult = outcome.display
+            measuredDownloadMbps = outcome.downloadMbps
+            measuredUploadMbps = outcome.uploadMbps
             speedTestRunning = false
+            refreshSmartAnalysis()
+        }
+    }
+
+    /** Builds an explainable diagnosis from measurements actually observed on this device. */
+    private fun refreshSmartAnalysis() {
+        val current = snapshot ?: return
+        val findings = mutableListOf<String>()
+
+        if (!current.validated) {
+            findings += getString(R.string.ai_diagnosis_internet_unvalidated)
+        }
+        if (measuredDnsMs != null && measuredDnsMs!! >= 500L) {
+            findings += getString(R.string.ai_diagnosis_dns_slow, measuredDnsMs!!)
+        }
+        if (measuredLatencyMs != null) {
+            when {
+                measuredLatencyMs!! >= 1000L -> findings += getString(
+                    R.string.ai_diagnosis_latency_high, measuredLatencyMs!!
+                )
+                measuredLatencyMs!! >= 300L -> findings += getString(
+                    R.string.ai_diagnosis_latency_medium, measuredLatencyMs!!
+                )
+            }
+        }
+        if (current.signalLevel != null && current.signalLevel <= 1) {
+            findings += getString(R.string.ai_diagnosis_signal_weak)
+        }
+        if (measuredDownloadMbps != null && measuredDownloadMbps!! < 5.0) {
+            findings += getString(R.string.ai_diagnosis_download_low, measuredDownloadMbps!!)
+        }
+        if (measuredUploadMbps != null && measuredUploadMbps!! < 1.0) {
+            findings += getString(R.string.ai_diagnosis_upload_low, measuredUploadMbps!!)
+        }
+        if (current.vpn) findings += getString(R.string.ai_diagnosis_vpn_note)
+
+        smartAnalysis = when {
+            findings.isNotEmpty() -> findings.joinToString("\n\n")
+            measuredLatencyMs != null || measuredDnsMs != null || measuredDownloadMbps != null ->
+                getString(R.string.ai_diagnosis_healthy)
+            else -> current.advice
         }
     }
 
@@ -321,7 +395,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
                 "${getString(R.string.ai_latency_label)}: ${latencyResult ?: getString(R.string.ai_latency_not_run)}",
                 "${getString(R.string.ai_dns_lookup_latency)}: ${dnsLookupResult ?: getString(R.string.ai_latency_not_run)}",
                 "${getString(R.string.ai_speed_title)}: ${speedTestResult ?: getString(R.string.ai_latency_not_run)}",
-                "${getString(R.string.ai_analysis_title)}: ${it.advice}",
+                "${getString(R.string.ai_analysis_title)}: ${smartAnalysis ?: it.advice}",
             ).joinToString("\n")
         } ?: getString(R.string.ai_analysis_not_ready)
         runCatching {
@@ -376,6 +450,7 @@ private fun AiDiagnosticsScreen(
     dnsLookupResult: String?,
     speedTestResult: String?,
     speedTestRunning: Boolean,
+    smartAnalysis: String?,
     onSpeedTest: () -> Unit,
     onShareReport: () -> Unit,
     onBack: () -> Unit,
@@ -461,7 +536,7 @@ private fun AiDiagnosticsScreen(
                 fontWeight = FontWeight.Bold)
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp)) {
                 Text(
-                    snapshot?.advice?.let { it } ?: stringResource(R.string.ai_analysis_not_ready),
+                    smartAnalysis ?: snapshot?.advice ?: stringResource(R.string.ai_analysis_not_ready),
                     modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyLarge
                 )
             }
