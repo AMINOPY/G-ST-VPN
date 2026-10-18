@@ -749,4 +749,8 @@
     <string name="radar_add_config_hint">Import a VPN configuration to get started.</string>
     <string name="radar_clipboard">From clipboard</string>
     <string name="radar_scan_qr">Scan QR</string>
+
+    <string name="theme_pattern_intensity">Pattern intensity</string>
+    <string name="theme_reduced_motion">Reduce motion</string>
+    <string name="theme_reduced_motion_summary">Pause radar sweep and pulse animations</string>
 </resources>
