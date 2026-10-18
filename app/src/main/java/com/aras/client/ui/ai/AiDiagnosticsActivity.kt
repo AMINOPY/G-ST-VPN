@@ -45,6 +45,12 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.aras.client.R
 import com.aras.client.ui.base.BaseComponentActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 
 private data class NetworkSnapshot(
     val connection: String,
@@ -61,6 +67,7 @@ private data class NetworkSnapshot(
 class AiDiagnosticsActivity : BaseComponentActivity() {
     private var snapshot by mutableStateOf<NetworkSnapshot?>(null)
     private var scanMessage by mutableStateOf<Int?>(R.string.ai_scan_hint)
+    private var latencyResult by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,6 +79,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
         AiDiagnosticsScreen(
             snapshot = snapshot,
             scanMessage = scanMessage,
+            latencyResult = latencyResult,
             onBack = { finish() },
             onScan = { scanNetwork() },
             onSimPermission = {
@@ -96,6 +104,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
 
     @Suppress("DEPRECATION")
     private fun scanNetwork() {
+        startLatencyCheck()
         try {
             val connectivity = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val network = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -152,6 +161,44 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
         }
     }
 
+    /**
+     * Measures HTTPS round-trip latency against a lightweight 204 endpoint.
+     * This is an application-level latency estimate, not ICMP ping and not a speed test.
+     */
+    private fun startLatencyCheck() {
+        latencyResult = getString(R.string.ai_latency_running)
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                val samples = mutableListOf<Long>()
+                repeat(3) {
+                    var connection: HttpURLConnection? = null
+                    try {
+                        val started = System.nanoTime()
+                        connection = (URL("https://connectivitycheck.gstatic.com/generate_204")
+                            .openConnection() as HttpURLConnection).apply {
+                            requestMethod = "GET"
+                            connectTimeout = 3500
+                            readTimeout = 3500
+                            instanceFollowRedirects = false
+                            useCaches = false
+                        }
+                        connection.connect()
+                        connection.inputStream?.close()
+                        val elapsed = (System.nanoTime() - started) / 1_000_000
+                        if (connection.responseCode in 200..299) samples += elapsed
+                    } catch (_: Exception) {
+                        // Keep scanning the local network even if the probe endpoint is blocked.
+                    } finally {
+                        connection?.disconnect()
+                    }
+                }
+                if (samples.isEmpty()) null else samples.sorted()[samples.size / 2]
+            }
+            latencyResult = result?.let { getString(R.string.ai_latency_result, it) }
+                ?: getString(R.string.ai_latency_failed)
+        }
+    }
+
     private fun radioLabel(type: Int): String = when (type) {
         TelephonyManager.NETWORK_TYPE_GPRS,
         TelephonyManager.NETWORK_TYPE_EDGE,
@@ -180,6 +227,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
 private fun AiDiagnosticsScreen(
     snapshot: NetworkSnapshot?,
     scanMessage: Int?,
+    latencyResult: String?,
     onBack: () -> Unit,
     onScan: () -> Unit,
     onSimPermission: () -> Unit,
@@ -246,6 +294,7 @@ private fun AiDiagnosticsScreen(
                     ReportRow(stringResource(R.string.ai_dns_servers), snapshot?.dns ?: stringResource(R.string.ai_value_not_scanned))
                     ReportRow(stringResource(R.string.ai_carrier), snapshot?.carrier ?: stringResource(R.string.ai_value_not_scanned))
                     ReportRow(stringResource(R.string.ai_mobile_radio), snapshot?.radio ?: stringResource(R.string.ai_value_not_scanned))
+                    ReportRow(stringResource(R.string.ai_latency_label), latencyResult ?: stringResource(R.string.ai_latency_not_run))
                     if (!hasPhonePermission) {
                         OutlinedButton(onClick = onSimPermission, modifier = Modifier.fillMaxWidth()) {
                             Text(stringResource(R.string.ai_allow_sim_info))
