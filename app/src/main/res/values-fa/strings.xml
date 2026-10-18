@@ -758,4 +758,7 @@
     <string name="theme_pattern_intensity">شدت الگوهای تزئینی</string>
     <string name="theme_reduced_motion">کاهش حرکت</string>
     <string name="theme_reduced_motion_summary">توقف جاروب و نبض رادار</string>
+
+    <string name="theme_persian_digits">اعداد فارسی</string>
+    <string name="theme_persian_digits_summary">نمایش زمان اتصال با اعداد فارسی</string>
 </resources>
