@@ -50,6 +50,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
+import java.net.InetAddress
 import java.net.URL
 
 private data class NetworkSnapshot(
@@ -68,6 +69,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
     private var snapshot by mutableStateOf<NetworkSnapshot?>(null)
     private var scanMessage by mutableStateOf<Int?>(R.string.ai_scan_hint)
     private var latencyResult by mutableStateOf<String?>(null)
+    private var dnsLookupResult by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,6 +82,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             snapshot = snapshot,
             scanMessage = scanMessage,
             latencyResult = latencyResult,
+            dnsLookupResult = dnsLookupResult,
             onBack = { finish() },
             onScan = { scanNetwork() },
             onSimPermission = {
@@ -169,6 +172,11 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
         latencyResult = getString(R.string.ai_latency_running)
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
+                val dnsStarted = System.nanoTime()
+                val dnsElapsed = runCatching {
+                    InetAddress.getAllByName("connectivitycheck.gstatic.com")
+                    (System.nanoTime() - dnsStarted) / 1_000_000
+                }.getOrNull()
                 val samples = mutableListOf<Long>()
                 repeat(3) {
                     var connection: HttpURLConnection? = null
@@ -192,9 +200,12 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
                         connection?.disconnect()
                     }
                 }
-                if (samples.isEmpty()) null else samples.sorted()[samples.size / 2]
+                val httpMedian = if (samples.isEmpty()) null else samples.sorted()[samples.size / 2]
+                dnsElapsed to httpMedian
             }
-            latencyResult = result?.let { getString(R.string.ai_latency_result, it) }
+            dnsLookupResult = result.first?.let { getString(R.string.ai_dns_latency_result, it) }
+                ?: getString(R.string.ai_latency_failed)
+            latencyResult = result.second?.let { getString(R.string.ai_latency_result, it) }
                 ?: getString(R.string.ai_latency_failed)
         }
     }
@@ -228,6 +239,7 @@ private fun AiDiagnosticsScreen(
     snapshot: NetworkSnapshot?,
     scanMessage: Int?,
     latencyResult: String?,
+    dnsLookupResult: String?,
     onBack: () -> Unit,
     onScan: () -> Unit,
     onSimPermission: () -> Unit,
@@ -295,6 +307,7 @@ private fun AiDiagnosticsScreen(
                     ReportRow(stringResource(R.string.ai_carrier), snapshot?.carrier ?: stringResource(R.string.ai_value_not_scanned))
                     ReportRow(stringResource(R.string.ai_mobile_radio), snapshot?.radio ?: stringResource(R.string.ai_value_not_scanned))
                     ReportRow(stringResource(R.string.ai_latency_label), latencyResult ?: stringResource(R.string.ai_latency_not_run))
+                    ReportRow(stringResource(R.string.ai_dns_lookup_latency), dnsLookupResult ?: stringResource(R.string.ai_latency_not_run))
                     if (!hasPhonePermission) {
                         OutlinedButton(onClick = onSimPermission, modifier = Modifier.fillMaxWidth()) {
                             Text(stringResource(R.string.ai_allow_sim_info))
