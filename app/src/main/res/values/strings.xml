@@ -760,7 +760,7 @@
     <!-- Hybrid mode -->
     <string name="hybrid_title">Hybrid mode</string>
     <string name="menu_section_connection">Connection modes</string>
-    <string name="menu_sub_hybrid">Psiphon + V2Ray</string>
+    <string name="menu_sub_hybrid">Hybrid</string>
     <string name="hybrid_status_title">Connection status</string>
     <string name="hybrid_backend_notice">Use this page to prepare and check a V2Ray/Xray share link. The app\'s combined connection engine is not active yet.</string>
     <string name="hybrid_config_label">Server configuration</string>
