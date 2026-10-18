@@ -777,9 +777,10 @@
     <string name="hybrid_route_badge">Psiphon → V2Ray/Xray</string>
     <string name="hybrid_route_description">The app will run its bundled Psiphon client as a local upstream proxy and chain your V2Ray/Xray profile through it.</string>
     <string name="hybrid_how_it_works">How the chain works</string>
-    <string name="hybrid_route_steps">Your V2Ray/Xray server → local Psiphon SOCKS hop → internet. Only this direction is supported by the current core.</string>
+    <string name="hybrid_route_steps">Device → local Psiphon upstream → your V2Ray/Xray server → internet. The current core supports this direction only.</string>
     <string name="hybrid_status_idle">Ready for a configuration</string>
     <string name="hybrid_status_starting">Preparing the temporary chain…</string>
+    <string name="hybrid_status_connected">Connected: the service reports that the Hybrid chain started successfully.</string>
     <string name="hybrid_status_request_sent">Connection request sent. Check the VPN notification for the actual connection state.</string>
     <string name="hybrid_status_stopping">Stopping the chain and restoring your previous profile…</string>
     <string name="hybrid_invalid_config">Could not parse this link. Paste one complete VLESS, VMess, Trojan, Shadowsocks or SOCKS link.</string>
