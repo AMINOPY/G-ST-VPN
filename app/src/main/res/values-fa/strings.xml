@@ -740,4 +740,11 @@
     <string name="title_pref_show_sub_announcement">نمایش اطلاعیه‌های اشتراک</string>
     <string name="summary_pref_show_sub_announcement">نمایش اطلاعیه و پیام سازنده که اشتراک ارائه می‌دهد، زیر اطلاعات اشتراک. اگر اشتراک نداشته باشد پنهان می‌شود</string>
     <string name="update_no_notes">برای این نسخه یادداشت انتشاری وجود ندارد</string>
+
+    <string name="theme_system_title">پیش‌فرض سیستم</string>
+    <string name="theme_system_summary">پیروی از حالت شب و روز گوشی</string>
+    <string name="theme_cultural_night_title">شب کویر؛ فرهنگی</string>
+    <string name="theme_cultural_night_summary">نیلی، طلایی ایرانی و فیروزه‌ای</string>
+    <string name="theme_ancient_paper_title">کاغذ کهن</string>
+    <string name="theme_ancient_paper_summary">کرم گرم و آبی جوهری</string>
 </resources>
