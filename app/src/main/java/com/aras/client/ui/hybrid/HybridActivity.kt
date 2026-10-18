@@ -94,7 +94,6 @@ class HybridActivity : BaseComponentActivity() {
                 startAfterPermission?.invoke()
             } else {
                 startAfterPermission = null
-                HybridConnectManager.stop(this)
                 statusResource = R.string.hybrid_status_stopping
                 val failure = getString(R.string.hybrid_permission_denied)
                 statusMessage = null
@@ -110,6 +109,12 @@ class HybridActivity : BaseComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ContextCompat.registerReceiver(
+            this,
+            serviceStateReceiver,
+            IntentFilter(AppConfig.BROADCAST_ACTION_ACTIVITY),
+            Utils.receiverFlags()
+        )
     }
 
     @Composable
