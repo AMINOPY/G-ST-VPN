@@ -762,7 +762,7 @@
     <string name="menu_section_connection">Connection modes</string>
     <string name="menu_sub_hybrid">Hybrid</string>
     <string name="hybrid_status_title">Connection status</string>
-    <string name="hybrid_backend_notice">Use this page to prepare and check a V2Ray/Xray share link. The app\'s combined connection engine is not active yet.</string>
+    <string name="hybrid_backend_notice">Prepare a temporary Psiphon + V2Ray/Xray chain. The actual connection state is reported by the VPN service notification.</string>
     <string name="hybrid_config_label">Server configuration</string>
     <string name="hybrid_config_hint">Paste a VLESS, VMess, Trojan or Shadowsocks link</string>
     <string name="hybrid_paste">Paste from clipboard</string>
@@ -774,4 +774,21 @@
     <string name="hybrid_validation_ok">The text contains a supported link prefix. This is only a basic format check.</string>
     <string name="hybrid_validation_error">No supported link was found. Paste a VLESS, VMess, Trojan or SS link.</string>
     <string name="hybrid_not_connected_yet">Connection is not started from this page yet. Do not treat a successful format check as a working VPN connection.</string>
+    <string name="hybrid_route_badge">Psiphon → V2Ray/Xray</string>
+    <string name="hybrid_route_description">The app will run its bundled Psiphon client as a local upstream proxy and chain your V2Ray/Xray profile through it.</string>
+    <string name="hybrid_how_it_works">How the chain works</string>
+    <string name="hybrid_route_steps">Your V2Ray/Xray server → local Psiphon SOCKS hop → internet. Only this direction is supported by the current core.</string>
+    <string name="hybrid_status_idle">Ready for a configuration</string>
+    <string name="hybrid_status_starting">Preparing the temporary chain…</string>
+    <string name="hybrid_status_request_sent">Connection request sent. Check the VPN notification for the actual connection state.</string>
+    <string name="hybrid_status_stopping">Stopping the chain and restoring your previous profile…</string>
+    <string name="hybrid_invalid_config">Could not parse this link. Paste one complete VLESS, VMess, Trojan, Shadowsocks or SOCKS link.</string>
+    <string name="hybrid_unsupported_config">This profile type is not supported by Hybrid mode yet. Use VLESS, VMess, Trojan, Shadowsocks or SOCKS.</string>
+    <string name="hybrid_already_prepared">A temporary Hybrid session already exists. Stop it and restore the previous profile first.</string>
+    <string name="hybrid_prepare_failed">Could not prepare Hybrid mode: %1$s</string>
+    <string name="hybrid_start_failed">The app could not start the Hybrid connection. Check the connection mode and logs.</string>
+    <string name="hybrid_permission_denied">VPN permission was not granted; the temporary Hybrid profile is being cleaned up.</string>
+    <string name="hybrid_connect">Connect in Hybrid mode</string>
+    <string name="hybrid_stop_restore">Stop and return to normal mode</string>
+    <string name="hybrid_cleanup_notice">The imported link and helper profiles are temporary. Stopping this mode restores your previous server selection and removes the temporary profiles.</string>
 </resources>
