@@ -33,14 +33,15 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # GitHub's ubuntu-latest runner already includes Android SDK and cmdline tools.
-      # Avoid android-actions/setup-android here: it requests the removed legacy
-      # SDK package "tools", causing the job to fail before Gradle starts.
-      - name: Verify Android SDK
+      # ubuntu-latest already provides Android command-line tools. Install only
+      # SDK packages we need; the setup-android action's default legacy "tools"
+      # package is no longer published and fails before Gradle can start.
+      - name: Install Android SDK packages
         run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          test -d "$ANDROID_HOME/platform-tools"
-          sdkmanager --list_installed | head -80
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager --install "platform-tools" "platforms;android-37" "build-tools;37.0.0"
+          sdkmanager --list_installed | head -100
 
       - name: Run unit tests and assemble installable debug APKs
         run: |
