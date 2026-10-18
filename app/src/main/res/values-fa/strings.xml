@@ -797,4 +797,5 @@
     <string name="hybrid_connect">اتصال در حالت ترکیبی</string>
     <string name="hybrid_stop_restore">قطع اتصال و بازگشت به حالت عادی</string>
     <string name="hybrid_cleanup_notice">لینک واردشده و پروفایل‌های کمکی موقت‌اند. با قطع این حالت، انتخاب قبلی سرور برمی‌گردد و پروفایل‌های موقت حذف می‌شوند.</string>
+    <string name="menu_section_hybrid">ترکیبی</string>
 </resources>
