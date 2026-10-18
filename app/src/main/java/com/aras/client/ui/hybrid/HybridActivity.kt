@@ -1,12 +1,16 @@
 package com.aras.client.ui.hybrid
 
 import android.app.Activity
+import android.content.BroadcastReceiver
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.net.VpnService
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -43,16 +47,41 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
+import com.aras.client.AppConfig
 import com.aras.client.R
 import com.aras.client.core.HybridConnectManager
 import com.aras.client.core.LauncherManager
 import com.aras.client.handler.SettingsManager
 import com.aras.client.ui.base.BaseComponentActivity
+import com.aras.client.util.Utils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class HybridActivity : BaseComponentActivity() {
     private var startAfterPermission: (() -> Unit)? = null
+
+    private val serviceStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val message = intent ?: return
+            when (message.getIntExtra("key", 0)) {
+                AppConfig.MSG_STATE_START_SUCCESS -> {
+                    statusResource = R.string.hybrid_status_connected
+                    statusMessage = null
+                }
+                AppConfig.MSG_STATE_START_FAILURE -> {
+                    statusResource = null
+                    statusMessage = message.getStringExtra("content")
+                        ?.takeIf { it.isNotBlank() }
+                        ?: getString(R.string.hybrid_start_failed)
+                }
+                AppConfig.MSG_STATE_STOP_SUCCESS -> {
+                    if (HybridConnectManager.hasSession()) {
+                        statusResource = R.string.hybrid_status_idle
+                    }
+                }
+            }
+        }
+    }
 
     private val vpnPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
