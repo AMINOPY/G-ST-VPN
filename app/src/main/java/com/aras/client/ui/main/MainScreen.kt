@@ -32,6 +32,7 @@ import com.aras.client.AppConfig
 import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.handler.MmkvManager
 import com.aras.client.ui.compose.LocalDarkTheme
+import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.QRCodeDialog
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -68,6 +69,7 @@ fun MainScreen(
     val scrollToTopTick = uiState.scrollToTopTick
 
     val isDarkTheme = LocalDarkTheme.current
+    val isRadarTheme by ThemeManager.radarTheme.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var showSearch by remember { mutableStateOf(false) }
@@ -230,6 +232,13 @@ fun MainScreen(
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
                 ) {
+                    if (isRadarTheme) {
+                        RadarDashboard(
+                            isRunning = isRunning,
+                            isDarkTheme = isDarkTheme,
+                            serverTitle = mainViewModel.connectedServerTitle()
+                        )
+                    }
                     updateAnnouncement?.let { announcement ->
                         UpdateAnnouncementBanner(
                             result = announcement,
