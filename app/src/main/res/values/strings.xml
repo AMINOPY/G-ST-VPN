@@ -463,6 +463,7 @@
     <string name="title_language">Language</string>
     <string name="title_ui_settings">UI settings</string>
     <string name="title_pref_ui_mode_night">UI mode settings</string>
+    <string name="title_pref_ui_theme">Interface theme</string>
     <string name="title_pref_dynamic_color">Enable dynamic color</string>
     <string name="summary_pref_dynamic_color">Only works on Android 12+ devices</string>
     <string name="title_pref_use_hev_tunnel">Use Hev TUN</string>
