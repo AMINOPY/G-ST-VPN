@@ -779,12 +779,13 @@
     <string name="hybrid_validation_ok">پیشوند لینک پشتیبانی‌شده پیدا شد. این فقط بررسی اولیه قالب است.</string>
     <string name="hybrid_validation_error">لینک پشتیبانی‌شده‌ای پیدا نشد. لینک VLESS، VMess، Trojan یا SS را وارد کن.</string>
     <string name="hybrid_not_connected_yet">اتصال از این صفحه هنوز فعال نشده است. موفقیت بررسی قالب به معنی برقرار شدن VPN نیست.</string>
-    <string name="hybrid_route_badge">سایفون ← ویتوری/Xray</string>
+    <string name="hybrid_route_badge">سایفون، سپس ویتوری/Xray</string>
     <string name="hybrid_route_description">برنامه سایفون داخلی را به‌عنوان پروکسی محلی اجرا می‌کند و اتصال ویتوری/Xray شما را از آن عبور می‌دهد.</string>
     <string name="hybrid_how_it_works">نحوه کار زنجیره</string>
-    <string name="hybrid_route_steps">سرور ویتوری/Xray ← پروکسی محلی سایفون ← اینترنت. هسته فعلی فقط از این ترتیب پشتیبانی می‌کند.</string>
+    <string name="hybrid_route_steps">دستگاه ← پروکسی محلی سایفون ← سرور ویتوری/Xray ← اینترنت. هسته فعلی فقط از این ترتیب پشتیبانی می‌کند.</string>
     <string name="hybrid_status_idle">آماده دریافت کانفیگ</string>
     <string name="hybrid_status_starting">در حال آماده‌سازی اتصال ترکیبی…</string>
+    <string name="hybrid_status_connected">اتصال برقرار شد؛ سرویس شروع موفق زنجیره ترکیبی را گزارش کرده است.</string>
     <string name="hybrid_status_request_sent">درخواست اتصال ارسال شد. وضعیت واقعی اتصال را از اعلان VPN بررسی کن.</string>
     <string name="hybrid_status_stopping">در حال قطع زنجیره و بازگرداندن پروفایل قبلی…</string>
     <string name="hybrid_invalid_config">این لینک قابل‌خواندن نیست. یک لینک کامل VLESS، VMess، Trojan، Shadowsocks یا SOCKS وارد کن.</string>
