@@ -140,6 +140,7 @@ fun SettingsScreen(
         )
     }
     var uiModeNight by rememberMmkvString(AppConfig.PREF_UI_MODE_NIGHT, "0")
+    var uiTheme by rememberMmkvString(AppConfig.PREF_UI_THEME, "default")
     var dynamicColor by rememberMmkvBool(AppConfig.PREF_DYNAMIC_COLOR, true)
 
     var ipv6Enabled by rememberMmkvBool(AppConfig.PREF_IPV6_ENABLED, false)
@@ -175,6 +176,8 @@ fun SettingsScreen(
     val languageValues = stringArrayResource(R.array.language_select_value).toList()
     val uiModeNightEntries = stringArrayResource(R.array.ui_mode_night).toList()
     val uiModeNightValues = stringArrayResource(R.array.ui_mode_night_value).toList()
+    val uiThemeEntries = stringArrayResource(R.array.ui_theme_entries).toList()
+    val uiThemeValues = stringArrayResource(R.array.ui_theme_values).toList()
     val bypassLanEntries = stringArrayResource(R.array.vpn_bypass_lan).toList()
     val bypassLanValues = stringArrayResource(R.array.vpn_bypass_lan_value).toList()
     val interfaceAddrEntries = stringArrayResource(R.array.vpn_interface_address).toList()
@@ -255,6 +258,16 @@ fun SettingsScreen(
                     onCheckedChange = {
                         dynamicColor = it
                         ThemeManager.setDynamicColorEnabled(it)
+                    }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_ui_theme),
+                    entries = uiThemeEntries,
+                    values = uiThemeValues,
+                    selectedValue = uiTheme,
+                    onSelected = {
+                        uiTheme = it
+                        ThemeManager.setRadarTheme(it == "radar")
                     }
                 )
                 SettingsListItem(
