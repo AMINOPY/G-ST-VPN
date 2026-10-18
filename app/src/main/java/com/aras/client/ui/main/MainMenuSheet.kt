@@ -177,26 +177,41 @@ fun MainMenuSheet(
 
             menuSections().forEach { section ->
                 SectionHeader(title = stringResource(section.titleRes).uppercase())
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
+                if (section.titleRes == R.string.menu_section_hybrid) {
                     section.items.forEach { item ->
-                        MenuTileCard(
+                        HybridMenuCard(
+                            title = stringResource(R.string.hybrid_title),
+                            subtitle = stringResource(R.string.hybrid_route_badge),
                             iconRes = item.destination.iconRes,
-                            title = stringResource(item.destination.labelRes),
-                            subtitle = stringResource(item.subtitleRes),
                             accent = item.accent,
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight(),
                             onClick = {
                                 onDismiss()
                                 onNavigate(item.destination)
                             }
                         )
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        section.items.forEach { item ->
+                            MenuTileCard(
+                                iconRes = item.destination.iconRes,
+                                title = stringResource(item.destination.labelRes),
+                                subtitle = stringResource(item.subtitleRes),
+                                accent = item.accent,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight(),
+                                onClick = {
+                                    onDismiss()
+                                    onNavigate(item.destination)
+                                }
+                            )
+                        }
                     }
                 }
                 Spacer(Modifier.height(12.dp))
@@ -225,6 +240,64 @@ fun MainMenuSheet(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun HybridMenuCard(
+    title: String,
+    subtitle: String,
+    @DrawableRes iconRes: Int,
+    accent: Color,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(accent.copy(alpha = 0.09f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(accent.copy(alpha = 0.17f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(29.dp)
+            )
+        }
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(Modifier.height(3.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        Text(
+            text = "›",
+            style = MaterialTheme.typography.headlineSmall,
+            color = accent
+        )
     }
 }
 
