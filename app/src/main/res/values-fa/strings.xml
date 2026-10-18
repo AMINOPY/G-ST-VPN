@@ -818,6 +818,11 @@
     <string name="ai_dns_servers">سرورهای DNS</string>
     <string name="ai_carrier">اپراتور سیم‌کارت</string>
     <string name="ai_mobile_radio">نسل شبکه موبایل</string>
+    <string name="ai_latency_label">تأخیر پاسخ HTTPS (میانهٔ ۳ آزمون)</string>
+    <string name="ai_latency_not_run">هنوز اندازه‌گیری نشده</string>
+    <string name="ai_latency_running">در حال اندازه‌گیری زمان پاسخ HTTPS…</string>
+    <string name="ai_latency_result">%1$d میلی‌ثانیه</string>
+    <string name="ai_latency_failed">اندازه‌گیری نشد؛ ممکن است دسترسی به مقصد آزمایش مسدود باشد</string>
     <string name="ai_value_unknown">نامشخص</string>
     <string name="ai_value_not_scanned">اسکن نشده</string>
     <string name="ai_network_none">شبکه فعالی وجود ندارد</string>
