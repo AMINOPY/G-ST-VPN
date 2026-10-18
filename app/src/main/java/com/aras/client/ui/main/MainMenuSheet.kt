@@ -95,7 +95,7 @@ private fun menuSections(): List<MenuSection> {
             prominent = true
         ),
         MenuSection(
-            R.string.menu_section_connection,
+            R.string.menu_section_hybrid,
             listOf(
                 item(MainDestination.Hybrid, green, R.string.hybrid_title),
             )
