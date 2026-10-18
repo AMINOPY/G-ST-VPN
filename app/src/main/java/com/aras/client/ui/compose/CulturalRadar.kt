@@ -169,7 +169,7 @@ fun CulturalRadar(
                     Offset(0.30f, 0.72f), Offset(0.73f, 0.69f),
                     Offset(0.49f, 0.19f), Offset(0.56f, 0.82f)
                 )
-                nodes.forEachIndexed { index, p ->
+                if (hasConfigs) nodes.forEachIndexed { index, p ->
                     val point = Offset(size.width * p.x, size.height * p.y)
                     val good = index % 3 != 0
                     val activeColor = if (good) RadarGood else RadarBad
