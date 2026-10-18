@@ -126,7 +126,6 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
         measuredDownloadMbps = null
         measuredUploadMbps = null
         speedTestResult = null
-        startLatencyCheck()
         try {
             val connectivity = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val network = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -195,6 +194,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             smartAnalysis = advice
             refreshSmartAnalysis()
             scanMessage = R.string.ai_scan_complete
+            startLatencyCheck()
         } catch (_: Exception) {
             scanMessage = R.string.ai_scan_failed
         }
