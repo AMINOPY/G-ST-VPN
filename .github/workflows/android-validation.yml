@@ -1,0 +1,50 @@
+name: Android validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, feature/cultural-theme-picker]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      # app/build.gradle.kts intentionally requires a signing configuration at
+      # configuration time, even for debug tasks. Use a throwaway CI-only key;
+      # never use this key for distributable/release APKs.
+      - name: Create temporary CI signing key
+        shell: bash
+        run: |
+          keytool -genkeypair -noprompt \
+            -keystore ci-validation.keystore \
+            -storepass ci-validation-password \
+            -keypass ci-validation-password \
+            -alias ci-validation \
+            -dname "CN=CI Validation" \
+            -keyalg RSA -keysize 2048 -validity 2
+          cat > keystore.properties <<'EOF'
+          storeFile=ci-validation.keystore
+          storePassword=ci-validation-password
+          keyAlias=ci-validation
+          keyPassword=ci-validation-password
+          EOF
+
+      - name: Build debug APK and run unit tests
+        run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest
