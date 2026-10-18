@@ -852,4 +852,5 @@
     <string name="ai_network_checker">Open Network Checker project</string>
     <string name="ai_open_link_failed">Could not open the external link.</string>
 
+    <string name="ai_local_model_note">This first version uses local rule-based analysis; it does not send your data to an AI service.</string>
 </resources>
