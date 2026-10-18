@@ -792,4 +792,5 @@
     <string name="hybrid_connect">Connect in Hybrid mode</string>
     <string name="hybrid_stop_restore">Stop and return to normal mode</string>
     <string name="hybrid_cleanup_notice">The imported link and helper profiles are temporary. Stopping this mode restores your previous server selection and removes the temporary profiles.</string>
+    <string name="menu_section_hybrid">HYBRID</string>
 </resources>
