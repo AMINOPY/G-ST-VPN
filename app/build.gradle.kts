@@ -14,12 +14,12 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "com.aras.client"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.aras.client"
         minSdk = 24
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 181
         versionName = "1.8.1"
 
