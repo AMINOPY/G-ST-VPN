@@ -338,7 +338,12 @@ private fun HybridScreen(
                     onConnect(configText)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = configText.isNotBlank() && statusResource !in setOf(\n                    R.string.hybrid_status_starting,\n                    R.string.hybrid_status_request_sent,\n                    R.string.hybrid_status_connected,\n                    R.string.hybrid_status_stopping,\n                )
+                enabled = configText.isNotBlank() && statusResource !in setOf(
+                    R.string.hybrid_status_starting,
+                    R.string.hybrid_status_request_sent,
+                    R.string.hybrid_status_connected,
+                    R.string.hybrid_status_stopping,
+                )
             ) {
                 if (statusResource == R.string.hybrid_status_starting) {
                     CircularProgressIndicator(
