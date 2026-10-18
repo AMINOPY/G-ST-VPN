@@ -2,7 +2,6 @@ package com.aras.client.ui.compose
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,10 +58,10 @@ fun ThemePicker(
             value = "0",
             title = stringResource(R.string.theme_system_title),
             description = stringResource(R.string.theme_system_summary),
-            background = MaterialTheme.colorScheme.background,
-            surface = MaterialTheme.colorScheme.surfaceContainerHigh,
-            accent = MaterialTheme.colorScheme.primary,
-            foreground = MaterialTheme.colorScheme.onSurface
+            background = if (isSystemInDarkTheme()) Color(0xFF222226) else Color(0xFFFAF6F0),
+            surface = if (isSystemInDarkTheme()) Color(0xFF39393F) else Color(0xFFEBE3D8),
+            accent = if (isSystemInDarkTheme()) Color(0xFF4FB3F0) else Color(0xFF0284C7),
+            foreground = if (isSystemInDarkTheme()) Color(0xFFE8E2DA) else Color(0xFF222226)
         ),
         ThemeChoice(
             value = "3",
@@ -103,7 +105,11 @@ fun ThemePicker(
                 Surface(
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { onSelected(choice.value) },
+                        .selectable(
+                            selected = selected,
+                            role = Role.RadioButton,
+                            onClick = { onSelected(choice.value) }
+                        ),
                     shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerLow,
                     border = BorderStroke(
