@@ -857,4 +857,5 @@
     <string name="ai_network_checker">باز کردن پروژه Network Checker</string>
     <string name="ai_open_link_failed">باز کردن پیوند خارجی ناموفق بود.</string>
 
+    <string name="ai_local_model_note">این نسخه از تحلیل قانون‌محور محلی استفاده می‌کند؛ اطلاعاتت به سرویس هوش مصنوعی ارسال نمی‌شود.</string>
 </resources>
