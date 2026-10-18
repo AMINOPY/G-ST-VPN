@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">ArasClient</string>
+    <string name="app_name" translatable="false">RADAR VPN</string>
     <string name="app_widget_name">اتصال / قطع</string>
-    <string name="app_tile_name">آراس: اتصال / قطع</string>
+    <string name="app_tile_name">RADAR VPN: اتصال / قطع</string>
     <string name="app_tile_first_use">برای اولین استفاده از این قابلیت، لطفاً ابتدا از داخل برنامه یک سرور اضافه کنید</string>
     <string name="navigation_drawer_open">باز کردن منو کشویی</string>
     <string name="navigation_drawer_close">بستن منو کشویی</string>
