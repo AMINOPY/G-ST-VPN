@@ -194,6 +194,31 @@ val toastIconCircleBg = Color(0x33FFFFFF) // Semi-transparent White
 val toastTextColor = Color.White // White
 
 object ThemeManager {
+    private const val PREF_CULTURAL_PATTERN_INTENSITY = "cultural_pattern_intensity"
+    private const val PREF_CULTURAL_REDUCED_MOTION = "cultural_reduced_motion"
+
+    private val _patternIntensity = MutableStateFlow(
+        (MmkvManager.decodeSettingsString(PREF_CULTURAL_PATTERN_INTENSITY, "5") ?: "5")
+            .toIntOrNull()?.coerceIn(0, 100) ?: 5
+    )
+    val patternIntensity: StateFlow<Int> = _patternIntensity.asStateFlow()
+
+    private val _reducedMotionEnabled = MutableStateFlow(
+        MmkvManager.decodeSettingsBool(PREF_CULTURAL_REDUCED_MOTION, false)
+    )
+    val reducedMotionEnabled: StateFlow<Boolean> = _reducedMotionEnabled.asStateFlow()
+
+    fun setPatternIntensity(value: Int) {
+        val safeValue = value.coerceIn(0, 100)
+        MmkvManager.encodeSettings(PREF_CULTURAL_PATTERN_INTENSITY, safeValue.toString())
+        _patternIntensity.value = safeValue
+    }
+
+    fun setReducedMotionEnabled(enabled: Boolean) {
+        MmkvManager.encodeSettings(PREF_CULTURAL_REDUCED_MOTION, enabled)
+        _reducedMotionEnabled.value = enabled
+    }
+
     private fun readThemeMode(): String {
         val stored = MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "0") ?: "0"
         // Migrate the former fixed light/dark choices to the new system-default option.
