@@ -102,17 +102,12 @@ private fun menuSections(): List<MenuSection> {
             )
         ),
         MenuSection(
-            R.string.menu_section_ai,
-            listOf(
-                item(MainDestination.AI, violet, R.string.menu_sub_ai),
-            )
-        ),
-        MenuSection(
             R.string.menu_section_files_tools,
             listOf(
                 item(MainDestination.UserAssets, amber, R.string.menu_sub_assets),
                 item(MainDestination.Export, blue, R.string.menu_sub_export),
                 item(MainDestination.Settings, slate, R.string.menu_sub_settings),
+                item(MainDestination.AI, violet, R.string.menu_sub_ai),
             )
         ),
         MenuSection(
@@ -189,19 +184,6 @@ fun MainMenuSheet(
                         HybridMenuCard(
                             title = stringResource(R.string.hybrid_title),
                             subtitle = stringResource(R.string.hybrid_route_badge),
-                            iconRes = item.destination.iconRes,
-                            accent = item.accent,
-                            onClick = {
-                                onDismiss()
-                                onNavigate(item.destination)
-                            }
-                        )
-                    }
-                } else if (section.titleRes == R.string.menu_section_ai) {
-                    section.items.forEach { item ->
-                        HybridMenuCard(
-                            title = stringResource(R.string.menu_section_ai),
-                            subtitle = stringResource(R.string.menu_sub_ai),
                             iconRes = item.destination.iconRes,
                             accent = item.accent,
                             onClick = {
