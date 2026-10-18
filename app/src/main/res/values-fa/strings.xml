@@ -699,7 +699,7 @@
     <string name="export_action">خروجی (%d)</string>
     <string name="export_no_configs">کانفیگی برای خروجی گرفتن موجود نیست</string>
     <string name="export_config_count">%d کانفیگ</string>
-    <string name="export_config_count_selected">%d از %d کانفیگ</string>
+    <string name="export_config_count_selected" formatted="false">%d از %d کانفیگ</string>
     <string name="export_ungrouped">کانفیگ‌های مستقل</string>
     <string name="export_summary_normal">خروجی گرفتن از کانفیگ‌ها</string>
     <string name="export_summary_protected">خروجی کانفیگ‌های محافظت‌شده</string>
