@@ -30,18 +30,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools,platforms;android-37,build-tools;37.0.0'
+          log-accepted-android-sdk-licenses: false
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      # ubuntu-latest already provides Android command-line tools. Install only
-      # SDK packages we need; the setup-android action's default legacy "tools"
-      # package is no longer published and fails before Gradle can start.
-      - name: Install Android SDK packages
-        run: |
-          set -euo pipefail
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager --install "platform-tools" "platforms;android-37" "build-tools;37.0.0"
-          sdkmanager --list_installed | head -100
 
       - name: Run unit tests and assemble installable debug APKs
         run: |
