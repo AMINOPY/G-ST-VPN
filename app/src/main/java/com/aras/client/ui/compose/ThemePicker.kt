@@ -49,6 +49,7 @@ fun ThemePicker(
 ) {
     val patternIntensity by ThemeManager.patternIntensity.collectAsState()
     val reducedMotion by ThemeManager.reducedMotionEnabled.collectAsState()
+    val persianDigits by ThemeManager.persianDigitsEnabled.collectAsState()
 
     val choices = listOf(
         ThemeChoice(
@@ -228,6 +229,28 @@ fun ThemePicker(
                 Switch(
                     checked = reducedMotion,
                     onCheckedChange = { ThemeManager.setReducedMotionEnabled(it) }
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.theme_persian_digits),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.theme_persian_digits_summary),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = persianDigits,
+                    onCheckedChange = { ThemeManager.setPersianDigitsEnabled(it) }
                 )
             }
         }
