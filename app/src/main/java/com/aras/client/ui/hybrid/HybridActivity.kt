@@ -104,6 +104,7 @@ class HybridActivity : BaseComponentActivity() {
             }
         }
 
+    private var receiverRegistered = false
     private var statusResource by mutableStateOf<Int?>(R.string.hybrid_status_idle)
     private var statusMessage by mutableStateOf<String?>(null)
 
@@ -115,6 +116,7 @@ class HybridActivity : BaseComponentActivity() {
             IntentFilter(AppConfig.BROADCAST_ACTION_ACTIVITY),
             Utils.receiverFlags()
         )
+        receiverRegistered = true
     }
 
     @Composable
@@ -187,6 +189,10 @@ class HybridActivity : BaseComponentActivity() {
     }
 
     override fun onDestroy() {
+        if (receiverRegistered) {
+            runCatching { unregisterReceiver(serviceStateReceiver) }
+            receiverRegistered = false
+        }
         if (isFinishing && HybridConnectManager.hasSession()) {
             HybridConnectManager.stop(this)
         }
