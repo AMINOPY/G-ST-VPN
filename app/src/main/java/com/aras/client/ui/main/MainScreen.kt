@@ -31,7 +31,9 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.aras.client.AppConfig
 import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.handler.MmkvManager
+import com.aras.client.ui.compose.CulturalRadar
 import com.aras.client.ui.compose.LocalDarkTheme
+import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.QRCodeDialog
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -68,6 +70,7 @@ fun MainScreen(
     val scrollToTopTick = uiState.scrollToTopTick
 
     val isDarkTheme = LocalDarkTheme.current
+    val themeMode by ThemeManager.themeMode.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var showSearch by remember { mutableStateOf(false) }
@@ -239,6 +242,14 @@ fun MainScreen(
                             onDismiss = { mainViewModel.dismissUpdateAnnouncement() }
                         )
                     }
+                    if (themeMode == "3") {
+                        CulturalRadar(
+                            hasConfigs = groups.isNotEmpty(),
+                            isRunning = isRunning,
+                            onImportClipboard = { onAction(MainAction.ImportClipboard) },
+                            onScanQr = { onAction(MainAction.ImportQRcode) }
+                        )
+                    }
                     if (groups.size > 1) {
                         GroupTabBar(
                             groups = groups,
@@ -305,6 +316,21 @@ fun MainScreen(
                             )
                         )
                     }
+                }
+            } else if (themeMode == "3" && !isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+                ) {
+                    CulturalRadar(
+                        hasConfigs = false,
+                        isRunning = false,
+                        onImportClipboard = { onAction(MainAction.ImportClipboard) },
+                        onScanQr = { onAction(MainAction.ImportQRcode) },
+                        modifier = Modifier.padding(bottom = 48.dp)
+                    )
                 }
             }
         }
