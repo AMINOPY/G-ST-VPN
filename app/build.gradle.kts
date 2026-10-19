@@ -63,18 +63,25 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // findByName returns null when keystore.properties is absent, and a release
-            // build with no signing config is quietly signed with the *debug* key. That
-            // produces an APK that installs over a debug-signed one and refuses to
-            // install over a release-signed one — the "Package invalid" people report.
-            // Fail the build rather than ship an APK nobody can upgrade.
-            signingConfig = signingConfigs.findByName("release")
-                ?: throw GradleException(
-                    "No release signing key. Copy keystore-example.properties to " +
-                        "keystore.properties and point it at a keystore; CI takes the same " +
-                        "key from the KEYSTORE_B64, KEYSTORE_PASSWORD, KEY_ALIAS and " +
-                        "KEY_PASSWORD secrets."
-                )
+            // Keep release signing optional during Gradle configuration so debug
+            // builds and unit tests can run without private release credentials.
+            // A release APK/bundle must still fail unless a real release key is configured.
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+        }
+    }
+
+    // Fail only when a release artifact is requested without a release keystore.
+    // This intentionally does not block :app:testDebugUnitTest or :app:assembleDebug.
+    tasks.configureEach {
+        if (name.matches(Regex("(assemble|bundle|package|sign).*Release.*"))) {
+            doFirst {
+                if (keystoreProps.isEmpty()) {
+                    throw GradleException(
+                        "No release signing key. Configure keystore.properties or the " +
+                            "KEYSTORE_B64, KEYSTORE_PASSWORD, KEY_ALIAS and KEY_PASSWORD secrets."
+                    )
+                }
+            }
         }
     }
 
