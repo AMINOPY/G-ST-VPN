@@ -45,8 +45,11 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Run unit tests and assemble installable debug APKs
+      - name: Verify Android compile SDK and run unit tests/build
         run: |
+          set -euo pipefail
+          grep -n 'compileSdk' app/build.gradle.kts
+          grep -n 'compileSdk = 37' app/build.gradle.kts
           chmod +x gradlew
           ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon
 
