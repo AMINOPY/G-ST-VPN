@@ -209,9 +209,10 @@ fun RadarDisplay(
         }
     }
 
+    val radarActive = state.isActive || state == RadarState.ERROR
     val sweepAngle = remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(state.isActive, reducedMotion) {
-        if (!state.isActive || reducedMotion) {
+    LaunchedEffect(radarActive, reducedMotion) {
+        if (!radarActive || reducedMotion) {
             sweepAngle.floatValue = 0f
             return@LaunchedEffect
         }
@@ -263,7 +264,7 @@ fun RadarDisplay(
                 drawLine(displayPalette.gridLine, Offset(c.x, c.y - r), Offset(c.x, c.y + r), lineW)
                 drawCircle(color = ringColor, radius = 3.dp.toPx(), center = c)
 
-                if (state.isActive) {
+                if (radarActive) {
                     if (!reducedMotion) {
                         withTransform({ rotate(angle, c) }) {
                             drawCircle(
