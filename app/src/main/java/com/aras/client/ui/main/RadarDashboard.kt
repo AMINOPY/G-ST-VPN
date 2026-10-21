@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aras.client.ui.radar.RadarDisplay
 import com.aras.client.ui.radar.RadarPalette
+import com.aras.client.ui.radar.RadarNode
 import com.aras.client.ui.radar.RadarState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -84,22 +85,22 @@ fun RadarDashboard(
 
     val statusColor = when (verification) {
         RadarVerification.DISCONNECTED -> Color(0xFFFF525C)
-        RadarVerification.CHECKING, RadarVerification.UNVERIFIED -> Color(0xFFC18A32)
-        RadarVerification.TUNNEL_LOST -> Color(0xFFFF525C)
-        RadarVerification.VERIFIED -> Color(0xFF7FE3AC)
+        RadarVerification.CHECKING, RadarVerification.UNVERIFIED -> Color(0xFFFF2938)
+        RadarVerification.TUNNEL_LOST -> Color(0xFFFF2938)
+        RadarVerification.VERIFIED -> Color(0xFF20FF79)
     }
     val statusLabel = when (verification) {
         RadarVerification.DISCONNECTED -> "NO SIGNAL"
         RadarVerification.CHECKING -> "VERIFYING TUNNEL"
-        RadarVerification.UNVERIFIED -> "TUNNEL ACTIVE · IP UNVERIFIED"
-        RadarVerification.TUNNEL_LOST -> "NO SIGNAL"
+        RadarVerification.UNVERIFIED -> "DANGER"
+        RadarVerification.TUNNEL_LOST -> "DANGER"
         RadarVerification.VERIFIED -> "SIGNAL ACTIVE"
     }
     val statusDetail = when (verification) {
         RadarVerification.DISCONNECTED -> "VPN tunnel inactive"
         RadarVerification.CHECKING -> "Checking the active VPN network"
-        RadarVerification.UNVERIFIED -> "Tunnel is running, but egress IP could not be verified"
-        RadarVerification.TUNNEL_LOST -> "VPN network is not active"
+        RadarVerification.UNVERIFIED -> "Tunnel is active, but traffic could not be verified"
+        RadarVerification.TUNNEL_LOST -> "VPN is enabled but the VPN network is not active"
         RadarVerification.VERIFIED -> "SECURE TUNNEL ESTABLISHED"
     }
 
@@ -161,11 +162,20 @@ fun RadarDashboard(
                     RadarVerification.DISCONNECTED -> RadarState.DISCONNECTED
                     RadarVerification.CHECKING -> RadarState.CONNECTING
                     RadarVerification.VERIFIED -> RadarState.CONNECTED_VERIFIED
-                    RadarVerification.UNVERIFIED -> RadarState.TUNNEL_IP_UNVERIFIED
+                    RadarVerification.UNVERIFIED -> RadarState.ERROR
                     RadarVerification.TUNNEL_LOST -> RadarState.ERROR
                 },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
                 palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,
+                nodes = if (verification == RadarVerification.VERIFIED) {
+                    listOf(
+                        RadarNode(
+                            bearingDeg = ((publicIp?.hashCode() ?: 90).toUInt().toLong() % 360L).toFloat(),
+                            distance01 = 0.58f,
+                            pingMs = 80,
+                        )
+                    )
+                } else emptyList(),
             )
 
             Spacer(Modifier.height(12.dp))
