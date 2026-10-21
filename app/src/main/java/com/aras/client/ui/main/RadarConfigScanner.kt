@@ -59,6 +59,7 @@ fun RadarConfigDialog(context: Context, onDismiss: () -> Unit, onSelectBest: (St
     var discovered by remember { mutableIntStateOf(0) }
     var imported by remember { mutableIntStateOf(0) }
     var tested by remember { mutableIntStateOf(0) }
+    var baselineLatency by remember { mutableStateOf<Long?>(null) }
     var bestGuid by remember { mutableStateOf<String?>(null) }
     var worker by remember { mutableStateOf<RealPingWorkerService?>(null) }
 
@@ -72,9 +73,10 @@ fun RadarConfigDialog(context: Context, onDismiss: () -> Unit, onSelectBest: (St
         imported = 0
         tested = 0
         bestGuid = null
-        status = "در حال بررسی منابع عمومی کانفیگ…"
+        status = "در حال بررسی کیفیت اینترنت و منابع عمومی کانفیگ…"
         scope.launch {
             try {
+                baselineLatency = withContext(Dispatchers.IO) { measureNetworkBaseline() }
                 val importedGuids = scanAndImport { message, found ->
                     status = message
                     discovered = found
@@ -138,6 +140,10 @@ fun RadarConfigDialog(context: Context, onDismiss: () -> Unit, onSelectBest: (St
                         Text(status, style = MaterialTheme.typography.bodyMedium)
                         Text("منابع: ${radarSources.size} • کانفیگ واردشده: $imported • تست‌شده: $tested",
                             style = MaterialTheme.typography.labelMedium)
+                        Text(
+                            baselineLatency?.let { "تأخیر پایه اینترنت: $it ms" } ?: "تأخیر پایه اینترنت: در انتظار بررسی",
+                            style = MaterialTheme.typography.labelMedium
+                        )
                         if (running || testing) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 CircularProgressIndicator()
@@ -300,4 +306,32 @@ private fun httpGet(url: String, maxChars: Int): String {
         stream.close()
         return output.toString()
     } finally { connection.disconnect() }
+}
+
+
+/** A lightweight connectivity/latency baseline, following the diagnostic approach of network-checker. */
+private fun measureNetworkBaseline(): Long? {
+    val endpoints = listOf(
+        "https://www.google.com/generate_204",
+        "https://connectivitycheck.gstatic.com/generate_204"
+    )
+    for (endpoint in endpoints) {
+        val connection = runCatching { URL(endpoint).openConnection() as HttpURLConnection }.getOrNull()
+            ?: continue
+        try {
+            connection.connectTimeout = 4_000
+            connection.readTimeout = 4_000
+            connection.instanceFollowRedirects = true
+            val start = System.nanoTime()
+            connection.connect()
+            val code = connection.responseCode
+            val elapsed = (System.nanoTime() - start) / 1_000_000L
+            if (code in 200..399) return elapsed
+        } catch (_: Exception) {
+            // Try the next known connectivity endpoint.
+        } finally {
+            connection.disconnect()
+        }
+    }
+    return null
 }
