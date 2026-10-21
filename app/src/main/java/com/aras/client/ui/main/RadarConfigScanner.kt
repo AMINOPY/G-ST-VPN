@@ -234,7 +234,8 @@ private suspend fun scanAndImport(onProgress: (String, Int) -> Unit): List<Strin
     newGuids.toList()
 }
 
-private fun findCandidateFiles(source: RadarSource): List<RadarCandidate> = try {
+private fun findCandidateFiles(source: RadarSource): List<RadarCandidate> {
+    return try {
     val api = "https://api.github.com/repos/${source.owner}/${source.repo}/git/trees/HEAD?recursive=1"
     val json = JSONObject(httpGet(api, 2_000_000))
     val tree = json.optJSONArray("tree") ?: return emptyList()
@@ -266,6 +267,7 @@ private fun findCandidateFiles(source: RadarSource): List<RadarCandidate> = try 
                 "https://raw.githubusercontent.com/${source.owner}/${source.repo}/HEAD/$encodedPath")
         }
 } catch (_: Exception) { emptyList() }
+}
 
 private fun looksLikeConfigPayload(body: String): Boolean {
     val lower = body.lowercase()
