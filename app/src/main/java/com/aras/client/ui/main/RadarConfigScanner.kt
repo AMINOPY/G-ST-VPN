@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 private data class RadarSource(val owner: String, val repo: String) { val name get() = "$owner/$repo" }
 private data class RadarCandidate(val source: String, val path: String, val url: String)
-private data class RadarResult(val guid: String, val name: String, val delayMs: Long)
+private data class RadarResult(val guid: String, val name: String, val delayMs: Long, val jitterMs: Long = 0L)
 
 private val radarSources = listOf(
     RadarSource("mahxray", "Free-SUB-Link"), RadarSource("0xRadikal", "Free-v2ray-Configs"),
@@ -61,10 +61,64 @@ fun RadarConfigDialog(context: Context, onDismiss: () -> Unit, onSelectBest: (St
     var tested by remember { mutableIntStateOf(0) }
     var baselineLatency by remember { mutableStateOf<Long?>(null) }
     var bestGuid by remember { mutableStateOf<String?>(null) }
+    var confirmationRound by remember { mutableIntStateOf(0) }
+    val latencySamples = remember { mutableStateMapOf<String, List<Long>>() }
     var worker by remember { mutableStateOf<RealPingWorkerService?>(null) }
 
     DisposableEffect(Unit) { onDispose { worker?.cancel() } }
 
+    fun runPingRound(guids: List<String>, round: Int) {
+        if (guids.isEmpty()) return
+        testing = true
+        confirmationRound = round
+        status = when (round) {
+            0 -> "تست واقعی تونل و پینگ همهٔ کانفیگ‌های واردشده…"
+            else -> "تأیید پایداری کانفیگ‌های برتر؛ مرحلهٔ ${round + 1} از 3…"
+        }
+        val service = RealPingWorkerService(context, guids) { event ->
+            Handler(Looper.getMainLooper()).post {
+                when (event) {
+                    is RealPingEvent.Progress -> {
+                        status = if (round == 0) "در حال تست واقعی کانفیگ‌ها…" else "در حال تأیید پایداری گزینه‌های برتر…"
+                    }
+                    is RealPingEvent.Result -> {
+                        val previous = latencySamples[event.guid].orEmpty()
+                        val next = if (event.delayMillis > 0L) previous + event.delayMillis else previous
+                        if (next !== previous && next != previous) latencySamples[event.guid] = next
+                        val name = MmkvManager.decodeServerConfig(event.guid)?.remarks?.takeIf { it.isNotBlank() } ?: "کانفیگ"
+                        val existing = results.firstOrNull { it.guid == event.guid }
+                        if (next.isNotEmpty()) {
+                            val median = medianLatency(next)
+                            val jitter = (next.maxOrNull() ?: median) - (next.minOrNull() ?: median)
+                            results.removeAll { it.guid == event.guid }
+                            results.add(RadarResult(event.guid, name, median, jitter))
+                        } else if (existing == null) {
+                            results.add(RadarResult(event.guid, name, -1L, 0L))
+                        }
+                        tested = results.count { it.delayMs > 0L }
+                    }
+                    is RealPingEvent.Finish -> {
+                        val shortlist = if (round < 2) latencySamples.entries
+                            .filter { it.value.isNotEmpty() }
+                            .sortedBy { medianLatency(it.value) + ((it.value.maxOrNull() ?: 0L) - (it.value.minOrNull() ?: 0L)) }
+                            .take(5).map { it.key } else emptyList()
+                        if (shortlist.isNotEmpty()) {
+                            runPingRound(shortlist, round + 1)
+                        } else {
+                            testing = false
+                            val best = results.filter { it.delayMs > 0L }.minByOrNull { it.delayMs + it.jitterMs }
+                            bestGuid = best?.guid
+                            status = if (best != null) {
+                                "تست تکمیل شد؛ پینگ میانه ${best.delayMs} ms و نوسان ${best.jitterMs} ms. رتبه‌بندی با توجه به پینگ و پایداری انجام شد."
+                            } else "هیچ‌کدام از کانفیگ‌ها تست واقعی موفق نداشتند."
+                        }
+                    }
+                }
+            }
+        }
+        worker = service
+        service.start()
+    }
     fun startScan() {
         if (running || testing) return
         running = true
@@ -73,6 +127,8 @@ fun RadarConfigDialog(context: Context, onDismiss: () -> Unit, onSelectBest: (St
         imported = 0
         tested = 0
         bestGuid = null
+        confirmationRound = 0
+        latencySamples.clear()
         status = "در حال بررسی کیفیت اینترنت و منابع عمومی کانفیگ…"
         scope.launch {
             try {
@@ -90,30 +146,7 @@ fun RadarConfigDialog(context: Context, onDismiss: () -> Unit, onSelectBest: (St
                 status = "پیدا شد: $imported کانفیگ؛ تست واقعی تونل و پینگ آغاز می‌شود…"
                 testing = true
                 running = false
-                val service = RealPingWorkerService(context, importedGuids) { event ->
-                    Handler(Looper.getMainLooper()).post {
-                        when (event) {
-                            is RealPingEvent.Progress -> status = "در حال تست کانفیگ‌ها…"
-                            is RealPingEvent.Result -> {
-                                val name = MmkvManager.decodeServerConfig(event.guid)?.remarks
-                                    ?.takeIf { it.isNotBlank() } ?: "کانفیگ"
-                                results.removeAll { it.guid == event.guid }
-                                results.add(RadarResult(event.guid, name, event.delayMillis))
-                                tested = results.size
-                            }
-                            is RealPingEvent.Finish -> {
-                                testing = false
-                                val best = results.filter { it.delayMs > 0L }.minByOrNull { it.delayMs }
-                                bestGuid = best?.guid
-                                status = if (best != null) {
-                                    "تست تمام شد؛ بهترین پینگ ثبت‌شده ${best.delayMs} ms است."
-                                } else "هیچ‌کدام از کانفیگ‌ها تست موفق نداشتند."
-                            }
-                        }
-                    }
-                }
-                worker = service
-                service.start()
+                runPingRound(importedGuids, 0)
             } catch (e: Exception) {
                 running = false
                 testing = false
@@ -155,14 +188,14 @@ fun RadarConfigDialog(context: Context, onDismiss: () -> Unit, onSelectBest: (St
                 if (results.isNotEmpty()) {
                     Text("نتایج تست", style = MaterialTheme.typography.titleSmall)
                     LazyColumn(modifier = Modifier.heightIn(max = 190.dp)) {
-                        items(results.sortedWith(compareBy<RadarResult> { if (it.delayMs > 0L) 0 else 1 }.thenBy { it.delayMs })) { result ->
+                        items(results.sortedWith(compareBy<RadarResult> { if (it.delayMs > 0L) 0 else 1 }.thenBy { if (it.delayMs > 0L) it.delayMs + it.jitterMs else Long.MAX_VALUE })) { result ->
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(result.name, modifier = Modifier.weight(1f), maxLines = 1)
                                 Text(
-                                    if (result.delayMs > 0L) "${result.delayMs} ms" else "ناموفق",
+                                    if (result.delayMs > 0L) "${result.delayMs} ms • نوسان ${result.jitterMs} ms" else "ناموفق",
                                     color = if (result.delayMs > 0L) MaterialTheme.colorScheme.primary
                                     else MaterialTheme.colorScheme.error
                                 )
@@ -171,7 +204,7 @@ fun RadarConfigDialog(context: Context, onDismiss: () -> Unit, onSelectBest: (St
                     }
                 }
                 Text(
-                    "انتخاب بهترین مورد بر اساس پینگ موفق انجام می‌شود؛ پینگ به‌تنهایی معیار قطعی سرعت دانلود یا پایداری بلندمدت نیست.",
+                    "ابتدا تست واقعی تونل انجام می‌شود؛ سپس تا ۵ گزینهٔ برتر دو بار دیگر بررسی می‌شوند. رتبه‌بندی از پینگ میانه و نوسان تأخیر استفاده می‌کند. این تست سرعت دانلود را اندازه نمی‌گیرد و سازگاری اپراتورهای دیگر را تضمین نمی‌کند.",
                     style = MaterialTheme.typography.labelSmall
                 )
             }
@@ -367,7 +400,9 @@ private fun measureNetworkBaseline(): Long? {
         "https://connectivitycheck.gstatic.com/generate_204",
         "https://www.google.com/generate_204",
         "https://www.cloudflare.com/cdn-cgi/trace",
-        "https://connectivitycheck.android.com/generate_204"
+        "https://connectivitycheck.android.com/generate_204",
+        "https://github.com",
+        "https://www.wikipedia.org"
     )
     val samples = mutableListOf<Long>()
     for (endpoint in endpoints) {
@@ -388,4 +423,10 @@ private fun measureNetworkBaseline(): Long? {
         }
     }
     return samples.sorted().takeIf { it.isNotEmpty() }?.let { it[it.size / 2] }
+}
+
+private fun medianLatency(values: List<Long>): Long {
+    if (values.isEmpty()) return -1L
+    val sorted = values.sorted()
+    return sorted[sorted.size / 2]
 }
