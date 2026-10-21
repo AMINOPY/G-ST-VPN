@@ -39,7 +39,11 @@ jobs:
       - name: Install required Android SDK packages
         run: |
           set -euo pipefail
-          sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager --install "platforms;android-37.0" "build-tools;37.0.0"
+          # Current Android SDK publishes API 37 under android-37.0; AGP legacy DSL looks for android-37.
+          if [ -d "$ANDROID_HOME/platforms/android-37.0" ] && [ ! -e "$ANDROID_HOME/platforms/android-37" ]; then
+            ln -s "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
+          fi
           sdkmanager --list_installed
 
       - name: Set up Gradle
@@ -49,7 +53,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -n 'compileSdk' app/build.gradle.kts
-          grep -n 'compileSdk = 36' app/build.gradle.kts
+          grep -n 'compileSdk = 37' app/build.gradle.kts
           chmod +x gradlew
           ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon
 
