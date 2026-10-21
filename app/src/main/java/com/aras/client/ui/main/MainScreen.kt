@@ -236,6 +236,7 @@ fun MainScreen(
                     if (isRadarTheme) {
                         RadarDashboard(
                             isRunning = isRunning,
+                            hasPing = hasPing,
                             isDarkTheme = isDarkTheme,
                             serverTitle = mainViewModel.connectedServerTitle()
                         )
