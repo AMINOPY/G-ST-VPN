@@ -3,6 +3,7 @@ package com.aras.client.ui.radar
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -139,23 +140,74 @@ fun RadarDisplay(
     title: String = defaultTitle(state),
     subtitle: String = defaultSubtitle(state),
 ) {
-    val ringTarget = if (state.isActive) palette.active.copy(alpha = 0.55f) else palette.inactiveRing
+    val displayPalette = when (state) {
+        RadarState.CONNECTED_VERIFIED -> displayPalette.copy(
+            background = Color(0xFF00170A),
+            surface = Color(0xFF001D0D),
+            radarBase = Color(0xFF001B0B),
+            gridLine = Color(0xFF07552C),
+            inactiveRing = Color(0xFF16834A),
+            primaryText = Color(0xFFB8FFD0),
+            secondaryText = Color(0xFF64B982),
+            active = Color(0xFF20FF79),
+            warning = Color(0xFFFF3948),
+            accent = Color(0xFF20FF79),
+        )
+        RadarState.ERROR -> displayPalette.copy(
+            background = Color(0xFF210307),
+            surface = Color(0xFF2A050A),
+            radarBase = Color(0xFF260309),
+            gridLine = Color(0xFF74121C),
+            inactiveRing = Color(0xFFB51F2C),
+            primaryText = Color(0xFFFFD9DC),
+            secondaryText = Color(0xFFFF737D),
+            active = Color(0xFFFF2938),
+            warning = Color(0xFFFF2938),
+            accent = Color(0xFFFF2938),
+        )
+        RadarState.DISCONNECTED -> displayPalette.copy(
+            background = Color(0xFF191C20),
+            surface = Color(0xFF20242A),
+            radarBase = Color(0xFF20242A),
+            gridLine = Color(0xFF414852),
+            inactiveRing = Color(0xFF737C87),
+            primaryText = Color(0xFFE2E5E9),
+            secondaryText = Color(0xFFFF525C),
+            active = Color(0xFF737C87),
+            warning = Color(0xFFFF3948),
+            accent = Color(0xFF737C87),
+        )
+        else -> palette
+    }
+    val ringTarget = if (state.isActive) displayPalette.active.copy(alpha = 0.55f) else displayPalette.inactiveRing
     val ringColor by animateColorAsState(ringTarget, tween(600), label = "radarRing")
     val headColor by animateColorAsState(
         when (state) {
-            RadarState.CONNECTED_VERIFIED, RadarState.TUNNEL_IP_UNVERIFIED -> palette.active
-            RadarState.CONNECTING -> palette.connecting
-            else -> palette.inactiveRing
+            RadarState.CONNECTED_VERIFIED, RadarState.TUNNEL_IP_UNVERIFIED -> displayPalette.active
+            RadarState.CONNECTING -> displayPalette.connecting
+            else -> displayPalette.inactiveRing
         }, tween(500), label = "radarHead"
     )
     val titleColor by animateColorAsState(
         when (state) {
-            RadarState.DISCONNECTED, RadarState.ERROR -> palette.warning
-            RadarState.CONNECTING -> palette.connecting
-            RadarState.CONNECTED_VERIFIED -> palette.active
-            RadarState.TUNNEL_IP_UNVERIFIED -> palette.connecting
+            RadarState.DISCONNECTED, RadarState.ERROR -> displayPalette.warning
+            RadarState.CONNECTING -> displayPalette.connecting
+            RadarState.CONNECTED_VERIFIED -> displayPalette.active
+            RadarState.TUNNEL_IP_UNVERIFIED -> displayPalette.connecting
         }, tween(500), label = "radarTitle"
     )
+
+    val blinkOn = remember { androidx.compose.runtime.mutableStateOf(true) }
+    LaunchedEffect(state) {
+        if (state == RadarState.ERROR) {
+            while (true) {
+                blinkOn.value = !blinkOn.value
+                kotlinx.coroutines.delay(420)
+            }
+        } else {
+            blinkOn.value = true
+        }
+    }
 
     val sweepAngle = remember { mutableFloatStateOf(0f) }
     LaunchedEffect(state.isActive, reducedMotion) {
@@ -174,7 +226,7 @@ fun RadarDisplay(
     }
 
     Column(
-        modifier = modifier.semantics { contentDescription = "$title. $subtitle" },
+        modifier = modifier.background(displayPalette.background).semantics { contentDescription = "$title. $subtitle" },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
@@ -186,7 +238,7 @@ fun RadarDisplay(
                 val r = size.minDimension / 2f * 0.92f
                 val angle = sweepAngle.floatValue
                 val lineW = 1.dp.toPx()
-                drawCircle(color = palette.radarBase, radius = r, center = c)
+                drawCircle(color = displayPalette.radarBase, radius = r, center = c)
                 for (i in 1..4) {
                     drawCircle(
                         color = ringColor.copy(alpha = if (i == 4) 0.9f else 0.5f),
@@ -201,14 +253,14 @@ fun RadarDisplay(
                     val dx = cos(rad).toFloat()
                     val dy = sin(rad).toFloat()
                     drawLine(
-                        color = palette.gridLine,
+                        color = displayPalette.gridLine,
                         start = Offset(c.x + dx * r, c.y + dy * r),
                         end = Offset(c.x + dx * (r - len), c.y + dy * (r - len)),
                         strokeWidth = lineW,
                     )
                 }
-                drawLine(palette.gridLine, Offset(c.x - r, c.y), Offset(c.x + r, c.y), lineW)
-                drawLine(palette.gridLine, Offset(c.x, c.y - r), Offset(c.x, c.y + r), lineW)
+                drawLine(displayPalette.gridLine, Offset(c.x - r, c.y), Offset(c.x + r, c.y), lineW)
+                drawLine(displayPalette.gridLine, Offset(c.x, c.y - r), Offset(c.x, c.y + r), lineW)
                 drawCircle(color = ringColor, radius = 3.dp.toPx(), center = c)
 
                 if (state.isActive) {
@@ -247,16 +299,16 @@ fun RadarDisplay(
                         )
                     }
                 } else {
-                    drawCircle(color = palette.inactiveRing, radius = 2.5.dp.toPx(), center = c)
+                    drawCircle(color = displayPalette.inactiveRing, radius = 2.5.dp.toPx(), center = c)
                 }
             }
         }
         Spacer(Modifier.height(12.dp))
-        Text(title, color = titleColor, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+        Text(title, color = titleColor.copy(alpha = if (state == RadarState.ERROR && !blinkOn.value) 0.28f else 1f), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
         Spacer(Modifier.height(4.dp))
         Text(
             subtitle,
-            color = palette.secondaryText,
+            color = displayPalette.secondaryText,
             fontSize = 13.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 24.dp),
