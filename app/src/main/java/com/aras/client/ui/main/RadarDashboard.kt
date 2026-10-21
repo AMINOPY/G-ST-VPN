@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,6 +38,7 @@ import com.aras.client.ui.radar.RadarPalette
 import com.aras.client.ui.radar.RadarNode
 import com.aras.client.ui.radar.RadarState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
@@ -64,15 +66,17 @@ fun RadarDashboard(
         }
 
         verification = RadarVerification.CHECKING
-        val result = withContext(Dispatchers.IO) { verifyVpnEgress(context) }
-        // This effect is keyed to the service state, so a disconnect cancels an older check.
-        if (isRunning) {
+        // Re-check periodically so a tunnel drop is reflected without toggling the VPN switch.
+        // This effect is cancelled automatically when the service stops or this screen leaves composition.
+        while (true) {
+            val result = withContext(Dispatchers.IO) { verifyVpnEgress(context) }
             publicIp = result.ip
             verification = when {
                 !result.tunnelActive -> RadarVerification.TUNNEL_LOST
                 result.verified -> RadarVerification.VERIFIED
                 else -> RadarVerification.UNVERIFIED
             }
+            delay(5_000)
         }
     }
 
@@ -185,18 +189,19 @@ fun RadarDashboard(
                     RadarVerification.UNVERIFIED -> RadarState.ERROR
                     RadarVerification.TUNNEL_LOST -> RadarState.ERROR
                 },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp).heightIn(max = 280.dp),
                 palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,
                 title = statusLabel,
                 subtitle = statusDetail,
                 nodes = when (verification) {
                     RadarVerification.VERIFIED -> listOf(
-                        // This marker represents the verified VPN egress check, not a scanned host.
-                        RadarNode(
-                            bearingDeg = ((publicIp?.hashCode() ?: 90).toUInt().toLong() % 360L).toFloat(),
-                            distance01 = 0.58f,
-                            pingMs = 80,
-                        )
+                        // Decorative radar blips indicate a verified tunnel signal; they are not scanned hosts.
+                        RadarNode(22f, 0.34f, 75),
+                        RadarNode(68f, 0.61f, 92),
+                        RadarNode(132f, 0.46f, 68),
+                        RadarNode(196f, 0.72f, 105),
+                        RadarNode(247f, 0.39f, 84),
+                        RadarNode(318f, 0.57f, 73),
                     )
                     RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> listOf(
                         RadarNode(35f, 0.35f, 500),
