@@ -303,6 +303,7 @@ private fun findCandidateFiles(source: RadarSource): List<RadarCandidate> {
             "https://raw.githubusercontent.com/${source.owner}/${source.repo}/HEAD/$encodedPath")
     }
 } catch (_: Exception) { emptyList() }
+}
 
 private fun extractConfigUrls(readme: String): List<String> {
     val urlPattern = Regex("https?://[^\\s\\\"'<>\\]\\)]+", RegexOption.IGNORE_CASE)
