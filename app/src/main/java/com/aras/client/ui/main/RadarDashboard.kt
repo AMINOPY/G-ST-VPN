@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -58,6 +59,8 @@ fun RadarDashboard(
     val context = LocalContext.current
     var verification by remember { mutableStateOf(RadarVerification.DISCONNECTED) }
     var publicIp by remember { mutableStateOf<String?>(null) }
+    // Start compact so the server/configuration list remains visible on phone screens.
+    var expanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(isRunning, hasPing) {
         publicIp = null
@@ -181,9 +184,21 @@ fun RadarDashboard(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
                 )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = if (expanded) "MINIMIZE" else "EXPAND",
+                    color = statusColor,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.7.sp,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { expanded = !expanded }
+                        .padding(horizontal = 5.dp, vertical = 7.dp)
+                )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(if (expanded) 8.dp else 2.dp))
 
             RadarDisplay(
                 state = when (verification) {
@@ -193,7 +208,10 @@ fun RadarDashboard(
                     RadarVerification.UNVERIFIED -> RadarState.ERROR
                     RadarVerification.TUNNEL_LOST -> RadarState.ERROR
                 },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp).heightIn(max = 280.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = if (expanded) 18.dp else 42.dp)
+                    .heightIn(max = if (expanded) 280.dp else 145.dp),
                 palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,
                 title = statusLabel,
                 subtitle = statusDetail,
@@ -217,10 +235,11 @@ fun RadarDashboard(
                 },
             )
 
-            Spacer(Modifier.height(12.dp))
+            if (expanded) {
+                Spacer(Modifier.height(12.dp))
 
-            Row(
-                modifier = Modifier
+                Row(
+                    modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
                     .background(when (verification) {
@@ -260,6 +279,7 @@ fun RadarDashboard(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 7.dp)
             )
+            }
         }
     }
 }
