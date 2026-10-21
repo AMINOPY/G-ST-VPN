@@ -264,8 +264,11 @@ fun AppTheme(
     val dynamicColor by ThemeManager.dynamicColorEnabled.collectAsState()
     val radarTheme by ThemeManager.radarTheme.collectAsState()
     val context = LocalContext.current
+    // Radar is a fully separate visual mode, not just a different radar widget.
+    // Keep its high-contrast command-console palette even when Android is in light mode.
+    val effectiveDarkTheme = radarTheme || darkTheme
     val colorScheme = when {
-        radarTheme -> if (darkTheme) RadarDarkColor else RadarLightColor
+        radarTheme -> RadarDarkColor
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
@@ -281,14 +284,14 @@ fun AppTheme(
             val activity = view.context as? Activity ?: return@SideEffect
             val window = activity.window
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !darkTheme
-                isAppearanceLightNavigationBars = !darkTheme
+                isAppearanceLightStatusBars = !effectiveDarkTheme
+                isAppearanceLightNavigationBars = !effectiveDarkTheme
             }
         }
     }
 
     CompositionLocalProvider(
-        LocalDarkTheme provides darkTheme,
+        LocalDarkTheme provides effectiveDarkTheme,
         LocalAppSnackbar provides snackbarController
     ) {
         MaterialTheme(
