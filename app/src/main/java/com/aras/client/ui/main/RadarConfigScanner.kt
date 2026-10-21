@@ -61,7 +61,6 @@ fun RadarConfigDialog(context: Context, onDismiss: () -> Unit, onSelectBest: (St
     var tested by remember { mutableIntStateOf(0) }
     var baselineLatency by remember { mutableStateOf<Long?>(null) }
     var bestGuid by remember { mutableStateOf<String?>(null) }
-    var confirmationRound by remember { mutableIntStateOf(0) }
     val latencySamples = remember { mutableStateMapOf<String, List<Long>>() }
     var worker by remember { mutableStateOf<RealPingWorkerService?>(null) }
 
@@ -70,7 +69,6 @@ fun RadarConfigDialog(context: Context, onDismiss: () -> Unit, onSelectBest: (St
     fun runPingRound(guids: List<String>, round: Int) {
         if (guids.isEmpty()) return
         testing = true
-        confirmationRound = round
         status = when (round) {
             0 -> "تست واقعی تونل و پینگ همهٔ کانفیگ‌های واردشده…"
             else -> "تأیید پایداری کانفیگ‌های برتر؛ مرحلهٔ ${round + 1} از 3…"
@@ -84,7 +82,7 @@ fun RadarConfigDialog(context: Context, onDismiss: () -> Unit, onSelectBest: (St
                     is RealPingEvent.Result -> {
                         val previous = latencySamples[event.guid].orEmpty()
                         val next = if (event.delayMillis > 0L) previous + event.delayMillis else previous
-                        if (next !== previous && next != previous) latencySamples[event.guid] = next
+                        if (next != previous) latencySamples[event.guid] = next
                         val name = MmkvManager.decodeServerConfig(event.guid)?.remarks?.takeIf { it.isNotBlank() } ?: "کانفیگ"
                         val existing = results.firstOrNull { it.guid == event.guid }
                         if (next.isNotEmpty()) {
@@ -95,7 +93,7 @@ fun RadarConfigDialog(context: Context, onDismiss: () -> Unit, onSelectBest: (St
                         } else if (existing == null) {
                             results.add(RadarResult(event.guid, name, -1L, 0L))
                         }
-                        tested = results.count { it.delayMs > 0L }
+                        tested = results.size
                     }
                     is RealPingEvent.Finish -> {
                         val shortlist = if (round < 2) latencySamples.entries
@@ -127,7 +125,6 @@ fun RadarConfigDialog(context: Context, onDismiss: () -> Unit, onSelectBest: (St
         imported = 0
         tested = 0
         bestGuid = null
-        confirmationRound = 0
         latencySamples.clear()
         status = "در حال بررسی کیفیت اینترنت و منابع عمومی کانفیگ…"
         scope.launch {
