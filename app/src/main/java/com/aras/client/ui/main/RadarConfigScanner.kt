@@ -209,7 +209,7 @@ private suspend fun scanAndImport(onProgress: (String, Int) -> Unit): List<Strin
     candidates += RadarCandidate("openproxylist.com", "v2ray", "https://openproxylist.com/v2ray")
 
     val contentGate = Semaphore(6)
-    val downloaded = candidates.distinctBy { it.url }.take(45).chunked(6).flatMap { batch ->
+    val downloaded = candidates.distinctBy { it.url }.take(85).chunked(6).flatMap { batch ->
         coroutineScope {
             batch.map { candidate ->
                 async {
@@ -228,7 +228,7 @@ private suspend fun scanAndImport(onProgress: (String, Int) -> Unit): List<Strin
     // Many collectors publish their live subscription links only in README files.
     val fetched = mutableListOf<Pair<RadarCandidate, String>>()
     val readmeLinks = downloaded.filter { it.first.path.lowercase().contains("readme") }
-        .flatMap { extractConfigUrls(it.second) }.distinct().take(35)
+        .flatMap { extractConfigUrls(it.second) }.distinct().take(60)
     downloaded.filterNot { it.first.path.lowercase().contains("readme") }
         .filter { looksLikeConfigPayload(it.second) }.forEach { fetched += it }
     readmeLinks.chunked(6).forEach { batch ->
@@ -285,16 +285,17 @@ private fun findCandidateFiles(source: RadarSource): List<RadarCandidate> {
     }
     val selected = candidates.sortedWith(compareByDescending<Pair<Int, String>> { it.first }.thenBy { it.second.length })
         .take(2).map { it.second }.toMutableList()
-    if (selected.size < 2) {
-        for (i in 0 until tree.length()) {
-            val item = tree.optJSONObject(i) ?: continue
-            val path = item.optString("path")
-            if (item.optString("type") == "blob" && path.substringAfterLast('/').lowercase() in listOf("readme.md", "readme.txt")) {
-                if (path !in selected) selected += path
-                break
-            }
+    // Always inspect a README as well: many collectors publish subscription URLs
+    // there instead of committing decoded configs into the repository.
+    val readmePath = (0 until tree.length()).mapNotNull { i ->
+        val item = tree.optJSONObject(i) ?: return@mapNotNull null
+        val path = item.optString("path")
+        path.takeIf {
+            item.optString("type") == "blob" &&
+                path.substringAfterLast('/').lowercase() in listOf("readme.md", "readme.txt")
         }
-    }
+    }.sortedBy { it.contains("/") }.firstOrNull()
+    if (readmePath != null && readmePath !in selected) selected += readmePath
     selected.map { path ->
         val encodedPath = path.split("/").joinToString("/") {
             URLEncoder.encode(it, "UTF-8").replace("+", "%20")
@@ -356,27 +357,32 @@ private fun httpGet(url: String, maxChars: Int): String {
 
 /** A lightweight connectivity/latency baseline, following the diagnostic approach of network-checker. */
 private fun measureNetworkBaseline(): Long? {
+    // Lightweight HTTPS reachability/latency probes inspired by Network Checker's
+    // domain diagnostics. Several endpoints avoid judging the whole connection
+    // by a single host that may be blocked or slow on the user's ISP.
     val endpoints = listOf(
+        "https://connectivitycheck.gstatic.com/generate_204",
         "https://www.google.com/generate_204",
-        "https://connectivitycheck.gstatic.com/generate_204"
+        "https://www.cloudflare.com/cdn-cgi/trace",
+        "https://connectivitycheck.android.com/generate_204"
     )
+    val samples = mutableListOf<Long>()
     for (endpoint in endpoints) {
         val connection = runCatching { URL(endpoint).openConnection() as HttpURLConnection }.getOrNull()
             ?: continue
         try {
-            connection.connectTimeout = 4_000
-            connection.readTimeout = 4_000
+            connection.connectTimeout = 2_500
+            connection.readTimeout = 2_500
             connection.instanceFollowRedirects = true
             val start = System.nanoTime()
-            connection.connect()
             val code = connection.responseCode
             val elapsed = (System.nanoTime() - start) / 1_000_000L
-            if (code in 200..399) return elapsed
+            if (code in 200..399) samples += elapsed
         } catch (_: Exception) {
-            // Try the next known connectivity endpoint.
+            // A blocked endpoint is not treated as a failed VPN config.
         } finally {
             connection.disconnect()
         }
     }
-    return null
+    return samples.sorted().takeIf { it.isNotEmpty() }?.let { it[it.size / 2] }
 }
