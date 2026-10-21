@@ -141,7 +141,7 @@ fun RadarDisplay(
     subtitle: String = defaultSubtitle(state),
 ) {
     val displayPalette = when (state) {
-        RadarState.CONNECTED_VERIFIED -> displayPalette.copy(
+        RadarState.CONNECTED_VERIFIED -> palette.copy(
             background = Color(0xFF00170A),
             surface = Color(0xFF001D0D),
             radarBase = Color(0xFF001B0B),
@@ -153,7 +153,7 @@ fun RadarDisplay(
             warning = Color(0xFFFF3948),
             accent = Color(0xFF20FF79),
         )
-        RadarState.ERROR -> displayPalette.copy(
+        RadarState.ERROR -> palette.copy(
             background = Color(0xFF210307),
             surface = Color(0xFF2A050A),
             radarBase = Color(0xFF260309),
@@ -165,7 +165,7 @@ fun RadarDisplay(
             warning = Color(0xFFFF2938),
             accent = Color(0xFFFF2938),
         )
-        RadarState.DISCONNECTED -> displayPalette.copy(
+        RadarState.DISCONNECTED -> palette.copy(
             background = Color(0xFF191C20),
             surface = Color(0xFF20242A),
             radarBase = Color(0xFF20242A),
@@ -293,7 +293,7 @@ fun RadarDisplay(
                         val diff = ((angle - node.bearingDeg) % 360f + 360f) % 360f
                         val glow = if (reducedMotion || diff > 40f) 0f else 1f - diff / 40f
                         drawCircle(
-                            color = nodeColor(node.pingMs, palette).copy(alpha = 0.35f + 0.5f * glow),
+                            color = nodeColor(node.pingMs, displayPalette).copy(alpha = 0.35f + 0.5f * glow),
                             radius = 3.dp.toPx() + 3.dp.toPx() * glow,
                             center = p,
                         )
@@ -324,7 +324,8 @@ private fun nodeColor(pingMs: Int?, palette: RadarPalette): Color = when {
 }
 
 fun defaultTitle(state: RadarState): String = when (state) {
-    RadarState.DISCONNECTED, RadarState.ERROR -> "NO SIGNAL"
+    RadarState.DISCONNECTED -> "NO SIGNAL"
+    RadarState.ERROR -> "DANGER"
     RadarState.CONNECTING -> "ESTABLISHING LINK"
     RadarState.CONNECTED_VERIFIED -> "SIGNAL ACTIVE"
     RadarState.TUNNEL_IP_UNVERIFIED -> "TUNNEL ACTIVE · IP UNVERIFIED"
