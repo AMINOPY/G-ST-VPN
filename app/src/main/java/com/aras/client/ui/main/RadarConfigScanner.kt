@@ -218,7 +218,7 @@ private suspend fun scanAndImport(onProgress: (String, Int) -> Unit): List<Strin
                     }
                 }
             }.mapNotNull { it.await().let { (candidate, body) ->
-                if (body != null && (looksLikeConfigPayload(body) || candidate.path.lowercase().contains("readme"))) {
+                if (body != null && (looksLikeConfigPayload(body) || candidate.path.lowercase().contains("readme") || candidate.url == "https://openproxylist.com/v2ray")) {
                     candidate to body
                 } else null
             } }
@@ -227,10 +227,13 @@ private suspend fun scanAndImport(onProgress: (String, Int) -> Unit): List<Strin
 
     // Many collectors publish their live subscription links only in README files.
     val fetched = mutableListOf<Pair<RadarCandidate, String>>()
-    val readmeLinks = downloaded.filter { it.first.path.lowercase().contains("readme") }
-        .flatMap { extractConfigUrls(it.second) }.distinct().take(60)
-    downloaded.filterNot { it.first.path.lowercase().contains("readme") }
-        .filter { looksLikeConfigPayload(it.second) }.forEach { fetched += it }
+    val linkPages = downloaded.filter {
+        it.first.path.lowercase().contains("readme") || it.first.url == "https://openproxylist.com/v2ray"
+    }
+    val readmeLinks = linkPages.flatMap { extractConfigUrls(it.second) }.distinct().take(60)
+    downloaded.filterNot {
+        it.first.path.lowercase().contains("readme") || it.first.url == "https://openproxylist.com/v2ray"
+    }.filter { looksLikeConfigPayload(it.second) }.forEach { fetched += it }
     readmeLinks.chunked(6).forEach { batch ->
         fetched += coroutineScope {
             batch.map { link ->
