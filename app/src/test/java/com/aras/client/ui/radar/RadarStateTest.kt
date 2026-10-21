@@ -73,6 +73,13 @@ class RadarStateTest {
     }
 
     @Test
+    fun status_labels_match_requested_radar_states() {
+        assertEquals("NO SIGNAL", defaultTitle(RadarState.DISCONNECTED))
+        assertEquals("DANGER", defaultTitle(RadarState.ERROR))
+        assertEquals("SIGNAL ACTIVE", defaultTitle(RadarState.CONNECTED_VERIFIED))
+    }
+
+    @Test
     fun only_tunnel_states_are_active_radar() {
         assertEquals(false, RadarState.DISCONNECTED.isActive)
         assertEquals(false, RadarState.CONNECTING.isActive)
