@@ -263,34 +263,74 @@ fun RadarDashboard(
 private fun verifyVpnEgress(context: Context): RadarIpResult {
     val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
         ?: return RadarIpResult(tunnelActive = false, verified = false)
-    val network = connectivity.activeNetwork ?: return RadarIpResult(tunnelActive = false, verified = false)
-    val capabilities = connectivity.getNetworkCapabilities(network)
-        ?: return RadarIpResult(tunnelActive = false, verified = false)
-    if (!capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
+
+    // Do not rely on activeNetwork alone: on some Android/VPN combinations it can
+    // report the underlying Wi-Fi/mobile network. Search all Android VPN networks.
+    val activeNetwork = connectivity.activeNetwork
+    val vpnNetworks = buildList {
+        if (activeNetwork != null) {
+            val caps = connectivity.getNetworkCapabilities(activeNetwork)
+            if (caps?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true) add(activeNetwork)
+        }
+        connectivity.allNetworks.forEach { network ->
+            val caps = connectivity.getNetworkCapabilities(network)
+            if (
+                caps?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true &&
+                caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                network !in this
+            ) {
+                add(network)
+            }
+        }
+    }
+
+    if (vpnNetworks.isEmpty()) {
         return RadarIpResult(tunnelActive = false, verified = false)
     }
 
-    val connection = try {
-        network.openConnection(URL("https://api64.ipify.org")) as? HttpURLConnection
-            ?: return RadarIpResult(tunnelActive = true, verified = false)
-    } catch (_: Exception) {
-        return RadarIpResult(tunnelActive = true, verified = false)
+    // Try more than one lightweight IP endpoint. Some VPN exits or DNS filters
+    // block a particular provider even though the tunnel itself carries traffic.
+    val endpoints = listOf(
+        "https://api.ipify.org",
+        "https://icanhazip.com/"
+    )
+
+    for (network in vpnNetworks) {
+        for (endpoint in endpoints) {
+            val connection = try {
+                network.openConnection(URL(endpoint)) as? HttpURLConnection
+            } catch (_: Exception) {
+                null
+            } ?: continue
+
+            try {
+                connection.connectTimeout = 3000
+                connection.readTimeout = 3000
+                connection.requestMethod = "GET"
+                connection.setRequestProperty("Accept", "text/plain")
+                connection.instanceFollowRedirects = true
+
+                if (connection.responseCode !in 200..299) continue
+
+                val ip = connection.inputStream.bufferedReader().use { it.readText() }
+                    .trim()
+                    .take(64)
+                val looksLikeIp = ip.isNotBlank() &&
+                    ip.matches(Regex("^[0-9a-fA-F:.]+$")) &&
+                    (ip.contains('.') || ip.contains(':'))
+
+                if (looksLikeIp) {
+                    return RadarIpResult(tunnelActive = true, verified = true, ip = ip)
+                }
+            } catch (_: Exception) {
+                // Try the next endpoint/network before reporting a failed verification.
+            } finally {
+                connection.disconnect()
+            }
+        }
     }
 
-    return try {
-        connection.connectTimeout = 4500
-        connection.readTimeout = 4500
-        connection.requestMethod = "GET"
-        connection.setRequestProperty("Accept", "text/plain")
-        val code = connection.responseCode
-        if (code !in 200..299) return RadarIpResult(tunnelActive = true, verified = false)
-        val ip = connection.inputStream.bufferedReader().use { it.readText().trim() }.take(64)
-        val looksLikeIp = ip.isNotBlank() && ip.matches(Regex("^[0-9a-fA-F:.]+$")) && (ip.contains('.') || ip.contains(':'))
-        if (looksLikeIp) RadarIpResult(tunnelActive = true, verified = true, ip = ip)
-        else RadarIpResult(tunnelActive = true, verified = false)
-    } catch (_: Exception) {
-        RadarIpResult(tunnelActive = true, verified = false)
-    } finally {
-        connection.disconnect()
-    }
+    // Android has an active VPN interface, but no external request succeeded
+    // through it, so do not falsely mark the radar green.
+    return RadarIpResult(tunnelActive = true, verified = false)
 }
