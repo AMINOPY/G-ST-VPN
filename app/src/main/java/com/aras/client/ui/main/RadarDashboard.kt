@@ -186,15 +186,23 @@ fun RadarDashboard(
                 },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
                 palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,
-                nodes = if (verification == RadarVerification.VERIFIED) {
-                    listOf(
+                nodes = when (verification) {
+                    RadarVerification.VERIFIED -> listOf(
+                        // This marker represents the verified VPN egress check, not a scanned host.
                         RadarNode(
                             bearingDeg = ((publicIp?.hashCode() ?: 90).toUInt().toLong() % 360L).toFloat(),
                             distance01 = 0.58f,
                             pingMs = 80,
                         )
                     )
-                } else emptyList(),
+                    RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> listOf(
+                        RadarNode(35f, 0.35f, 500),
+                        RadarNode(145f, 0.58f, 500),
+                        RadarNode(225f, 0.43f, 500),
+                        RadarNode(315f, 0.68f, 500),
+                    )
+                    else -> emptyList()
+                },
             )
 
             Spacer(Modifier.height(12.dp))
