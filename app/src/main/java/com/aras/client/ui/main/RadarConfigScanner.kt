@@ -209,7 +209,7 @@ private suspend fun scanAndImport(onProgress: (String, Int) -> Unit): List<Strin
     candidates += RadarCandidate("openproxylist.com", "v2ray", "https://openproxylist.com/v2ray")
 
     val contentGate = Semaphore(6)
-    val fetched = candidates.distinctBy { it.url }.take(45).chunked(6).flatMap { batch ->
+    val downloaded = candidates.distinctBy { it.url }.take(45).chunked(6).flatMap { batch ->
         coroutineScope {
             batch.map { candidate ->
                 async {
@@ -217,10 +217,30 @@ private suspend fun scanAndImport(onProgress: (String, Int) -> Unit): List<Strin
                         candidate to runCatching { httpGet(candidate.url, 1_000_000) }.getOrNull()
                     }
                 }
-            }.mapNotNull { deferred ->
-                val (candidate, body) = deferred.await()
-                if (body != null && looksLikeConfigPayload(body)) candidate to body else null
-            }
+            }.mapNotNull { it.await().let { (candidate, body) ->
+                if (body != null && (looksLikeConfigPayload(body) || candidate.path.lowercase().contains("readme"))) {
+                    candidate to body
+                } else null
+            } }
+        }
+    }
+
+    // Many collectors publish their live subscription links only in README files.
+    val fetched = mutableListOf<Pair<RadarCandidate, String>>()
+    val readmeLinks = downloaded.filter { it.first.path.lowercase().contains("readme") }
+        .flatMap { extractConfigUrls(it.second) }.distinct().take(35)
+    downloaded.filterNot { it.first.path.lowercase().contains("readme") }
+        .filter { looksLikeConfigPayload(it.second) }.forEach { fetched += it }
+    readmeLinks.chunked(6).forEach { batch ->
+        fetched += coroutineScope {
+            batch.map { link ->
+                async {
+                    val body = runCatching { httpGet(link, 1_000_000) }.getOrNull()
+                    if (body != null && looksLikeConfigPayload(body)) {
+                        RadarCandidate("README link", link.substringAfterLast('/'), link) to body
+                    } else null
+                }
+            }.mapNotNull { it.await() }
         }
     }
 
@@ -263,16 +283,40 @@ private fun findCandidateFiles(source: RadarSource): List<RadarCandidate> {
         }
         if (score > 0) candidates += score to path
     }
-    candidates.sortedWith(compareByDescending<Pair<Int, String>> { it.first }.thenBy { it.second.length })
-        .take(2)
-        .map { (_, path) ->
-            val encodedPath = path.split("/").joinToString("/") {
-                URLEncoder.encode(it, "UTF-8").replace("+", "%20")
+    val selected = candidates.sortedWith(compareByDescending<Pair<Int, String>> { it.first }.thenBy { it.second.length })
+        .take(2).map { it.second }.toMutableList()
+    if (selected.size < 2) {
+        for (i in 0 until tree.length()) {
+            val item = tree.optJSONObject(i) ?: continue
+            val path = item.optString("path")
+            if (item.optString("type") == "blob" && path.substringAfterLast('/').lowercase() in listOf("readme.md", "readme.txt")) {
+                if (path !in selected) selected += path
+                break
             }
-            RadarCandidate(source.name, path,
-                "https://raw.githubusercontent.com/${source.owner}/${source.repo}/HEAD/$encodedPath")
         }
+    }
+    selected.map { path ->
+        val encodedPath = path.split("/").joinToString("/") {
+            URLEncoder.encode(it, "UTF-8").replace("+", "%20")
+        }
+        RadarCandidate(source.name, path,
+            "https://raw.githubusercontent.com/${source.owner}/${source.repo}/HEAD/$encodedPath")
+    }
 } catch (_: Exception) { emptyList() }
+
+private fun extractConfigUrls(readme: String): List<String> {
+    val urlPattern = Regex("https?://[^\\s\\\"'<>\\]\\)]+", RegexOption.IGNORE_CASE)
+    return urlPattern.findAll(readme).mapNotNull { match ->
+        var url = match.value.trimEnd('.', ',', ';', ')', ']', '}', '"', '\'')
+        if (url.contains("github.com/") && "/blob/" in url) {
+            url = url.replace("github.com/", "raw.githubusercontent.com/").replace("/blob/", "/")
+        }
+        val lower = url.lowercase()
+        val likelyConfig = lower.contains("raw.githubusercontent.com/") ||
+            listOf("sub", "subscribe", "config", "v2ray", "proxy", "node", ".txt", ".yaml", ".yml", ".base64")
+                .any(lower::contains)
+        url.takeIf { it.startsWith("https://") && likelyConfig }
+    }.distinct().toList()
 }
 
 private fun looksLikeConfigPayload(body: String): Boolean {
