@@ -50,6 +50,7 @@ private data class RadarIpResult(val tunnelActive: Boolean, val verified: Boolea
 @Composable
 fun RadarDashboard(
     isRunning: Boolean,
+    hasPing: Boolean,
     isDarkTheme: Boolean,
     serverTitle: String,
     modifier: Modifier = Modifier
@@ -58,7 +59,7 @@ fun RadarDashboard(
     var verification by remember { mutableStateOf(RadarVerification.DISCONNECTED) }
     var publicIp by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(isRunning) {
+    LaunchedEffect(isRunning, hasPing) {
         publicIp = null
         if (!isRunning) {
             verification = RadarVerification.DISCONNECTED
@@ -71,7 +72,10 @@ fun RadarDashboard(
         while (true) {
             val result = withContext(Dispatchers.IO) { verifyVpnEgress(context) }
             publicIp = result.ip
+            // A successful ping for the selected profile is a direct health signal.
+            // Do not keep the radar red merely because a public-IP endpoint is blocked.
             verification = when {
+                hasPing -> RadarVerification.VERIFIED
                 !result.tunnelActive -> RadarVerification.TUNNEL_LOST
                 result.verified -> RadarVerification.VERIFIED
                 else -> RadarVerification.UNVERIFIED
