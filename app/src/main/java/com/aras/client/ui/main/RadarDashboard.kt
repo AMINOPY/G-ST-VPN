@@ -165,7 +165,8 @@ fun RadarDashboard(
                     text = when (verification) {
                         RadarVerification.VERIFIED -> "ONLINE"
                         RadarVerification.DISCONNECTED -> "OFFLINE"
-                        else -> "CHECKING"
+                        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> "DANGER"
+                        RadarVerification.CHECKING -> "CHECKING"
                     },
                     color = statusColor,
                     fontSize = 10.sp,
@@ -186,6 +187,8 @@ fun RadarDashboard(
                 },
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
                 palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,
+                title = statusLabel,
+                subtitle = statusDetail,
                 nodes = when (verification) {
                     RadarVerification.VERIFIED -> listOf(
                         // This marker represents the verified VPN egress check, not a scanned host.
