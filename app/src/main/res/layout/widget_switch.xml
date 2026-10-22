@@ -106,6 +106,49 @@
             android:textStyle="bold" />
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="7dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_config_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="CONFIGURATION"
+            android:textColor="#E4FFE9"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_config_prev"
+            android:layout_width="36dp"
+            android:layout_height="32dp"
+            android:gravity="center"
+            android:text="‹"
+            android:textColor="#E4FFE9"
+            android:textSize="22sp"
+            android:background="@drawable/widget_action_background"
+            android:contentDescription="Previous configuration" />
+
+        <TextView
+            android:id="@+id/widget_config_next"
+            android:layout_width="36dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="5dp"
+            android:gravity="center"
+            android:text="›"
+            android:textColor="#E4FFE9"
+            android:textSize="22sp"
+            android:background="@drawable/widget_action_background"
+            android:contentDescription="Next configuration" />
+    </LinearLayout>
+
     <TextView
         android:id="@+id/widget_ip"
         android:layout_width="match_parent"
