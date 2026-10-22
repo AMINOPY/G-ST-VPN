@@ -331,7 +331,7 @@
     <string name="title_ui_settings">تنظیمات رابط کاربری</string>
     <string name="title_ui_themes">تم‌های رابط کاربری</string>
     <string name="ui_mode_persepolis">پرسپولیس (پارسه)</string>
-    <string name="ui_mode_radar">رادار — هوشمندی تونل</string>
+    <string name="ui_mode_radar">UI RADAR — هوشمندی تونل</string>
     <string name="ui_mode_survival">آخرین بازمانده از ما — پس از سقوط</string>
     <string name="title_pref_ui_mode_night">تنظیمات حالت رابط کاربری</string>
     <string name="title_pref_ui_theme">تم رابط کاربری</string>
