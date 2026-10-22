@@ -93,16 +93,25 @@ fun RadarDashboard(
         while (true) {
             val result = withContext(Dispatchers.IO) { verifyVpnEgress(context) }
             publicIp = result.ip
-            // Overall radar state reflects the real VPN tunnel and VPN-routed egress check.
-            // Individual configuration pings are evaluated separately below: one broken
-            // profile must not make a healthy tunnel itself look broken.
-            val tunnelVerified = result.tunnelActive && result.verified
-            verification = when {
-                !result.tunnelActive -> RadarVerification.TUNNEL_LOST
-                tunnelVerified -> RadarVerification.VERIFIED
-                // A live VPN interface with failed egress verification is unverified,
-                // not proof that the tunnel itself is down. Never call it verified/green.
-                else -> RadarVerification.TUNNEL_IP_UNVERIFIED
+            // Feed the live Android VPN-network/IP probe through the same state
+            // resolver covered by RadarStateTest; do not infer success from animation.
+            val snapshot = TunnelSnapshot(
+                sessionId = selectedGuid?.hashCode()?.toLong() ?: 0L,
+                phase = TunnelPhase.RUNNING,
+                tunInterfaceUp = result.tunnelActive,
+                trafficBytesLastSample = 0L,
+                ipCheck = if (result.verified && !result.ip.isNullOrBlank()) {
+                    IpCheck.Verified(result.ip)
+                } else {
+                    IpCheck.Failed
+                }
+            )
+            verification = when (resolveRadarState(snapshot)) {
+                RadarState.CONNECTED_VERIFIED -> RadarVerification.VERIFIED
+                RadarState.TUNNEL_IP_UNVERIFIED -> RadarVerification.TUNNEL_IP_UNVERIFIED
+                RadarState.ERROR -> RadarVerification.TUNNEL_LOST
+                RadarState.DISCONNECTED -> RadarVerification.DISCONNECTED
+                RadarState.CONNECTING -> RadarVerification.CHECKING
             }
             delay(5_000)
         }
