@@ -199,10 +199,13 @@ object NotificationManager {
      */
     private fun updateNotification(contentText: String?, proxyTraffic: Long, directTraffic: Long) {
         if (mBuilder != null) {
-            // Keep the monochrome R mark stable; traffic values remain in the notification text.
+            val service = getService() ?: return
+            // Keep the monochrome R mark stable; retain profile/ping in the collapsed line
+            // and put the live traffic breakdown in the expandable detail.
             mBuilder?.setSmallIcon(R.drawable.ic_radar)
             mBuilder?.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
-            mBuilder?.setContentText(contentText)
+            mBuilder?.setContentText(buildRadarDetails(service, null))
+            mBuilder?.setSubText(contentText)
             getNotificationManager()?.notify(NOTIFICATION_ID, mBuilder?.build())
         }
     }
