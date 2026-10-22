@@ -177,6 +177,7 @@ fun MainScreen(
 
     MainMenuSheet(
         show = showMenu,
+        isRdrX = uiTheme == "radar",
         onDismiss = { showMenu = false },
         onNavigate = onNavigate,
     )
@@ -185,6 +186,7 @@ fun MainScreen(
             contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
             topBar = {
                 MainTopBar(
+                    isRdrX = uiTheme == "radar",
                     isLoading = isLoading,
                     showSearch = showSearch,
                     searchQuery = searchQuery,
@@ -232,6 +234,7 @@ fun MainScreen(
                         )
                     }
                     MainBottomBar(
+                        isRdrX = uiTheme == "radar",
                         displayText = barText.title,
                         subtitleOverride = if (uiState.status == MainStatus.Disconnected) null else barText.subtitle,
                         isRunning = isRunning,
@@ -265,6 +268,7 @@ fun MainScreen(
                             selectedGuid = selectedGuid,
                             isDarkTheme = isDarkTheme,
                             serverTitle = mainViewModel.connectedServerTitle(),
+                            onToggleConnection = { onAction(MainAction.ToggleService) },
                         )
                         "survival" -> SurvivalFieldPanel(
                             isConnected = isRunning && hasPing,

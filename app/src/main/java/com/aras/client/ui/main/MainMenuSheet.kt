@@ -3,7 +3,9 @@ package com.aras.client.ui.main
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,6 +33,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -122,6 +128,7 @@ private fun menuSections(): List<MenuSection> {
 @Composable
 fun MainMenuSheet(
     show: Boolean,
+    isRdrX: Boolean = false,
     onDismiss: () -> Unit,
     onNavigate: (MainDestination) -> Unit,
 ) {
@@ -167,6 +174,12 @@ fun MainMenuSheet(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+            }
+            if (isRdrX) {
+                RdrXOrbitalMenuHeader(
+                    onDismiss = onDismiss,
+                    onNavigate = onNavigate
+                )
             }
             Spacer(Modifier.height(14.dp))
 
@@ -502,5 +515,102 @@ private fun ContactChip(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+    }
+}
+
+
+@Composable
+private fun RdrXOrbitalMenuHeader(
+    onDismiss: () -> Unit,
+    onNavigate: (MainDestination) -> Unit,
+) {
+    val accent = Color(0xFF39FF88)
+    val orbit = Color(0xFF3DA9FF)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(164.dp),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Canvas(Modifier.fillMaxWidth().height(142.dp)) {
+            drawArc(
+                color = orbit.copy(alpha = 0.48f),
+                startAngle = 205f,
+                sweepAngle = 130f,
+                useCenter = false,
+                topLeft = Offset(size.width * 0.12f, -size.height * 0.28f),
+                size = Size(size.width * 0.76f, size.height * 1.52f),
+                style = Stroke(width = 1.2.dp.toPx())
+            )
+            drawArc(
+                color = accent.copy(alpha = 0.15f),
+                startAngle = 205f,
+                sweepAngle = 130f,
+                useCenter = false,
+                topLeft = Offset(size.width * 0.2f, -size.height * 0.08f),
+                size = Size(size.width * 0.6f, size.height * 1.24f),
+                style = Stroke(width = 1.dp.toPx())
+            )
+        }
+        val items = listOf(
+            Triple(MainDestination.Logcat, "LOGS", -100f) to 52.dp,
+            Triple(MainDestination.Subscriptions, "CONFIGS", -54f) to 23.dp,
+            Triple(MainDestination.Settings, "SETTINGS", 0f) to 10.dp,
+            Triple(MainDestination.Routing, "ROUTING", 54f) to 23.dp,
+            Triple(MainDestination.CheckUpdate, "UPDATE", 100f) to 52.dp,
+        )
+        items.forEach { (item, vertical) ->
+            val (destination, label, horizontal) = item
+            Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(x = horizontal.dp, y = vertical)
+                    .width(64.dp)
+                    .clickable {
+                        onDismiss()
+                        onNavigate(destination)
+                    },
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF122235))
+                        .border(1.dp, orbit.copy(alpha = 0.6f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        painter = painterResource(destination.iconRes),
+                        contentDescription = label,
+                        tint = if (destination == MainDestination.Settings) accent else orbit,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+            }
+        }
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .size(38.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF0B1421))
+                .border(1.dp, accent.copy(alpha = 0.7f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(R.drawable.ic_aras_logo),
+                contentDescription = "RDR X",
+                modifier = Modifier.size(25.dp)
+            )
+        }
     }
 }
