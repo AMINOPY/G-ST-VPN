@@ -4,10 +4,14 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +25,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -147,6 +152,7 @@ fun RadarDisplay(
     reducedMotion: Boolean = false,
     title: String = defaultTitle(state),
     subtitle: String = defaultSubtitle(state),
+    onCenterAction: (() -> Unit)? = null,
 ) {
     val displayPalette = when (state) {
         RadarState.CONNECTED_VERIFIED -> palette.copy(
@@ -243,6 +249,57 @@ fun RadarDisplay(
             modifier = Modifier.fillMaxWidth().aspectRatio(1f),
             contentAlignment = Alignment.Center,
         ) {
+            if (onCenterAction != null) {
+                val actionLabel = when (state) {
+                    RadarState.DISCONNECTED, RadarState.ERROR -> "CONNECT"
+                    RadarState.CONNECTING -> "CANCEL"
+                    RadarState.CONNECTED_VERIFIED, RadarState.TUNNEL_IP_UNVERIFIED -> "DISCONNECT"
+                }
+                Box(
+                    modifier = Modifier
+                        .size(76.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.radialGradient(
+                                listOf(
+                                    headColor.copy(alpha = 0.22f),
+                                    displayPalette.radarBase.copy(alpha = 0.94f),
+                                    displayPalette.radarBase.copy(alpha = 0.78f)
+                                )
+                            )
+                        )
+                        .border(1.dp, headColor.copy(alpha = 0.78f), CircleShape)
+                        .clickable { onCenterAction() }
+                        .semantics {
+                            contentDescription = when (state) {
+                                RadarState.DISCONNECTED, RadarState.ERROR -> "رادار: اتصال به VPN"
+                                RadarState.CONNECTING -> "رادار: لغو اتصال"
+                                RadarState.CONNECTED_VERIFIED -> "رادار: قطع اتصال VPN"
+                                RadarState.TUNNEL_IP_UNVERIFIED -> "رادار: قطع اتصال؛ تونل تأیید نشده"
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(Modifier.fillMaxSize().padding(13.dp)) {
+                        val centerPoint = Offset(size.width / 2f, size.height / 2f)
+                        val radius = size.minDimension * 0.43f
+                        drawCircle(headColor.copy(alpha = 0.9f), radius, centerPoint, style = Stroke(width = 1.5.dp.toPx()))
+                        drawCircle(headColor.copy(alpha = 0.45f), radius * 0.58f, centerPoint, style = Stroke(width = 1.dp.toPx()))
+                        drawLine(headColor, Offset(centerPoint.x - radius, centerPoint.y), Offset(centerPoint.x + radius, centerPoint.y), 1.dp.toPx())
+                        drawLine(headColor, Offset(centerPoint.x, centerPoint.y - radius), Offset(centerPoint.x, centerPoint.y + radius), 1.dp.toPx())
+                        drawCircle(headColor, 2.5.dp.toPx(), centerPoint)
+                    }
+                    Text(
+                        text = actionLabel,
+                        color = displayPalette.primaryText,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp,
+                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 9.dp)
+                    )
+                }
+            }
+
             Canvas(Modifier.fillMaxSize()) {
                 val c = center
                 val r = size.minDimension / 2f * 0.92f
