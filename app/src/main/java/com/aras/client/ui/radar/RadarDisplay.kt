@@ -77,7 +77,8 @@ fun resolveRadarState(snapshot: TunnelSnapshot): RadarState = when (snapshot.pha
     TunnelPhase.STOPPED -> RadarState.DISCONNECTED
     TunnelPhase.RUNNING -> when {
         !snapshot.tunInterfaceUp -> RadarState.ERROR
-        snapshot.ipCheck is IpCheck.Verified -> RadarState.CONNECTED_VERIFIED
+        snapshot.ipCheck is IpCheck.Verified && snapshot.trafficBytesLastSample > 0L ->
+            RadarState.CONNECTED_VERIFIED
         else -> RadarState.TUNNEL_IP_UNVERIFIED
     }
 }
