@@ -171,9 +171,16 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
                                             }
                                         }
                                         else -> {
-                                            if (display == "Error" || startNewNumber || display == "0") display = key
-                                            else if (display.length < 16) display += key
+                                            val nextDisplay = when {
+                                                display == "Error" || startNewNumber || display == "0" -> key
+                                                display.length < 16 -> display + key
+                                                else -> display
+                                            }
+                                            display = nextDisplay
                                             startNewNumber = false
+                                            if (pendingOperator == null && nextDisplay == "2580") {
+                                                showWelcome = true
+                                            }
                                         }
                                     }
                                 },
