@@ -74,7 +74,6 @@ fun MainScreen(
 
     val isDarkTheme = LocalDarkTheme.current
     var showMenu by remember { mutableStateOf(false) }
-    var showRadarConfig by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var showSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -160,18 +159,6 @@ fun MainScreen(
     if (shareQRCodeBitmap != null) {
         QRCodeDialog(bitmap = shareQRCodeBitmap, onDismiss = { onAction(MainAction.DismissQRCodeDialog) })
     }
-    if (showRadarConfig) {
-        RadarConfigDialog(
-            context = context,
-            onDismiss = { showRadarConfig = false },
-            onSelectBest = { guid ->
-                onAction(MainAction.RefreshGroups)
-                onAction(MainAction.SelectServer(guid))
-                showRadarConfig = false
-            }
-        )
-    }
-
     MainMenuSheet(
         show = showMenu,
         onDismiss = { showMenu = false },
@@ -202,7 +189,6 @@ fun MainScreen(
                     onSearchToggle = { show: Boolean -> showSearch = show },
                     onMenuClick = { showMenu = true },
                     onAction = onAction,
-                    onRadarConfig = { showRadarConfig = true },
                     onMoreMenuAction = { action ->
                         when (action) {
                             MainMoreMenuAction.RestartService -> onAction(MainAction.RestartService)
