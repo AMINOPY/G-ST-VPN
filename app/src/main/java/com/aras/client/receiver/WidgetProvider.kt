@@ -9,32 +9,24 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
-import android.os.SystemClock
 import android.widget.RemoteViews
 import com.aras.client.AppConfig
 import com.aras.client.R
 import com.aras.client.core.CoreServiceManager
 import com.aras.client.core.LauncherManager
-import com.aras.client.ui.main.MainActivity
+import com.aras.client.handler.MmkvManager
 import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Large ELITE HYBRID home-screen widget.
+ * ELITE HYBRID home-screen widget.
  *
- * The service-running flag alone is not treated as a successful VPN connection:
- * the widget checks for Android's actual VPN transport and performs a small HTTP
- * request explicitly on that VPN Network before displaying a verified green state.
+ * The widget's palette is deliberately static and independent from the app's UI theme.
+ * A green status is shown only after Android exposes a VPN transport and a request
+ * routed over that VPN network succeeds. Service-running alone is never treated as
+ * proof of a working tunnel.
  */
 class WidgetProvider : AppWidgetProvider() {
-
-    private data class TunnelProbe(
-        val tunnelFound: Boolean,
-        val verified: Boolean,
-        val exitIp: String? = null,
-        val rttMs: Long? = null,
-        val detail: String
-    )
 
     override fun onUpdate(
         context: Context,
@@ -42,219 +34,211 @@ class WidgetProvider : AppWidgetProvider() {
         appWidgetIds: IntArray
     ) {
         super.onUpdate(context, appWidgetManager, appWidgetIds)
-        refreshWidgets(context, appWidgetIds, goAsync())
+        refreshAll(context)
     }
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         when (intent.action) {
             AppConfig.BROADCAST_ACTION_WIDGET_CLICK -> {
-                // Keep the app's existing, permission-aware start/stop path.
-                if (CoreServiceManager.isRunning()) {
+                if (intent.getBooleanExtra(EXTRA_NEXT_CONFIG, false)) {
+                    selectNextConfiguration(context)
+                } else if (CoreServiceManager.isRunning()) {
                     LauncherManager.stopService(context)
                 } else {
                     LauncherManager.startServiceFromToggle(context)
                 }
-                refreshWidgets(
-                    context,
-                    widgetIds(context),
-                    goAsync()
-                )
+                refreshAll(context)
             }
-
             AppConfig.BROADCAST_ACTION_ACTIVITY -> {
-                refreshWidgets(
-                    context,
-                    widgetIds(context),
-                    goAsync()
-                )
+                // Re-read the live tunnel after every service state transition.
+                refreshAll(context)
             }
         }
     }
 
-    private fun widgetIds(context: Context): IntArray =
-        AppWidgetManager.getInstance(context)
-            .getAppWidgetIds(ComponentName(context, WidgetProvider::class.java))
+    private fun selectNextConfiguration(context: Context) {
+        val configs = MmkvManager.decodeAllServerList()
+            .distinct()
+            .filter { guid -> MmkvManager.decodeServerConfig(guid) != null }
+        if (configs.isEmpty()) return
 
-    private fun refreshWidgets(
-        context: Context,
-        ids: IntArray,
-        pendingResult: PendingResult
-    ) {
-        if (ids.isEmpty()) {
-            pendingResult.finish()
-            return
+        val current = MmkvManager.getSelectServer()
+        val currentIndex = configs.indexOf(current)
+        val nextGuid = configs[(currentIndex + 1).mod(configs.size)]
+        MmkvManager.setSelectServer(nextGuid)
+
+        // Ask the existing service to reload the selected profile; do not simulate a
+        // connection or force-stop the VPN. When disconnected, the next Connect uses it.
+        if (CoreServiceManager.isRunning()) {
+            LauncherManager.restartService(context)
         }
+    }
+
+    private fun refreshAll(context: Context) {
+        val manager = AppWidgetManager.getInstance(context)
+        val ids = manager.getAppWidgetIds(ComponentName(context, WidgetProvider::class.java))
+        if (ids.isEmpty()) return
 
         val running = CoreServiceManager.isRunning()
-        render(context, ids, running, probe = null)
+        val selectedGuid = MmkvManager.getSelectServer()
+        val selected = selectedGuid?.let(MmkvManager::decodeServerConfig)
+        val ping = selectedGuid?.let { MmkvManager.decodeServerAffiliationInfo(it)?.testDelayMillis } ?: -1L
 
+        // Render a conservative initial state immediately; the network verification below
+        // updates it only if the Android VPN transport and VPN-routed request are confirmed.
+        ids.forEach { id ->
+            manager.updateAppWidget(id, buildViews(context, running, false, null, ping, selected?.remarks))
+        }
+
+        if (!running) return
         Thread({
-            try {
-                val probe = if (running) probeVpnNetwork(context) else null
-                // Re-read service state: it may have stopped while the probe was running.
-                render(context, ids, CoreServiceManager.isRunning(), probe)
-            } finally {
-                pendingResult.finish()
+            val result = verifyVpnEgress(context)
+            val currentPing = MmkvManager.getSelectServer()
+                ?.let { MmkvManager.decodeServerAffiliationInfo(it)?.testDelayMillis } ?: -1L
+            val currentName = MmkvManager.getSelectServer()
+                ?.let(MmkvManager::decodeServerConfig)?.remarks
+            val latestRunning = CoreServiceManager.isRunning()
+            val latestIds = AppWidgetManager.getInstance(context)
+                .getAppWidgetIds(ComponentName(context, WidgetProvider::class.java))
+            latestIds.forEach { id ->
+                AppWidgetManager.getInstance(context).updateAppWidget(
+                    id,
+                    buildViews(
+                        context,
+                        latestRunning,
+                        result.verified && latestRunning,
+                        result.ip,
+                        currentPing,
+                        currentName
+                    )
+                )
             }
-        }, "RadarVpnWidgetProbe").start()
+        }, "radar-vpn-widget-check").start()
     }
 
-    private fun render(
+    private fun buildViews(
         context: Context,
-        ids: IntArray,
-        isRunning: Boolean,
-        probe: TunnelProbe?
-    ) {
-        val manager = AppWidgetManager.getInstance(context)
+        serviceRunning: Boolean,
+        tunnelVerified: Boolean,
+        publicIp: String?,
+        pingMs: Long,
+        configName: String?
+    ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_switch)
+        val connected = serviceRunning && tunnelVerified
+        val danger = serviceRunning && !tunnelVerified
 
-        val actionIntent = Intent(context, WidgetProvider::class.java).apply {
+        views.setTextViewText(
+            R.id.widget_status,
+            when {
+                connected -> "TUNNEL VERIFIED"
+                danger -> "DANGER  /  NO SIGNAL"
+                else -> "TUNNEL OFFLINE"
+            }
+        )
+        views.setTextColor(
+            R.id.widget_status,
+            when {
+                connected -> COLOR_GREEN
+                danger -> COLOR_RED
+                else -> COLOR_GREY
+            }
+        )
+        views.setTextViewText(
+            R.id.widget_rtt,
+            if (pingMs > 0L) "RTT  ${pingMs} ms" else "RTT  —"
+        )
+        views.setTextViewText(
+            R.id.widget_ip,
+            when {
+                connected && !publicIp.isNullOrBlank() -> "VPN egress IP: $publicIp"
+                danger -> "VPN network present, traffic not verified"
+                else -> "Tunnel egress IP: unavailable"
+            }
+        )
+        views.setTextViewText(
+            R.id.widget_detail,
+            configName?.takeIf { it.isNotBlank() }?.let { "CONFIG  /  $it" }
+                ?: "Select a configuration in RADAR VPN"
+        )
+        views.setTextViewText(R.id.widget_action_label, if (serviceRunning) "DISCONNECT" else "CONNECT")
+        views.setInt(
+            R.id.image_switch,
+            "setImageResource",
+            if (serviceRunning) R.drawable.ic_stop_24dp else R.drawable.ic_play_24dp
+        )
+
+        val toggleIntent = Intent(context, WidgetProvider::class.java).apply {
             action = AppConfig.BROADCAST_ACTION_WIDGET_CLICK
         }
-        val actionPendingIntent = PendingIntent.getBroadcast(
-            context,
-            R.id.widget_action,
-            actionIntent,
+        val togglePending = PendingIntent.getBroadcast(
+            context, REQUEST_TOGGLE, toggleIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        views.setOnClickPendingIntent(R.id.widget_action, actionPendingIntent)
+        views.setOnClickPendingIntent(R.id.widget_action, togglePending)
+        views.setOnClickPendingIntent(R.id.layout_switch, togglePending)
 
-        val openAppIntent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        val nextIntent = Intent(context, WidgetProvider::class.java).apply {
+            action = AppConfig.BROADCAST_ACTION_WIDGET_CLICK
+            putExtra(EXTRA_NEXT_CONFIG, true)
         }
-        val openAppPendingIntent = PendingIntent.getActivity(
-            context,
-            R.id.layout_switch,
-            openAppIntent,
+        val nextPending = PendingIntent.getBroadcast(
+            context, REQUEST_NEXT_CONFIG, nextIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        views.setOnClickPendingIntent(R.id.layout_switch, openAppPendingIntent)
-        // The child action has its own PendingIntent and remains the explicit toggle.
-
-        val status: String
-        val detail: String
-        val exitIp: String
-        val rtt: String
-        val statusColor: Int
-        if (!isRunning) {
-            status = "NO SIGNAL"
-            detail = "VPN service is disconnected"
-            exitIp = "Tunnel egress IP: —"
-            rtt = "RTT  —"
-            statusColor = 0xFFFF525C.toInt()
-        } else if (probe == null) {
-            status = "CHECKING TUNNEL"
-            detail = "Checking Android VPN network and tunnel egress"
-            exitIp = "Tunnel egress IP: checking…"
-            rtt = "RTT  —"
-            statusColor = 0xFFFFD36A.toInt()
-        } else if (probe.tunnelFound && probe.verified) {
-            status = "TUNNEL VERIFIED"
-            detail = "Traffic request completed over the VPN network"
-            exitIp = "Tunnel egress IP: ${probe.exitIp ?: "verified"}"
-            rtt = "RTT  ${probe.rttMs ?: 0} ms"
-            statusColor = 0xFF63F28D.toInt()
-        } else if (probe.tunnelFound) {
-            status = "DANGER · NO EGRESS"
-            detail = probe.detail
-            exitIp = "Tunnel egress IP: not verified"
-            rtt = "RTT  —"
-            statusColor = 0xFFFF2938.toInt()
-        } else {
-            status = "DANGER · TUNNEL LOST"
-            detail = "Service is running, but Android reports no VPN transport"
-            exitIp = "Tunnel egress IP: unavailable"
-            rtt = "RTT  —"
-            statusColor = 0xFFFF2938.toInt()
-        }
-
-        views.setTextViewText(R.id.widget_status, status)
-        views.setTextViewText(R.id.widget_detail, detail)
-        views.setTextViewText(R.id.widget_ip, exitIp)
-        views.setTextViewText(R.id.widget_rtt, rtt)
-        views.setTextColor(R.id.widget_status, statusColor)
-        views.setInt(R.id.widget_status_dot, "setBackgroundColor", statusColor)
-        views.setInt(R.id.widget_radar_center_dot, "setBackgroundColor", statusColor)
-        views.setImageViewResource(
-            R.id.image_switch,
-            if (isRunning) R.drawable.ic_stop_24dp else R.drawable.ic_play_24dp
-        )
-        views.setTextViewText(R.id.widget_action_label, if (isRunning) "DISCONNECT" else "CONNECT")
-
-        ids.forEach { manager.updateAppWidget(it, views) }
+        views.setOnClickPendingIntent(R.id.widget_config_next, nextPending)
+        return views
     }
 
-    private fun probeVpnNetwork(context: Context): TunnelProbe {
+    private data class EgressCheck(val verified: Boolean, val ip: String? = null)
+
+    private fun verifyVpnEgress(context: Context): EgressCheck {
         val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-            ?: return TunnelProbe(false, false, detail = "Android connectivity service unavailable")
-
-        val candidates = buildList {
-            val active = connectivity.activeNetwork
-            if (active != null && isVpnNetwork(connectivity, active)) add(active)
-            connectivity.allNetworks.forEach { network ->
-                if (network !in this && isVpnNetwork(connectivity, network)) add(network)
-            }
+            ?: return EgressCheck(false)
+        val networks: List<Network> = connectivity.allNetworks.filter { network ->
+            connectivity.getNetworkCapabilities(network)?.let { caps ->
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
+                    caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            } == true
         }
+        if (networks.isEmpty()) return EgressCheck(false)
 
-        if (candidates.isEmpty()) {
-            return TunnelProbe(
-                tunnelFound = false,
-                verified = false,
-                detail = "No Android VPN transport is active"
-            )
-        }
-
-        // Each request is opened on a VPN Network object, never on the default network.
         val endpoints = listOf("https://api.ipify.org", "https://icanhazip.com/")
-        for (network in candidates) {
+        for (network in networks) {
             for (endpoint in endpoints) {
                 val connection = try {
                     network.openConnection(URL(endpoint)) as? HttpURLConnection
                 } catch (_: Exception) {
                     null
                 } ?: continue
-
-                val startedAt = SystemClock.elapsedRealtime()
                 try {
                     connection.connectTimeout = 2500
                     connection.readTimeout = 2500
                     connection.requestMethod = "GET"
                     connection.setRequestProperty("Accept", "text/plain")
                     if (connection.responseCode !in 200..299) continue
-
                     val ip = connection.inputStream.bufferedReader().use { it.readText() }
-                        .trim()
-                        .take(64)
-                    val looksLikeIp = ip.isNotBlank() &&
-                        ip.matches(Regex("^[0-9a-fA-F:.]+$")) &&
+                        .trim().take(64)
+                    if (ip.isNotBlank() && ip.matches(Regex("^[0-9a-fA-F:.]+$")) &&
                         (ip.contains('.') || ip.contains(':'))
-                    if (looksLikeIp) {
-                        return TunnelProbe(
-                            tunnelFound = true,
-                            verified = true,
-                            exitIp = ip,
-                            rttMs = (SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(1L),
-                            detail = "Traffic request completed over the VPN network"
-                        )
-                    }
+                    ) return EgressCheck(true, ip)
                 } catch (_: Exception) {
-                    // Try another endpoint on the same VPN network before reporting danger.
+                    // Try the next endpoint and VPN network.
                 } finally {
                     connection.disconnect()
                 }
             }
         }
-
-        return TunnelProbe(
-            tunnelFound = true,
-            verified = false,
-            detail = "VPN transport exists, but tunnel egress could not be verified"
-        )
+        return EgressCheck(false)
     }
 
-    private fun isVpnNetwork(connectivity: ConnectivityManager, network: Network): Boolean {
-        val capabilities = connectivity.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+    companion object {
+        private const val EXTRA_NEXT_CONFIG = "widget_next_config"
+        private const val REQUEST_TOGGLE = 7101
+        private const val REQUEST_NEXT_CONFIG = 7102
+        private const val COLOR_GREEN = 0xFF8DE6A9.toInt()
+        private const val COLOR_RED = 0xFFFF5964.toInt()
+        private const val COLOR_GREY = 0xFF9AA4AF.toInt()
     }
 }
