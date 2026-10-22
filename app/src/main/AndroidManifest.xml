@@ -339,6 +339,22 @@
                 <action android:name="${applicationId}.action.activity" />
             </intent-filter>
         </receiver>
+
+        <!-- Separate AETHER GLASS widget; the legacy widget remains unchanged. -->
+        <receiver
+            android:name=".receiver.AetherGlassWidgetProvider"
+            android:exported="true"
+            android:process=":RunSoArasDaemon">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/aether_glass_widget_info" />
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="${applicationId}.action.activity" />
+                <action android:name="com.aras.client.action.AETHER_WIDGET_TOGGLE" />
+                <action android:name="com.aras.client.action.AETHER_WIDGET_REFRESH" />
+            </intent-filter>
+        </receiver>
         <receiver
             android:name=".receiver.BootReceiver"
             android:exported="true"
