@@ -2,6 +2,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name" translatable="false">ArasClient</string>
     <string name="app_widget_name">Connect / Disconnect</string>
+    <string name="aether_glass_widget_description" tools:ignore="MissingTranslation">AETHER GLASS — live VPN status and quick connect</string>
     <string name="app_tile_name">Aras: Connect / Disconnect</string>
     <string name="app_tile_first_use">Add a profile in the app before using this feature.</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>

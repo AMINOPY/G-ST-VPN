@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="15dp"
+    android:background="@drawable/aether_glass_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/aether_brand"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="G-ST / AETHER GLASS"
+                android:textColor="#F4FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.055" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="LIVE TUNNEL MONITOR"
+                android:textColor="#99FFFFFF"
+                android:textSize="8sp"
+                android:letterSpacing="0.12" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/aether_refresh"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:padding="8dp"
+            android:src="@drawable/aether_glass_refresh"
+            android:contentDescription="Refresh widget" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="13dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <View
+            android:id="@+id/aether_status_dot"
+            android:layout_width="7dp"
+            android:layout_height="7dp"
+            android:background="@drawable/aether_glass_dot_muted" />
+
+        <TextView
+            android:id="@+id/aether_status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="7dp"
+            android:layout_weight="1"
+            android:text="SYSTEM STANDBY"
+            android:textColor="#FFFF6475"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.065" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="PPI / 360"
+            android:textColor="#77FFFFFF"
+            android:textSize="8sp"
+            android:fontFamily="monospace" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:minHeight="92dp"
+        android:layout_marginTop="4dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LAST PING"
+                android:textColor="#99FFFFFF"
+                android:textSize="9sp"
+                android:letterSpacing="0.08" />
+
+            <TextView
+                android:id="@+id/aether_ping"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="— ms"
+                android:textColor="#FFB5C0BC"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace" />
+
+            <TextView
+                android:id="@+id/aether_status_detail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="Ready to establish tunnel"
+                android:textColor="#AFFFFFFF"
+                android:textSize="9sp"
+                android:maxLines="2" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/aether_radar"
+            android:layout_width="106dp"
+            android:layout_height="106dp"
+            android:layout_marginStart="4dp"
+            android:padding="2dp"
+            android:src="@drawable/aether_glass_radar_idle"
+            android:scaleType="fitCenter"
+            android:contentDescription="VPN radar status" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:background="@drawable/aether_glass_inner_panel">
+
+        <View
+            android:layout_width="3dp"
+            android:layout_height="25dp"
+            android:background="#FF55FFAA" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="9dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="ACTIVE NODE"
+                android:textColor="#88FFFFFF"
+                android:textSize="8sp"
+                android:letterSpacing="0.10" />
+
+            <TextView
+                android:id="@+id/aether_node"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="NO ACTIVE PROFILE"
+                android:textColor="#F4FFFFFF"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="G-ST"
+            android:textColor="#66FFFFFF"
+            android:textSize="9sp"
+            android:fontFamily="monospace" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/aether_action"
+        android:layout_width="match_parent"
+        android:layout_height="43dp"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:background="@drawable/aether_glass_action_idle"
+        android:text="CONNECT VPN"
+        android:textColor="#FFF9FFFC"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.10" />
+</LinearLayout>
