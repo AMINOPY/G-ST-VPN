@@ -29,14 +29,15 @@ class WidgetProvider : AppWidgetProvider() {
         renderAll(context, appWidgetManager, appWidgetIds, checking = true)
         verifyExecutor.execute {
             val serviceRunning = runCatching { CoreServiceManager.isRunning() }.getOrDefault(false)
-            val verifiedTunnel = serviceRunning && verifyVpnEgress(context)
+            val egressIp = if (serviceRunning) verifyVpnEgress(context) else null
             renderAll(
                 context,
                 appWidgetManager,
                 appWidgetIds,
                 checking = false,
                 serviceRunning = serviceRunning,
-                verifiedTunnel = verifiedTunnel
+                verifiedTunnel = !egressIp.isNullOrBlank(),
+                egressIp = egressIp
             )
         }
     }
@@ -91,7 +92,8 @@ class WidgetProvider : AppWidgetProvider() {
         ids: IntArray,
         checking: Boolean,
         serviceRunning: Boolean = false,
-        verifiedTunnel: Boolean = false
+        verifiedTunnel: Boolean = false,
+        egressIp: String? = null
     ) {
         val selectedGuid = MmkvManager.getSelectServer()
         val profile = selectedGuid?.let(MmkvManager::decodeServerConfig)
@@ -130,7 +132,7 @@ class WidgetProvider : AppWidgetProvider() {
                 R.id.widget_ip,
                 when {
                     checking -> "Tunnel egress IP: checking…"
-                    verifiedTunnel -> "Tunnel egress IP: verified"
+                    verifiedTunnel -> "VPN egress IP: $egressIp"
                     else -> "Tunnel egress IP: unavailable"
                 }
             )
@@ -157,9 +159,9 @@ class WidgetProvider : AppWidgetProvider() {
         )
     }
 
-    private fun verifyVpnEgress(context: Context): Boolean {
+    private fun verifyVpnEgress(context: Context): String? {
         val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-            ?: return false
+            ?: return null
         val networks = mutableListOf<Network>()
         connectivity.allNetworks.forEach { network ->
             val caps = connectivity.getNetworkCapabilities(network)
@@ -181,7 +183,7 @@ class WidgetProvider : AppWidgetProvider() {
                     val ip = connection.inputStream.bufferedReader().use { it.readText().trim() }
                     if (ip.isNotBlank() && ip.matches(Regex("^[0-9a-fA-F:.]+$")) &&
                         (ip.contains('.') || ip.contains(':'))
-                    ) return true
+                    ) return ip
                 }
             } catch (_: Exception) {
                 // A blocked endpoint must not be represented as a verified tunnel.
@@ -189,7 +191,7 @@ class WidgetProvider : AppWidgetProvider() {
                 connection.disconnect()
             }
         }
-        return false
+        return null
     }
 
     companion object {
