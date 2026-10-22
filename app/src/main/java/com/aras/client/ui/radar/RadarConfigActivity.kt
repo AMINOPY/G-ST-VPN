@@ -90,7 +90,10 @@ class RadarConfigActivity : ComponentActivity() {
                                 batch.map { uri -> async(Dispatchers.IO) { testTcp(uri) } }.map { it.await() }
                             }
                             for (result in batchResults) {
-                                if (result.latency != null) { reachable++; radar?.addTestedCandidate(result.latency) }
+                                if (result.latency != null) reachable++
+                                // Every candidate gets a blip: green/yellow for reachable latency,
+                                // red for an unreachable endpoint.
+                                radar?.addTestedCandidate(result.latency ?: -1L)
                                 results.add(result)
                                 checked++
                             }
