@@ -80,6 +80,7 @@
                 <data android:scheme="content" />
                 <data android:scheme="file" />
                 <data android:mimeType="application/x-arasc" />
+                <data android:mimeType="application/vnd.aras.rdr" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
