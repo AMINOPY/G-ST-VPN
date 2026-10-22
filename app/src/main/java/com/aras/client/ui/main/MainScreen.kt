@@ -66,6 +66,7 @@ fun MainScreen(
     val hasPing = if (isRunning && selectedGuid != null) {
         (MmkvManager.decodeServerAffiliationInfo(selectedGuid)?.testDelayMillis ?: -1L) > 0L
     } else false
+    val radarServers by mainViewModel.serversForGroup(uiState.selectedGroupId).collectAsStateWithLifecycle()
     val doubleColumnDisplay = uiState.doubleColumnDisplay
     val confirmRemove = uiState.confirmRemove
     val shareQRCodeBitmap = uiState.shareQRCodeBitmap
@@ -263,7 +264,14 @@ fun MainScreen(
                             hasPing = hasPing,
                             selectedGuid = selectedGuid,
                             isDarkTheme = isDarkTheme,
-                            serverTitle = mainViewModel.connectedServerTitle()
+                            serverTitle = mainViewModel.connectedServerTitle(),
+                            configPings = radarServers.map { server ->
+                                RadarConfigSignal(
+                                    guid = server.guid,
+                                    name = server.profile.remarks,
+                                    pingMs = server.testDelayMillis
+                                )
+                            }
                         )
                     }
                     updateAnnouncement?.let { announcement ->
