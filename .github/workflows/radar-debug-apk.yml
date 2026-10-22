@@ -39,7 +39,7 @@ jobs:
       - name: Install required Android SDK packages
         run: |
           set -euo pipefail
-          sdkmanager --install "platforms;android-36" "build-tools;36.0.0"
+          sdkmanager --install "platforms;android-37" "build-tools;36.0.0"
           sdkmanager --list_installed
 
       - name: Set up Gradle
@@ -49,7 +49,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -n 'compileSdk' app/build.gradle.kts
-          grep -n 'compileSdk = 36' app/build.gradle.kts
+          grep -n 'compileSdk = 37' app/build.gradle.kts
           chmod +x gradlew
           ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon
 
