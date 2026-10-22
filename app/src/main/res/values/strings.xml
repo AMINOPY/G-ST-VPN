@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name" translatable="false">ArasClient</string>
-    <string name="app_widget_name">Connect / Disconnect</string>
-    <string name="app_tile_name">Aras: Connect / Disconnect</string>
+    <string name="app_name" translatable="false">Radar VPN</string>
+    <string name="app_widget_name">Radar VPN: Connect / Disconnect</string>
+    <string name="app_tile_name">Radar VPN: Connect / Disconnect</string>
     <string name="app_tile_first_use">Add a profile in the app before using this feature.</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
@@ -20,9 +20,9 @@
     <string name="toast_permission_denied">Permission denied</string>
     <string name="toast_permission_denied_notification">Notification permission denied</string>
     <string name="notification_action_more">Tap for more</string>
-    <string name="app_quick_connect_tile_name" tools:ignore="MissingTranslation">Aras: Update &amp; Connect</string>
-    <string name="quick_settings_tiles_title" tools:ignore="MissingTranslation">Add the two ArasClient tiles</string>
-    <string name="quick_settings_tiles_message" tools:ignore="MissingTranslation">Open Quick Settings, tap Edit, then add both ArasClient tiles: “Aras: Connect / Disconnect” and “Update &amp; Connect”. Android does not add third-party tiles automatically.</string>
+    <string name="app_quick_connect_tile_name" tools:ignore="MissingTranslation">Radar VPN: Update &amp; Connect</string>
+    <string name="quick_settings_tiles_title" tools:ignore="MissingTranslation">Add the two Radar VPN tiles</string>
+    <string name="quick_settings_tiles_message" tools:ignore="MissingTranslation">Open Quick Settings, tap Edit, then add both Radar VPN tiles: “Radar VPN: Connect / Disconnect” and “Update &amp; Connect”. Android does not add third-party tiles automatically.</string>
     <string name="action_got_it" tools:ignore="MissingTranslation">Got it</string>
     <string name="quick_connect_tile_running" tools:ignore="MissingTranslation">Updating subscription…</string>
     <string name="quick_connect_progress_stopping" tools:ignore="MissingTranslation">Stopping current connection…</string>
@@ -33,7 +33,7 @@
     <string name="quick_connect_success" tools:ignore="MissingTranslation">Subscription updated and connected</string>
     <string name="quick_connect_failure" tools:ignore="MissingTranslation">Update and connect failed</string>
     <string name="quick_connect_no_server" tools:ignore="MissingTranslation">No reachable server was found</string>
-    <string name="quick_connect_vpn_permission" tools:ignore="MissingTranslation">Allow VPN access in ArasClient first</string>
+    <string name="quick_connect_vpn_permission" tools:ignore="MissingTranslation">Allow VPN access in Radar VPN first</string>
     <string name="quick_connect_already_running" tools:ignore="MissingTranslation">An update is already running</string>
     <string name="toast_services_start">Starting service</string>
     <string name="toast_services_stop">Stopping service</string>
@@ -127,7 +127,7 @@
     <string name="menu_sub_check_update">Check new version</string>
     <string name="menu_sub_backup">Backup data</string>
     <string name="menu_sub_logcat">View logs</string>
-    <string name="menu_sub_about">About ArasClient</string>
+    <string name="menu_sub_about">About Radar VPN</string>
 
     <string name="export_include_subs">Include subscription links</string>
     <string name="export_include_subs_hint">Carry the subscription URLs so the receiver gets updates too</string>
@@ -140,14 +140,14 @@
     <string name="title_pref_show_sub_announcement">Show subscription announcements</string>
     <string name="summary_pref_show_sub_announcement">Show the announcement and creator message provided by the subscription below the subscription info. Hidden when the subscription has none</string>
 
-    <string name="share_method_arasc">Share as .arasc file</string>
+    <string name="share_method_arasc">Share as .RDR file</string>
     <string name="export_summary_normal">Export configs</string>
     <string name="export_summary_protected">Export protected configs</string>
     <string name="export_summary_subtitle">%1$d selected · %2$d groups</string>
     <string name="export_password_hint">The password encrypts the file. Anyone importing needs the same password. It is never stored.</string>
     <string name="arasc_err_empty">The file contains no configs</string>
 
-    <string name="menu_item_import_config_arasc">Import .arasc file</string>
+    <string name="menu_item_import_config_arasc">Import .RDR file</string>
     <string name="export_type_normal">Normal</string>
     <string name="export_type_protected">Protected</string>
     <string name="export_password">Password</string>
@@ -156,14 +156,14 @@
     <string name="export_action">Export (%d)</string>
     <string name="export_no_configs">No configs available to export</string>
     <string name="export_config_count">%d configs</string>
-    <string name="export_config_count_selected">%d of %d configs</string>
+    <string name="export_config_count_selected" formatted="false">%d of %d configs</string>
     <string name="export_ungrouped">Standalone configs</string>
     <string name="export_badge_protected">Protected · raw export blocked</string>
     <string name="export_success">Exported successfully</string>
     <string name="arasc_password_title">Protected file</string>
     <string name="arasc_import_success">Imported %d configs</string>
-    <string name="arasc_err_not_arasc">Not a valid .arasc file</string>
-    <string name="arasc_err_version">This .arasc version is not supported</string>
+    <string name="arasc_err_not_arasc">Not a valid .RDR file</string>
+    <string name="arasc_err_version">This .RDR version is not supported</string>
     <string name="arasc_err_password">Wrong password or corrupted file</string>
     <string name="arasc_err_integrity">File is corrupted or was modified</string>
 
@@ -721,7 +721,7 @@
     <string name="toast_connect_first_to_test">Connect first, then tap here to test the server</string>
     <string name="bar_test">Test</string>
     <string name="title_test_single">Test this server</string>
-    <string name="setup_title">Welcome to ArasClient</string>
+    <string name="setup_title">Welcome to Radar VPN</string>
     <string name="setup_subtitle">Pick a few quick preferences. You can change these later in settings.</string>
     <string name="setup_auto_sort">Auto-sort servers by ping after testing</string>
     <string name="setup_auto_connect">Auto-connect to the fastest server on launch</string>
@@ -735,4 +735,171 @@
     <string name="title_export_sub_txt">Export subscription (TXT)</string>
     <string name="title_reset_settings">Reset settings to default</string>
     <string name="summary_reset_settings">All preferences return to factory defaults. The app restarts this screen.</string>
+
+    <string name="theme_system_title">System default</string>
+    <string name="theme_system_summary">Follow phone day/night</string>
+    <string name="theme_cultural_night_title">Cultural night</string>
+    <string name="theme_cultural_night_summary">Desert navy and Persian gold</string>
+    <string name="theme_ancient_paper_title">Persepolis / Ancient paper</string>
+    <string name="theme_ancient_paper_summary">Warm parchment and ink blue inspired by ancient Persia</string>
+
+    <string name="radar_no_signal">No signal</string>
+    <string name="radar_no_signal_fa">بدون سیگنال</string>
+    <string name="radar_add_config">Add a configuration</string>
+    <string name="radar_add_config_hint">Import a VPN configuration to get started.</string>
+    <string name="radar_clipboard">From clipboard</string>
+    <string name="radar_scan_qr">Scan QR</string>
+
+    <string name="theme_pattern_intensity">Pattern intensity</string>
+    <string name="theme_reduced_motion">Reduce motion</string>
+    <string name="theme_reduced_motion_summary">Pause radar sweep and pulse animations</string>
+
+    <string name="theme_persian_digits">Persian numerals</string>
+    <string name="theme_persian_digits_summary">Use Persian digits for the connection timer</string>
+
+    <!-- Hybrid mode -->
+    <string name="hybrid_title">Hybrid mode</string>
+    <string name="menu_section_connection">Connection modes</string>
+    <string name="menu_sub_hybrid">Hybrid</string>
+    <string name="hybrid_status_title">Connection status</string>
+    <string name="hybrid_backend_notice">Prepare a temporary Psiphon + V2Ray/Xray chain. The actual connection state is reported by the VPN service notification.</string>
+    <string name="hybrid_config_label">Server configuration</string>
+    <string name="hybrid_config_hint">Paste a VLESS, VMess, Trojan or Shadowsocks link</string>
+    <string name="hybrid_paste">Paste from clipboard</string>
+    <string name="hybrid_clear">Clear</string>
+    <string name="hybrid_direction_label">Chain order</string>
+    <string name="hybrid_psiphon_first">Psiphon first, then V2Ray/Xray</string>
+    <string name="hybrid_v2ray_first">V2Ray/Xray first, then Psiphon</string>
+    <string name="hybrid_validate">Check configuration format</string>
+    <string name="hybrid_validation_ok">The text contains a supported link prefix. This is only a basic format check.</string>
+    <string name="hybrid_validation_error">No supported link was found. Paste a VLESS, VMess, Trojan or SS link.</string>
+    <string name="hybrid_not_connected_yet">Connection is not started from this page yet. Do not treat a successful format check as a working VPN connection.</string>
+    <string name="hybrid_route_badge">Psiphon → V2Ray/Xray</string>
+    <string name="hybrid_route_description">The app will run its bundled Psiphon client as a local upstream proxy and chain your V2Ray/Xray profile through it.</string>
+    <string name="hybrid_how_it_works">How the chain works</string>
+    <string name="hybrid_route_steps">Device → local Psiphon upstream → your V2Ray/Xray server → internet. The current core supports this direction only.</string>
+    <string name="hybrid_status_idle">Ready for a configuration</string>
+    <string name="hybrid_status_starting">Preparing the temporary chain…</string>
+    <string name="hybrid_status_connected">Connected: the service reports that the Hybrid chain started successfully.</string>
+    <string name="hybrid_status_request_sent">Connection request sent. Check the VPN notification for the actual connection state.</string>
+    <string name="hybrid_status_stopping">Stopping the chain and restoring your previous profile…</string>
+    <string name="hybrid_invalid_config">Could not parse this link. Paste one complete VLESS, VMess, Trojan, Shadowsocks or SOCKS link.</string>
+    <string name="hybrid_unsupported_config">This profile type is not supported by Hybrid mode yet. Use VLESS, VMess, Trojan, Shadowsocks or SOCKS.</string>
+    <string name="hybrid_already_prepared">A temporary Hybrid session already exists. Stop it and restore the previous profile first.</string>
+    <string name="hybrid_prepare_failed">Could not prepare Hybrid mode: %1$s</string>
+    <string name="hybrid_start_failed">The app could not start the Hybrid connection. Check the connection mode and logs.</string>
+    <string name="hybrid_permission_denied">VPN permission was not granted; the temporary Hybrid profile is being cleaned up.</string>
+    <string name="hybrid_connect">Connect in Hybrid mode</string>
+    <string name="hybrid_stop_restore">Stop and return to normal mode</string>
+    <string name="hybrid_cleanup_notice">The imported link and helper profiles are temporary. Stopping this mode restores your previous server selection and removes the temporary profiles.</string>
+    <string name="menu_section_hybrid">HYBRID</string>
+
+    <!-- AI network diagnostics -->
+    <string name="ai_title">AI Network Diagnostics</string>
+    <string name="menu_section_ai">AI</string>
+    <string name="menu_sub_ai">Smart network scan</string>
+    <string name="ai_hero_title">Understand your connection</string>
+    <string name="ai_hero_subtitle">Check network type, internet validation, VPN state, DNS and optional SIM operator details. Analysis runs locally on your phone.</string>
+    <string name="ai_scan_now">Scan network now</string>
+    <string name="ai_scan_hint">Run a scan to build your report.</string>
+    <string name="ai_scan_complete">Scan complete. Results are estimates from Android network APIs.</string>
+    <string name="ai_scan_failed">Could not read network state. Try scanning again.</string>
+    <string name="ai_report_title">Network report</string>
+    <string name="ai_connection_type">Connection</string>
+    <string name="ai_internet_status">Internet capability</string>
+    <string name="ai_internet_validation">Internet verified by Android</string>
+    <string name="ai_vpn_status">VPN tunnel</string>
+    <string name="ai_metered">Metered connection</string>
+    <string name="ai_dns_servers">DNS servers</string>
+    <string name="ai_carrier">Mobile operator</string>
+    <string name="ai_mobile_radio">Mobile radio</string>
+    <string name="ai_latency_label">HTTPS response latency (median of 3)</string>
+    <string name="ai_dns_lookup_latency">System DNS lookup time</string>
+    <string name="ai_dns_latency_result">%1$d ms</string>
+    <string name="ai_latency_not_run">Not measured yet</string>
+    <string name="ai_latency_running">Measuring HTTPS response time…</string>
+    <string name="ai_latency_result">%1$d ms</string>
+    <string name="ai_latency_failed">Could not measure; the probe may be blocked</string>
+    <string name="ai_value_unknown">Unknown</string>
+    <string name="ai_value_not_scanned">Not scanned</string>
+    <string name="ai_network_none">No active network</string>
+    <string name="ai_network_vpn">VPN</string>
+    <string name="ai_network_wifi">Wi-Fi</string>
+    <string name="ai_network_mobile">Mobile data</string>
+    <string name="ai_network_ethernet">Ethernet</string>
+    <string name="ai_network_other">Other network</string>
+    <string name="ai_internet_capable">Network reports internet capability</string>
+    <string name="ai_internet_no_capability">No internet capability reported</string>
+    <string name="ai_status_validated">Validated</string>
+    <string name="ai_status_not_validated">Not validated</string>
+    <string name="ai_status_active">Active</string>
+    <string name="ai_status_inactive">Inactive</string>
+    <string name="ai_metered_yes">Yes</string>
+    <string name="ai_metered_no">No</string>
+    <string name="ai_sim_permission_needed">Permission needed</string>
+    <string name="ai_sim_permission_denied">SIM details permission was denied; other diagnostics still work.</string>
+    <string name="ai_allow_sim_info">Allow access to SIM/operator details</string>
+    <string name="ai_radio_2g">2G</string>
+    <string name="ai_radio_3g">3G</string>
+    <string name="ai_radio_4g">4G / LTE</string>
+    <string name="ai_radio_5g">5G</string>
+    <string name="ai_radio_unknown">Unknown / unavailable</string>
+    <string name="ai_signal_strength">Cellular signal level (0–4)</string>
+    <string name="ai_signal_level">Level %1$d of 4 (Android estimate)</string>
+    <string name="ai_mobile_data_usage">Mobile data since device boot</string>
+    <string name="ai_mobile_usage_value">%1$s received + sent</string>
+    <string name="ai_share_report">Share diagnostic report</string>
+    <string name="ai_analysis_title">Smart analysis</string>
+    <string name="ai_analysis_not_ready">Run a scan to receive connection guidance.</string>
+    <string name="ai_advice_no_network">No active network was found. Turn on Wi-Fi or mobile data and scan again.</string>
+    <string name="ai_advice_no_internet">Android has not validated internet access. Check captive portal, data balance, DNS or signal.</string>
+    <string name="ai_advice_vpn">A VPN is active. If apps cannot connect, compare results with VPN off and on.</string>
+    <string name="ai_advice_mobile">Mobile data is active. Compare signal/location and run a speed test; radio generation alone does not indicate speed.</string>
+    <string name="ai_advice_wifi">Wi-Fi is active. Compare near the router and away from it to identify a weak local signal.</string>
+    <string name="ai_advice_connected">The network appears available. Run a speed test to measure throughput and latency.</string>
+    <string name="ai_speed_title">Speed tests</string>
+    <string name="ai_speed_note">The in-app test transfers up to about 1.25 MB using Cloudflare speed-test endpoints. Run it manually; mobile data charges may apply. Results are approximate and can vary with VPN and server load.</string>
+    <string name="ai_speed_run">Measure download and upload speed</string>
+    <string name="ai_speed_running">Testing download and upload…</string>
+    <string name="ai_speed_result">Download: %1$s Mbps\nUpload: %2$s Mbps</string>
+    <string name="ai_speed_failed">Speed test failed. The test endpoint may be blocked or unreachable; try again or use one of the external tests below.</string>
+    <string name="ai_speed_librespeed">Open LibreSpeed test</string>
+    <string name="ai_speed_openspeedtest">Open OpenSpeedTest</string>
+    <string name="ai_network_checker">Open Network Checker project</string>
+    <string name="ai_open_link_failed">Could not open the external link.</string>
+
+    <string name="ai_diagnosis_internet_unvalidated">Android has not verified internet access. A captive portal, blocked connection, or mobile-data issue may be present.</string>
+    <string name="ai_diagnosis_dns_slow">DNS lookup took %1$d ms, which is slow for a basic lookup. Try another network or compare with VPN on and off.</string>
+    <string name="ai_diagnosis_latency_high">HTTPS response latency is high (%1$d ms). This can make browsing and interactive apps feel slow.</string>
+    <string name="ai_diagnosis_latency_medium">HTTPS response latency is elevated (%1$d ms). Retest to see whether it persists.</string>
+    <string name="ai_diagnosis_signal_weak">Android reports a weak cellular signal. Try another location; the level is a device estimate.</string>
+    <string name="ai_diagnosis_download_low">Measured download speed is low (%1$.1f Mbps). Retest and compare Wi-Fi/mobile data and VPN states.</string>
+    <string name="ai_diagnosis_upload_low">Measured upload speed is low (%1$.1f Mbps). Background uploads, weak signal, or server load may contribute.</string>
+    <string name="ai_diagnosis_vpn_note">VPN is active. If the issue occurs only in some apps, compare diagnostics with VPN on and off.</string>
+    <string name="ai_diagnosis_healthy">No major issue was detected in the measurements collected. Results are estimates and can vary by destination, device, and server load.</string>
+    <string name="ai_local_model_note">This first version uses local rule-based analysis; it does not send your data to an AI service.</string>
+    <string name="aether_glass_widget_description">Radar VPN glass connection widget</string>
+    <string name="radar_channel_command">Command alerts</string>
+    <string name="radar_status_connected">Radar VPN · Tunnel active</string>
+    <string name="radar_status_detail_profile_ping">%1$s · Ping %2$d ms</string>
+    <string name="radar_status_detail_profile">%1$s · Tunnel active</string>
+    <string name="radar_status_detail_ping">Ping %1$d ms · Tunnel active</string>
+    <string name="radar_status_detail_idle">VPN service is active</string>
+    <string name="radar_title_command">Command</string>
+    <string name="radar_cmd_established">Commander, the tunnel is active.</string>
+    <string name="radar_cmd_restored">Commander, connection restored.</string>
+    <string name="radar_cmd_lost">Commander, signal lost. Checking recovery.</string>
+    <string name="radar_cmd_manual_stop">Commander, operation stopped.</string>
+    <string name="radar_status_connecting">Radar VPN · Starting VPN…</string>
+    <string name="radar_status_detail_starting">Preparing the tunnel</string>
+    <string name="theme_ui_default_title">Default interface</string>
+    <string name="theme_ui_default_summary">Classic, clean interface with no special dashboard</string>
+    <string name="theme_ui_radar_title">Radar</string>
+    <string name="theme_ui_radar_summary">Live radar dashboard with signal and tunnel status</string>
+    <string name="theme_ui_survival_title">The Last of Us</string>
+    <string name="theme_ui_survival_summary">Survival-inspired field interface</string>
+    <string name="theme_ui_aurora_title">Aurora Sentinel</string>
+    <string name="theme_ui_aurora_summary">Futuristic glass dashboard with luminous details</string>
+    <string name="theme_ui_style_title">Home interface style</string>
+    <string name="menu_dpi_diagnostics">Run DPI diagnostics</string>
 </resources>

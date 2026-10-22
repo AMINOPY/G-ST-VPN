@@ -3,6 +3,8 @@ package com.aras.client.ui.main
 import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
 import com.aras.client.ui.subscription.SubEditActivity
+import com.aras.client.ui.radar.DpiTestActivity
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import com.aras.client.ui.compose.AuroraStatusPill
 import com.aras.client.ui.compose.AuroraSentinelRadar
@@ -18,7 +20,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -46,7 +47,9 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.aras.client.AppConfig
 import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.handler.MmkvManager
+import com.aras.client.ui.compose.CulturalRadar
 import com.aras.client.ui.compose.LocalDarkTheme
+import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.QRCodeDialog
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -83,6 +86,8 @@ fun MainScreen(
     val scrollToTopTick = uiState.scrollToTopTick
 
     val isDarkTheme = LocalDarkTheme.current
+    val themeMode by ThemeManager.themeMode.collectAsStateWithLifecycle()
+    val uiTheme by ThemeManager.uiTheme.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var showSearch by remember { mutableStateOf(false) }
@@ -213,6 +218,7 @@ fun MainScreen(
                             MainMoreMenuAction.PingSelectedSubscription -> onAction(MainAction.PingSelectedSubscription)
                             MainMoreMenuAction.TestAll -> onAction(MainAction.TestAllServers)
                             MainMoreMenuAction.TestAllRealPing -> onAction(MainAction.TestRealAllServers)
+                            MainMoreMenuAction.DpiDiagnostics -> context.startActivity(Intent(context, DpiTestActivity::class.java))
                             MainMoreMenuAction.UpdateSubscriptions -> onAction(MainAction.UpdateSubscriptions)
                         }
                     }
@@ -245,11 +251,26 @@ fun MainScreen(
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
                 ) {
-                    AuroraSentinelHero(
-                        isRunning = isRunning,
-                        selectedGuid = selectedGuid,
-                        selectedServerTitle = mainViewModel.connectedServerTitle(),
-                    )
+                    // Keep the ordinary app layout as the default. Special dashboards
+                    // appear only when the user explicitly selects that UI theme.
+                    when (uiTheme) {
+                        "aurora" -> AuroraSentinelHero(
+                            isRunning = isRunning,
+                            selectedGuid = selectedGuid,
+                            selectedServerTitle = mainViewModel.connectedServerTitle(),
+                        )
+                        "radar" -> RadarDashboard(
+                            isRunning = isRunning,
+                            hasPing = hasPing,
+                            selectedGuid = selectedGuid,
+                            isDarkTheme = isDarkTheme,
+                            serverTitle = mainViewModel.connectedServerTitle(),
+                        )
+                        "survival" -> SurvivalFieldPanel(
+                            isConnected = isRunning && hasPing,
+                            serverTitle = mainViewModel.connectedServerTitle(),
+                        )
+                    }
                     updateAnnouncement?.let { announcement ->
                         UpdateAnnouncementBanner(
                             result = announcement,
@@ -257,6 +278,14 @@ fun MainScreen(
                                 onNavigate(MainDestination.CheckUpdate)
                             },
                             onDismiss = { mainViewModel.dismissUpdateAnnouncement() }
+                        )
+                    }
+                    if (themeMode == "3") {
+                        CulturalRadar(
+                            hasConfigs = groups.isNotEmpty(),
+                            isRunning = isRunning,
+                            onImportClipboard = { onAction(MainAction.ImportClipboard) },
+                            onScanQr = { onAction(MainAction.ImportQRcode) }
                         )
                     }
                     if (groups.size > 1) {
@@ -325,6 +354,21 @@ fun MainScreen(
                             )
                         )
                     }
+                }
+            } else if (themeMode == "3" && !isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+                ) {
+                    CulturalRadar(
+                        hasConfigs = false,
+                        isRunning = false,
+                        onImportClipboard = { onAction(MainAction.ImportClipboard) },
+                        onScanQr = { onAction(MainAction.ImportQRcode) },
+                        modifier = Modifier.padding(bottom = 48.dp)
+                    )
                 }
             }
         }

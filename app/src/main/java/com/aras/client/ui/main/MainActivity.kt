@@ -35,6 +35,8 @@ import com.aras.client.handler.ArasExportImportManager
 import com.aras.client.handler.MmkvManager
 import com.aras.client.handler.SettingsChangeManager
 import com.aras.client.handler.SettingsManager
+import com.aras.client.ui.hybrid.HybridActivity
+import com.aras.client.ui.ai.AiDiagnosticsActivity
 import com.aras.client.ui.AboutActivity
 import com.aras.client.ui.backup.BackupActivity
 import com.aras.client.ui.base.HelperBaseComponentActivity
@@ -125,6 +127,7 @@ class MainActivity : HelperBaseComponentActivity() {
         checkAndRequestPermission(PermissionType.POST_NOTIFICATIONS) {}
         maybeImportOpenedArasc(intent)
         handleSubscriptionNavigation(intent)
+        maybeImportRadarConfig(intent)
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
@@ -132,6 +135,18 @@ class MainActivity : HelperBaseComponentActivity() {
         setIntent(intent)
         maybeImportOpenedArasc(intent)
         handleSubscriptionNavigation(intent)
+        maybeImportRadarConfig(intent)
+    }
+
+    private fun maybeImportRadarConfig(intent: Intent?) {
+        if (intent?.action != "com.aras.client.action.IMPORT_RADAR_CONFIG") return
+        val rawConfig = intent.getStringExtra("radar_config").orEmpty()
+        intent.removeExtra("radar_config")
+        intent.action = null
+        if (rawConfig.isNotBlank()) {
+            mainViewModel.onAction(MainAction.ImportBatchConfig(rawConfig))
+            mainViewModel.onAction(MainAction.RefreshGroups)
+        }
     }
 
     private fun handleSubscriptionNavigation(intent: Intent?) {
@@ -157,7 +172,7 @@ class MainActivity : HelperBaseComponentActivity() {
         if (intent.action != android.content.Intent.ACTION_VIEW) return
         val type = intent.type ?: ""
         val name = uri.lastPathSegment ?: ""
-        val looksArasc = type == "application/x-arasc" || name.endsWith(".arasc", true)
+        val looksArasc = type == "application/x-rdr" || name.endsWith(".rdr", true)
         if (!looksArasc) return
         // Guard against re-handling the same intent after rotation.
         val key = "arasc_opened_$uri"
@@ -309,11 +324,11 @@ class MainActivity : HelperBaseComponentActivity() {
                 val remarks = MmkvManager.decodeServerConfig(guid)?.remarks ?: "config"
                 val safeName = remarks.replace(Regex("[^A-Za-z0-9._-]+"), "_").take(40)
                 val dir = File(cacheDir, "share").apply { mkdirs() }
-                val file = File(dir, "$safeName.arasc")
+                val file = File(dir, "$safeName.RDR")
                 file.writeBytes(bytes)
                 val uri = FileProvider.getUriForFile(this@MainActivity, "$packageName.cache", file)
                 val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "application/x-arasc"
+                    type = "application/x-rdr"
                     putExtra(Intent.EXTRA_STREAM, uri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
@@ -371,6 +386,8 @@ class MainActivity : HelperBaseComponentActivity() {
 
     private fun navigateTo(destination: MainDestination) {
         val intent = when (destination) {
+            MainDestination.Hybrid -> Intent(this, HybridActivity::class.java)
+            MainDestination.AI -> Intent(this, AiDiagnosticsActivity::class.java)
             MainDestination.Subscriptions -> Intent(this, SubSettingActivity::class.java)
             MainDestination.Export -> Intent(this, ExportActivity::class.java)
             MainDestination.PerAppProxy -> Intent(this, PerAppProxyActivity::class.java)
@@ -422,7 +439,7 @@ class MainActivity : HelperBaseComponentActivity() {
             toast(R.string.title_file_chooser)
             return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN &&
+        if (Build.VERSION.SDK_INT >= 37 &&
             MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING)
         ) {
             checkAndRequestPermission(PermissionType.ACCESS_LOCAL_NETWORK) {}

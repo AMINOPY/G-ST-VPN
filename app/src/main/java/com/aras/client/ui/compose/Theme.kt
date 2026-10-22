@@ -70,7 +70,7 @@ private val LightColor = lightColorScheme(
     surfaceContainerHighest = Color(0xFFE5DCD0), // Deep Sand
 )
 
-private val DarkColor = darkColorScheme(
+private val AuroraDarkColor = darkColorScheme(
     primary = Color(0xFF54FFC0), // Aurora Mint
     onPrimary = Color(0xFF06140E), // Obsidian
     primaryContainer = Color(0xFF174A37), // Aurora Forest
@@ -107,6 +107,107 @@ private val DarkColor = darkColorScheme(
     surfaceContainerHighest = Color(0xFF1D2C26), // High Glass
 )
 
+private val DarkColor = darkColorScheme(
+    primary = Color(0xFF90CAF9),
+    onPrimary = Color(0xFF102A43),
+    primaryContainer = Color(0xFF244A68),
+    onPrimaryContainer = Color(0xFFD6EAFB),
+    secondary = Color(0xFFB0BEC5),
+    onSecondary = Color(0xFF263238),
+    secondaryContainer = Color(0xFF37474F),
+    onSecondaryContainer = Color(0xFFE0E7EB),
+    tertiary = Color(0xFFA5B4FC),
+    onTertiary = Color(0xFF20264A),
+    error = Color(0xFFFFB4AB),
+    errorContainer = Color(0xFF690005),
+    onError = Color(0xFF690005),
+    onErrorContainer = Color(0xFFFFDAD6),
+    background = Color(0xFF111418),
+    onBackground = Color(0xFFE1E2E8),
+    surface = Color(0xFF171A1F),
+    onSurface = Color(0xFFE1E2E8),
+    surfaceVariant = Color(0xFF30343B),
+    onSurfaceVariant = Color(0xFFC2C7D0),
+    outline = Color(0xFF8C919A),
+    outlineVariant = Color(0xFF444951),
+    inverseSurface = Color(0xFFE1E2E8),
+    inverseOnSurface = Color(0xFF292C31),
+    inversePrimary = Color(0xFF42617A),
+    scrim = Color(0xFF000000),
+    surfaceTint = Color(0xFF90CAF9),
+    surfaceContainerLowest = Color(0xFF0C0F12),
+    surfaceContainerLow = Color(0xFF191C21),
+    surfaceContainer = Color(0xFF1D2025),
+    surfaceContainerHigh = Color(0xFF282B31),
+    surfaceContainerHighest = Color(0xFF33363D),
+)
+
+private val CulturalNightColor = darkColorScheme(
+    primary = Color(0xFF4FB3B0),
+    onPrimary = Color(0xFF082126),
+    primaryContainer = Color(0xFF244A4D),
+    onPrimaryContainer = Color(0xFFD1F0E8),
+    secondary = Color(0xFFC6A45D),
+    onSecondary = Color(0xFF211A0D),
+    secondaryContainer = Color(0xFF453820),
+    onSecondaryContainer = Color(0xFFF3E4BE),
+    tertiary = Color(0xFF3FBF7F),
+    onTertiary = Color(0xFF082116),
+    error = Color(0xFFFF8A76),
+    errorContainer = Color(0xFF6E2920),
+    onError = Color(0xFF310B06),
+    background = Color(0xFF0B1420),
+    onBackground = Color(0xFFF2E8D5),
+    surface = Color(0xFF16222F),
+    onSurface = Color(0xFFF2E8D5),
+    surfaceVariant = Color(0xFF202D3A),
+    onSurfaceVariant = Color(0xFFA9A08A),
+    outline = Color(0x40C6A45D),
+    outlineVariant = Color(0x332D414F),
+    inverseSurface = Color(0xFFF2E8D5),
+    inverseOnSurface = Color(0xFF0B1420),
+    inversePrimary = Color(0xFF276F6D),
+    surfaceTint = Color(0xFF4FB3B0),
+    surfaceContainerLowest = Color(0xFF09111B),
+    surfaceContainerLow = Color(0xFF111D29),
+    surfaceContainer = Color(0xFF16222F),
+    surfaceContainerHigh = Color(0xFF1B2937),
+    surfaceContainerHighest = Color(0xFF243342),
+)
+
+private val AncientPaperColor = lightColorScheme(
+    primary = Color(0xFF2A7F7A),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFD0E5DC),
+    onPrimaryContainer = Color(0xFF123F3C),
+    secondary = Color(0xFF9B7738),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFE9DAB8),
+    onSecondaryContainer = Color(0xFF39290F),
+    tertiary = Color(0xFF3F765C),
+    onTertiary = Color(0xFFFFFFFF),
+    error = Color(0xFFB84735),
+    errorContainer = Color(0xFFF8DAD3),
+    onError = Color(0xFFFFFFFF),
+    background = Color(0xFFF4ECD8),
+    onBackground = Color(0xFF1E3650),
+    surface = Color(0xFFFFF8E9),
+    onSurface = Color(0xFF1E3650),
+    surfaceVariant = Color(0xFFEAE0C9),
+    onSurfaceVariant = Color(0xFF5D625C),
+    outline = Color(0x669B7738),
+    outlineVariant = Color(0x33A58C5E),
+    inverseSurface = Color(0xFF1E3650),
+    inverseOnSurface = Color(0xFFF4ECD8),
+    inversePrimary = Color(0xFF9CCFC8),
+    surfaceTint = Color(0xFF2A7F7A),
+    surfaceContainerLowest = Color(0xFFFFFCF4),
+    surfaceContainerLow = Color(0xFFFBF3E2),
+    surfaceContainer = Color(0xFFF4ECD8),
+    surfaceContainerHigh = Color(0xFFEDE3CD),
+    surfaceContainerHighest = Color(0xFFE5D9C0),
+)
+
 // Semantic Colors
 val colorPing = Color(0xFF55FFC0) // Aurora Mint
 val colorPingRed = Color(0xFFFF5369) // Signal Red
@@ -128,10 +229,68 @@ val toastIconCircleBg = Color(0x33FFFFFF) // Semi-transparent White
 val toastTextColor = Color.White // White
 
 object ThemeManager {
-    private val _themeMode = MutableStateFlow(
-        MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "0") ?: "0"
+    private const val PREF_UI_THEME = "pref_ui_theme"
+    private const val PREF_CULTURAL_PATTERN_INTENSITY = "cultural_pattern_intensity"
+    private const val PREF_CULTURAL_REDUCED_MOTION = "cultural_reduced_motion"
+    private const val PREF_CULTURAL_PERSIAN_DIGITS = "cultural_persian_digits"
+
+    private val _persianDigitsEnabled = MutableStateFlow(
+        MmkvManager.decodeSettingsBool(PREF_CULTURAL_PERSIAN_DIGITS, true)
     )
+    val persianDigitsEnabled: StateFlow<Boolean> = _persianDigitsEnabled.asStateFlow()
+
+    fun setPersianDigitsEnabled(enabled: Boolean) {
+        MmkvManager.encodeSettings(PREF_CULTURAL_PERSIAN_DIGITS, enabled)
+        _persianDigitsEnabled.value = enabled
+    }
+
+    private val _patternIntensity = MutableStateFlow(
+        (MmkvManager.decodeSettingsString(PREF_CULTURAL_PATTERN_INTENSITY, "5") ?: "5")
+            .toIntOrNull()?.coerceIn(0, 100) ?: 5
+    )
+    val patternIntensity: StateFlow<Int> = _patternIntensity.asStateFlow()
+
+    private val _reducedMotionEnabled = MutableStateFlow(
+        MmkvManager.decodeSettingsBool(PREF_CULTURAL_REDUCED_MOTION, false)
+    )
+    val reducedMotionEnabled: StateFlow<Boolean> = _reducedMotionEnabled.asStateFlow()
+
+    fun setPatternIntensity(value: Int) {
+        val safeValue = value.coerceIn(0, 100)
+        MmkvManager.encodeSettings(PREF_CULTURAL_PATTERN_INTENSITY, safeValue.toString())
+        _patternIntensity.value = safeValue
+    }
+
+    fun setReducedMotionEnabled(enabled: Boolean) {
+        MmkvManager.encodeSettings(PREF_CULTURAL_REDUCED_MOTION, enabled)
+        _reducedMotionEnabled.value = enabled
+    }
+
+    private fun readThemeMode(): String {
+        val stored = MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "0") ?: "0"
+        // Migrate the former fixed light/dark choices to the new system-default option.
+        if (stored == "1" || stored == "2") {
+            MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, "0")
+            return "0"
+        }
+        return stored
+    }
+
+    private val _themeMode = MutableStateFlow(readThemeMode())
     val themeMode: StateFlow<String> = _themeMode.asStateFlow()
+
+    private val _uiTheme = MutableStateFlow(
+        MmkvManager.decodeSettingsString(PREF_UI_THEME, "default")?.takeIf {
+            it in setOf("default", "radar", "survival", "aurora")
+        } ?: "default"
+    )
+    val uiTheme: StateFlow<String> = _uiTheme.asStateFlow()
+
+    fun setUiTheme(value: String) {
+        val safeValue = value.takeIf { it in setOf("default", "radar", "survival", "aurora") } ?: "default"
+        MmkvManager.encodeSettings(PREF_UI_THEME, safeValue)
+        _uiTheme.value = safeValue
+    }
 
     private val _dynamicColorEnabled = MutableStateFlow(
         MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
@@ -149,8 +308,10 @@ object ThemeManager {
     }
 
     fun refresh() {
-        _themeMode.value =
-            MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "0") ?: "0"
+        _themeMode.value = readThemeMode()
+        _uiTheme.value = MmkvManager.decodeSettingsString(PREF_UI_THEME, "default")?.takeIf {
+            it in setOf("default", "radar", "survival", "aurora")
+        } ?: "default"
         _dynamicColorEnabled.value =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
     }
@@ -186,9 +347,11 @@ val AppTypography = Typography(
 @Composable
 fun resolveDarkTheme(): Boolean {
     val mode by ThemeManager.themeMode.collectAsState()
-    return when (mode) {
-        "1" -> false
-        "2" -> true
+    val uiTheme by ThemeManager.uiTheme.collectAsState()
+    return when {
+        uiTheme == "radar" || uiTheme == "survival" || uiTheme == "aurora" -> true
+        mode == "1" || mode == "4" -> false
+        mode in setOf("2", "3") -> true
         else -> isSystemInDarkTheme()
     }
 }
@@ -201,12 +364,29 @@ fun AppTheme(
     content: @Composable () -> Unit
 ) {
     val dynamicColor by ThemeManager.dynamicColorEnabled.collectAsState()
+    val themeMode by ThemeManager.themeMode.collectAsState()
+    val uiTheme by ThemeManager.uiTheme.collectAsState()
     val context = LocalContext.current
+    val isRadarTheme = uiTheme == "radar"
+    val isSurvivalTheme = uiTheme == "survival"
+    val isAuroraTheme = uiTheme == "aurora"
+    val isPersepolisTheme = themeMode == "4"
+    // Persepolis uses a light parchment palette; keep system-bar icons dark there.
+    val effectiveDarkTheme = when {
+        isPersepolisTheme -> false
+        isRadarTheme || isSurvivalTheme || isAuroraTheme || themeMode == "3" -> true
+        else -> darkTheme
+    }
+    // Ordinary system appearance is the default; special themes are opt-in.
     val colorScheme = when {
+        isRadarTheme -> RadarColorScheme
+        isSurvivalTheme -> SurvivalColorScheme
+        isPersepolisTheme -> PersepolisColorScheme
+        themeMode == "3" -> CulturalNightColor
+        isAuroraTheme && darkTheme -> AuroraDarkColor
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColor
         else -> LightColor
     }
@@ -218,8 +398,8 @@ fun AppTheme(
             val activity = view.context as? Activity ?: return@SideEffect
             val window = activity.window
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !darkTheme
-                isAppearanceLightNavigationBars = !darkTheme
+                isAppearanceLightStatusBars = !effectiveDarkTheme
+                isAppearanceLightNavigationBars = !effectiveDarkTheme
             }
         }
     }
@@ -235,6 +415,8 @@ fun AppTheme(
             Box(modifier = Modifier.fillMaxSize()) {
                 AppSnackbarBridge(controller = snackbarController)
                 content()
+                if (isPersepolisTheme) PersepolisOverlay()
+                if (isSurvivalTheme) SurvivalOverlay()
                 AppSnackbarHost(hostState = snackbarController.hostState)
             }
         }
