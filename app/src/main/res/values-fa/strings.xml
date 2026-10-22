@@ -511,6 +511,7 @@
         <item>پیش فرض سیستم</item>
         <item>روشن</item>
         <item>تاریک</item>
+        <item>@string/ui_mode_persepolis</item>
     </string-array>
 
     <string name="routing_preset_china_whitelist">لیست سفید چین ( دور زدن سرزمین اصلی )</string>
