@@ -77,6 +77,7 @@ fun SettingsScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     var connectionSettingsExpanded by rememberSaveable { mutableStateOf(false) }
     var uiSettingsExpanded by rememberSaveable { mutableStateOf(true) }
+    var uiThemesExpanded by rememberSaveable { mutableStateOf(true) }
     var vpnSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var coreSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var muxSettingsExpanded by rememberSaveable { mutableStateOf(false) }
@@ -261,16 +262,6 @@ fun SettingsScreen(
                     }
                 )
                 SettingsListItem(
-                    title = stringResource(R.string.title_pref_ui_theme),
-                    entries = uiThemeEntries,
-                    values = uiThemeValues,
-                    selectedValue = uiTheme,
-                    onSelected = {
-                        uiTheme = it
-                        ThemeManager.setUiTheme(it)
-                    }
-                )
-                SettingsListItem(
                     title = stringResource(R.string.title_language),
                     entries = languageEntries,
                     values = languageValues,
@@ -288,6 +279,24 @@ fun SettingsScreen(
                     onSelected = {
                         uiModeNight = it
                         ThemeManager.setThemeMode(it)
+                    }
+                )
+            }
+
+            CollapsiblePreferenceGroupHeader(
+                title = stringResource(R.string.title_ui_themes),
+                expanded = uiThemesExpanded,
+                onExpandedChange = { uiThemesExpanded = it }
+            )
+            if (uiThemesExpanded) {
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_ui_theme),
+                    entries = uiThemeEntries,
+                    values = uiThemeValues,
+                    selectedValue = uiTheme,
+                    onSelected = {
+                        uiTheme = it
+                        ThemeManager.setUiTheme(it)
                     }
                 )
             }
