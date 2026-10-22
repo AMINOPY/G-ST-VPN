@@ -26,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +42,7 @@ import com.aras.client.AppConfig
 import com.aras.client.R
 import com.aras.client.extension.ltrIsolated
 import com.aras.client.util.Utils
+import com.aras.client.ui.compose.ThemeManager
 
 enum class MainDestination(@DrawableRes val iconRes: Int, @StringRes val labelRes: Int) {
     Subscriptions(R.drawable.ic_subscriptions_24dp, R.string.title_sub_setting),
@@ -126,6 +128,17 @@ fun MainMenuSheet(
     if (!show) return
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState()
+    val uiTheme by ThemeManager.uiTheme.collectAsState()
+
+    if (uiTheme == "survival") {
+        SurvivalMenuSheet(
+            onDismiss = onDismiss,
+            onNavigate = onNavigate,
+            sheetState = sheetState,
+            context = context
+        )
+        return
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -217,6 +230,123 @@ fun MainMenuSheet(
                     onClick = { Utils.openUri(context, AppConfig.TG_CHANNEL_URL) }
                 )
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SurvivalMenuSheet(
+    onDismiss: () -> Unit,
+    onNavigate: (MainDestination) -> Unit,
+    sheetState: androidx.compose.material3.SheetState,
+    context: android.content.Context,
+) {
+    val signal = Color(0xFF9BCB72)
+    val paper = Color(0xFFD8D0B8)
+    val muted = Color(0xFF8D9986)
+    val panel = Color(0xFF101711)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color(0xFF090E0B),
+        dragHandle = {
+            Box(
+                Modifier.padding(top = 10.dp, bottom = 6.dp).size(width = 42.dp, height = 4.dp)
+                    .clip(RoundedCornerShape(50)).background(signal.copy(alpha = 0.65f))
+            )
+        }
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp).padding(bottom = 24.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(5.dp))
+                    .background(Brush.horizontalGradient(listOf(Color(0xFF263827), panel, Color(0xFF1A2118))))
+                    .border(1.dp, signal.copy(alpha = 0.28f), RoundedCornerShape(5.dp))
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    Modifier.size(52.dp).clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFF354531)).border(1.dp, signal.copy(alpha = 0.45f), RoundedCornerShape(4.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(painterResource(R.drawable.ic_aras_logo), contentDescription = null,
+                        tint = signal, modifier = Modifier.size(32.dp))
+                }
+                Spacer(Modifier.size(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("AFTER THE FALL", color = signal, style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black)
+                    Text("FIELD TERMINAL  //  RADAR VPN", color = paper.copy(alpha = 0.85f),
+                        style = MaterialTheme.typography.labelSmall)
+                    Text("FIELD MENU  •  ACCESS POINTS", color = muted, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+            Spacer(Modifier.height(18.dp))
+            Text("OPERATIONS", color = signal, style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 4.dp, bottom = 7.dp))
+            HorizontalDivider(color = signal.copy(alpha = 0.25f))
+            Spacer(Modifier.height(4.dp))
+            menuSections().forEach { section ->
+                Text(
+                    text = stringResource(section.titleRes).uppercase(),
+                    color = muted,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 4.dp, top = 10.dp, bottom = 3.dp)
+                )
+                section.items.forEach { item ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(panel)
+                            .border(1.dp, Color(0xFF354235).copy(alpha = 0.7f), RoundedCornerShape(5.dp))
+                            .clickable {
+                                onDismiss()
+                                onNavigate(item.destination)
+                            }.padding(horizontal = 12.dp, vertical = 11.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            Modifier.size(38.dp).clip(RoundedCornerShape(4.dp))
+                                .background(item.accent.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(painterResource(item.destination.iconRes), contentDescription = null,
+                                tint = if (item.destination == MainDestination.Settings) signal else item.accent,
+                                modifier = Modifier.size(20.dp))
+                        }
+                        Spacer(Modifier.size(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(item.destination.labelRes), color = paper,
+                                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(item.subtitleRes), color = muted,
+                                style = MaterialTheme.typography.labelSmall)
+                        }
+                        Text("›", color = signal, style = MaterialTheme.typography.titleLarge)
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            HorizontalDivider(color = signal.copy(alpha = 0.22f))
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ContactChip(
+                    iconRes = R.drawable.ic_source_code_24dp, label = "SOURCE / GITHUB",
+                    modifier = Modifier.weight(1f),
+                    onClick = { Utils.openUri(context, AppConfig.APP_URL) }
+                )
+                ContactChip(
+                    iconRes = R.drawable.ic_telegram_24dp, label = "RADIO / TELEGRAM",
+                    modifier = Modifier.weight(1f),
+                    onClick = { Utils.openUri(context, AppConfig.TG_CHANNEL_URL) }
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Text("STAY ALERT  •  TRUST THE TUNNEL STATUS", color = muted,
+                style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.CenterHorizontally))
         }
     }
 }
