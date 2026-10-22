@@ -35,5 +35,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "ArasClient"
+rootProject.name = "RADAR VPN"
 include(":app")
