@@ -1,4 +1,4 @@
-name: Build ArasClient from open source
+name: Build RADAR VPN from open source
 
 on:
   workflow_dispatch:
@@ -74,7 +74,7 @@ jobs:
             -o $GITHUB_WORKSPACE/aras-core.aar ./
 
       - name: Verify core contents
-        # The ArasClient patches are compiled into the native library. A patch that
+        # The RADAR VPN patches are compiled into the native library. A patch that
         # silently fails to apply still produces a working .so — it just drops the
         # feature — so assert on the symbols before trusting the AAR.
         run: |
@@ -140,9 +140,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p keystore
-          printf '%s' "$KEYSTORE_B64" | base64 -d > keystore/arasclient-release.jks
+          printf '%s' "$KEYSTORE_B64" | base64 -d > keystore/RADAR VPN-release.jks
           cat > keystore.properties <<EOF
-          storeFile=keystore/arasclient-release.jks
+          storeFile=keystore/RADAR VPN-release.jks
           storePassword=$KEYSTORE_PASSWORD
           keyAlias=$KEY_ALIAS
           keyPassword=$KEY_PASSWORD
