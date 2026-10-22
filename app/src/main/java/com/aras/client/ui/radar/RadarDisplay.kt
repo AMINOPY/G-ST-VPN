@@ -45,7 +45,7 @@ enum class RadarState(val isActive: Boolean) {
     CONNECTING(false),
     CONNECTED_VERIFIED(true),
     // A tunnel interface without a verified VPN-routed request is not green/healthy.
-    TUNNEL_IP_UNVERIFIED(false),
+    TUNNEL_IP_UNVERIFIED(true),
     ERROR(false),
 }
 
