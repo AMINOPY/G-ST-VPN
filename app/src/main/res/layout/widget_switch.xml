@@ -147,6 +147,21 @@
             android:textSize="10sp" />
 
         <TextView
+            android:id="@+id/widget_config_prev"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:gravity="center"
+            android:paddingStart="7dp"
+            android:paddingEnd="7dp"
+            android:text="‹ PREV"
+            android:textColor="#B8FFD0"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:background="@drawable/widget_action_background"
+            android:contentDescription="Switch to previous VPN configuration" />
+
+        <TextView
             android:id="@+id/widget_config_next"
             android:layout_width="wrap_content"
             android:layout_height="40dp"
