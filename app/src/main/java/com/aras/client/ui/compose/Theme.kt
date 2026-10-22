@@ -253,7 +253,6 @@ fun resolveDarkTheme(): Boolean {
     return when (mode) {
         "1" -> false
         "2" -> true
-        RADAR_THEME_MODE -> true
         PERSEPOLIS_THEME_MODE -> true
         else -> isSystemInDarkTheme()
     }
@@ -269,7 +268,7 @@ fun AppTheme(
     val dynamicColor by ThemeManager.dynamicColorEnabled.collectAsState()
     val themeMode by ThemeManager.themeMode.collectAsState()
     val uiTheme by ThemeManager.uiTheme.collectAsState()
-    val isRadar = uiTheme == "radar" || themeMode == RADAR_THEME_MODE
+    val isRadar = uiTheme == "radar"
     val isPersepolis = themeMode == PERSEPOLIS_THEME_MODE
     val isSurvival = uiTheme == "survival"
     val context = LocalContext.current
