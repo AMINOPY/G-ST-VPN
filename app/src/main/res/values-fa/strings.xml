@@ -745,8 +745,8 @@
     <string name="theme_system_summary">پیروی از حالت شب و روز گوشی</string>
     <string name="theme_cultural_night_title">شب کویر؛ فرهنگی</string>
     <string name="theme_cultural_night_summary">نیلی، طلایی ایرانی و فیروزه‌ای</string>
-    <string name="theme_ancient_paper_title">کاغذ کهن</string>
-    <string name="theme_ancient_paper_summary">کرم گرم و آبی جوهری</string>
+    <string name="theme_ancient_paper_title">پارسه (کاغذ کهن)</string>
+    <string name="theme_ancient_paper_summary">کرم گرم و آبی جوهری با الهام از هنر ایران باستان</string>
 
     <string name="radar_no_signal">No signal</string>
     <string name="radar_no_signal_fa">بدون سیگنال</string>
