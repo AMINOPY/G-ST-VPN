@@ -1,9 +1,9 @@
 
-#   ArasClient
+#   RADAR VPN
 
 **A modern, fast and feature-rich VPN client for Android.**
 
-[![Release](https://img.shields.io/github/v/release/ArasTey/ArasClient?style=for-the-badge&logo=github&color=0284c7&labelColor=101418)](https://github.com/ArasTey/ArasClient/releases)
+[![Release](https://img.shields.io/github/v/release/AMINOPY/G-ST-VPN?style=for-the-badge&logo=github&color=0284c7&labelColor=101418)](https://github.com/AMINOPY/G-ST-VPN/releases)
 [![License](https://img.shields.io/badge/GPL--3.0-licensed?style=for-the-badge&color=38bdf8&labelColor=101418)](LICENSE)
 [![Platform](https://img.shields.io/badge/Android-7.0%2B-3ddc84?style=for-the-badge&logo=android&labelColor=101418)]()
 [![Telegram](https://img.shields.io/badge/Telegram-%40imArasTey-26a5e4?style=for-the-badge&logo=telegram&labelColor=101418)](https://t.me/imArasTey)
@@ -14,18 +14,18 @@
 
 ## 🧬 Based on PattNG
 
-ArasClient is a **fork of [PattNG](https://github.com/patterniha/PattNG)**, which itself is a fork of [2dust/v2rayNG](https://github.com/2dust/v2rayNG).
+RADAR VPN is a **fork of [PattNG](https://github.com/patterniha/PattNG)**, which itself is a fork of [2dust/v2rayNG](https://github.com/2dust/v2rayNG).
 
-> **ArasClient → PattNG → v2rayNG**
+> **RADAR VPN → PattNG → v2rayNG**
 
-ArasClient keeps the foundation of PattNG while adding its own application features, configuration workflows, UI improvements, subscription tools and networking/core integrations.
+RADAR VPN keeps the foundation of PattNG while adding its own application features, configuration workflows, UI improvements, subscription tools and networking/core integrations.
 
 ### Upstream projects
 
 - **PattNG:** https://github.com/patterniha/PattNG
 - **Original v2rayNG:** https://github.com/2dust/v2rayNG
 
-PattNG itself documents additions such as `cipherSuites`, unsafe fingerprint configuration/sharing, the **aether** core, and related Xray-core changes. ArasClient builds on that lineage rather than presenting itself as an independent implementation from scratch.
+PattNG itself documents additions such as `cipherSuites`, unsafe fingerprint configuration/sharing, the **aether** core, and related Xray-core changes. RADAR VPN builds on that lineage rather than presenting itself as an independent implementation from scratch.
 
 ---
 
@@ -39,7 +39,7 @@ PattNG itself documents additions such as `cipherSuites`, unsafe fingerprint con
 | 💾 | **Persistent test information** — retain useful test/latency information with profiles |
 | 🧹 | **Duplicate & invalid cleanup** — keep large server lists clean and manageable |
 | 📥 | **Batch import** — import multiple configurations efficiently |
-| 🔐 | **`.arasc` container** — ArasClient's own configuration/subscription export format |
+| 🔐 | **`.arasc` container** — RADAR VPN's own configuration/subscription export format |
 | 🛡️ | **Protected configurations** — restrict access to sensitive configuration data while keeping profiles usable |
 | 📊 | **Subscription information** — display traffic usage, total traffic and expiry information when available |
 | 📢 | **Provider announcements** — show provider/creator messages inside the client |
@@ -51,7 +51,7 @@ PattNG itself documents additions such as `cipherSuites`, unsafe fingerprint con
 
 ## 🔌 Protocol Support
 
-ArasClient supports the following configuration types exposed by the client:
+RADAR VPN supports the following configuration types exposed by the client:
 
 `VLESS` · `VMess` · `Trojan` · `Shadowsocks` · `Hysteria2` · `Hysteria` · `WireGuard` · `SOCKS` · `HTTP` · `AnyTLS` · `AmneziaWG` · `MASQUE`
 
@@ -63,7 +63,7 @@ It also supports proxy chains and policy groups where supported by the underlyin
 
 Use **Add Aether config manually**, found in the import menu directly below *Import .arasc File*.
 
-Aether's data path is not something ArasClient can dial with its own outbound: the tunnel needs a
+Aether's data path is not something RADAR VPN can dial with its own outbound: the tunnel needs a
 scanned WARP endpoint and a WARP identity, and both live in the aether core. So the core runs as a
 child process and the profile's outbound is a SOCKS hop to its loopback listener — which is what the
 Aether app and PattNG both do.
@@ -105,7 +105,7 @@ endpoint so the next start registers a new one.
 
 ## ⚡ Smart Connect
 
-ArasClient is built around a simple connection workflow:
+RADAR VPN is built around a simple connection workflow:
 
 ```text
 Test → Measure → Sort → Select → Connect
@@ -127,7 +127,7 @@ Features include:
 
 ## 📡 Subscription Management
 
-ArasClient provides an extended subscription workflow for managing large server collections:
+RADAR VPN provides an extended subscription workflow for managing large server collections:
 
 - Update individual subscriptions
 - Update all subscriptions
@@ -183,13 +183,13 @@ Protection workflows include:
 
 ## 📦 `.arasc` Configuration Container
 
-ArasClient provides its own `.arasc` format for exporting and importing configurations and subscriptions.
+RADAR VPN provides its own `.arasc` format for exporting and importing configurations and subscriptions.
 
 ### Normal export
 
-- Package configurations inside an ArasClient container
+- Package configurations inside an RADAR VPN container
 - Keep exported configuration data out of plain-text config files
-- Import the container back into ArasClient
+- Import the container back into RADAR VPN
 
 ### Protected export
 
@@ -214,7 +214,7 @@ The format can preserve information related to:
 
 ## 🛠️ Advanced Networking & Core Integration
 
-ArasClient also includes integrations beyond the Android UI layer, including:
+RADAR VPN also includes integrations beyond the Android UI layer, including:
 
 - **AnyTLS** integration
 - **AmneziaWG** support
@@ -241,7 +241,7 @@ These components allow the Android client, native networking layer and proxy cor
 
 ```text
 ┌──────────────────────────────┐
-│        ArasClient UI         │
+│        RADAR VPN UI         │
 ├──────────────────────────────┤
 │ Smart Connect                │
 │ Subscription Management      │
@@ -285,7 +285,7 @@ Documentation for working on the codebase itself:
 
 <div align="center">
 
-**→ [Download the latest release](https://github.com/ArasTey/ArasClient/releases) ←**
+**→ [Download the latest release](https://github.com/AMINOPY/G-ST-VPN/releases) ←**
 
 </div>
 
@@ -296,7 +296,7 @@ Documentation for working on the codebase itself:
 
 ### Quick start
 
-1. Install ArasClient.
+1. Install RADAR VPN.
 2. Add or import your configurations/subscriptions.
 3. Run a server test if needed.
 4. Use Smart Connect or select a profile manually.
@@ -306,9 +306,9 @@ Documentation for working on the codebase itself:
 
 ## 🌱 Credits & Upstream
 
-ArasClient is a **PattNG fork** and ultimately descends from the v2rayNG project.
+RADAR VPN is a **PattNG fork** and ultimately descends from the v2rayNG project.
 
-- **ArasClient:** https://github.com/ArasTey/ArasClient
+- **RADAR VPN:** https://github.com/AMINOPY/G-ST-VPN
 - **PattNG:** https://github.com/patterniha/PattNG
 - **v2rayNG:** https://github.com/2dust/v2rayNG
 
@@ -318,7 +318,7 @@ Additional components and ideas may originate from their respective upstream ope
 
 ## 📄 License
 
-ArasClient is released under the **GNU General Public License v3.0**.
+RADAR VPN is released under the **GNU General Public License v3.0**.
 
 See [LICENSE](LICENSE) for the full license text.
 
