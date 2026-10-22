@@ -69,7 +69,8 @@ fun RadarDashboard(
     isDarkTheme: Boolean,
     serverTitle: String,
     configPings: List<RadarConfigSignal> = emptyList(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onToggleConnection: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val dangerTransition = rememberInfiniteTransition(label = "radar-danger-blink")
@@ -170,7 +171,7 @@ fun RadarDashboard(
     val statusDetail = when (verification) {
         RadarVerification.DISCONNECTED -> "VPN tunnel inactive"
         RadarVerification.CHECKING -> "Checking VPN tunnel, exit IP and selected-config ping"
-        RadarVerification.TUNNEL_IP_UNVERIFIED -> if (!hasPing) "DANGER: selected configuration has no successful ping" else "DANGER: traffic through the VPN could not be verified"
+        RadarVerification.TUNNEL_IP_UNVERIFIED -> "Tunnel is active, but VPN-routed traffic could not be verified"
         RadarVerification.TUNNEL_LOST -> "VPN is enabled but the VPN network is not active"
         RadarVerification.VERIFIED -> "SECURE TUNNEL ESTABLISHED"
     }
@@ -260,6 +261,7 @@ fun RadarDashboard(
                 palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,
                 title = statusLabel,
                 subtitle = statusDetail,
+                onCenterAction = onToggleConnection,
                 // One contact per saved configuration. Missing/failed profile pings
                 // remain red even when the selected tunnel is healthy; global danger
                 // forces all plotted contacts red.
