@@ -47,7 +47,6 @@ import com.aras.client.ui.compose.SettingsSwitchItem
 import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.RADAR_THEME_MODE
 import com.aras.client.ui.compose.PERSEPOLIS_THEME_MODE
-import com.aras.client.ui.compose.SURVIVAL_THEME_MODE
 import com.aras.client.ui.compose.verticalScrollbar
 import com.aras.client.util.Utils
 
@@ -179,12 +178,10 @@ fun SettingsScreen(
     val languageValues = stringArrayResource(R.array.language_select_value).toList()
     val uiModeNightEntries = stringArrayResource(R.array.ui_mode_night).toList() +
         stringResource(R.string.ui_mode_radar) +
-        stringResource(R.string.ui_mode_persepolis) +
-        stringResource(R.string.ui_mode_survival)
+        stringResource(R.string.ui_mode_persepolis)
     val uiModeNightValues = stringArrayResource(R.array.ui_mode_night_value).toList() +
         RADAR_THEME_MODE +
-        PERSEPOLIS_THEME_MODE +
-        SURVIVAL_THEME_MODE
+        PERSEPOLIS_THEME_MODE
     val uiThemeEntries = stringArrayResource(R.array.ui_theme_entries).toList()
     val uiThemeValues = stringArrayResource(R.array.ui_theme_values).toList()
     val bypassLanEntries = stringArrayResource(R.array.vpn_bypass_lan).toList()
@@ -276,7 +273,9 @@ fun SettingsScreen(
                     selectedValue = uiTheme,
                     onSelected = {
                         uiTheme = it
-                        ThemeManager.setRadarTheme(it == "radar")
+                        ThemeManager.setUiTheme(it)
+                        if (it == "radar") ThemeManager.setThemeMode(RADAR_THEME_MODE)
+                        else if (ThemeManager.themeMode.value == RADAR_THEME_MODE) ThemeManager.setThemeMode("0")
                     }
                 )
                 SettingsListItem(
