@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -62,7 +64,7 @@ class RadarConfigActivity : ComponentActivity() {
                         .thenBy { it.latency ?: Long.MAX_VALUE }
                 )
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
-                    Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("جست‌وجو در منابع عمومی و پیش‌آزمایش دسترسی شبکه", style = MaterialTheme.typography.titleMedium)
                         Text("پاسخ TCP به‌تنهایی سلامت تونل را ثابت نمی‌کند. هیچ کانفیگی خودکار نصب یا متصل نمی‌شود.", style = MaterialTheme.typography.bodySmall)
                         AndroidView(
