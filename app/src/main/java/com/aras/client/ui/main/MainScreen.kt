@@ -3,6 +3,7 @@ package com.aras.client.ui.main
 import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
 import com.aras.client.ui.subscription.SubEditActivity
+import com.aras.client.ui.radar.DpiTestActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import com.aras.client.ui.compose.AuroraStatusPill
@@ -217,6 +218,7 @@ fun MainScreen(
                             MainMoreMenuAction.PingSelectedSubscription -> onAction(MainAction.PingSelectedSubscription)
                             MainMoreMenuAction.TestAll -> onAction(MainAction.TestAllServers)
                             MainMoreMenuAction.TestAllRealPing -> onAction(MainAction.TestRealAllServers)
+                            MainMoreMenuAction.DpiDiagnostics -> context.startActivity(Intent(context, DpiTestActivity::class.java))
                             MainMoreMenuAction.UpdateSubscriptions -> onAction(MainAction.UpdateSubscriptions)
                         }
                     }
