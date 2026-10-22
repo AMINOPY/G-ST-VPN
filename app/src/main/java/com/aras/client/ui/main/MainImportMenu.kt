@@ -96,13 +96,8 @@ internal fun serverMenuActions(
 }
 
 @Composable
-fun ImportMenuContent(onAction: (MainAction) -> Unit, onRadarConfig: () -> Unit = {}) {
+fun ImportMenuContent(onAction: (MainAction) -> Unit) {
     var showProtocolMenu by remember { mutableStateOf(false) }
-
-    androidx.compose.material3.DropdownMenuItem(
-        text = { Text("رادار کانفینگ / Radar Config") },
-        onClick = onRadarConfig
-    )
 
     ImportMenuAction.entries.forEach { item ->
         if (item == ImportMenuAction.Manual) {

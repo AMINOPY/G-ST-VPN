@@ -187,19 +187,59 @@ object ThemeManager {
     )
     val dynamicColorEnabled: StateFlow<Boolean> = _dynamicColorEnabled.asStateFlow()
 
-    private val _radarTheme = MutableStateFlow(
-        MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME, "default") == "radar"
+    private val _uiTheme = MutableStateFlow(
+        MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME, "default") ?: "default"
     )
+    val uiTheme: StateFlow<String> = _uiTheme.asStateFlow()
+    private val _radarTheme = MutableStateFlow(_uiTheme.value == "radar")
     val radarTheme: StateFlow<Boolean> = _radarTheme.asStateFlow()
 
-    fun setRadarTheme(enabled: Boolean) {
-        MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, if (enabled) "radar" else "default")
-        _radarTheme.value = enabled
+    init {
+        // Recover users from builds that incorrectly moved Persepolis into the theme
+        // selector: restore it to the original UI-mode preference and clear that theme value.
+        if (_uiTheme.value == "persepolis") {
+            if (_themeMode.value == "0") {
+                MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, PERSEPOLIS_THEME_MODE)
+                _themeMode.value = PERSEPOLIS_THEME_MODE
+            }
+            MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, "default")
+            _uiTheme.value = "default"
+        }
+
+        // Older builds stored Radar and The Last of Us in the mode preference.
+        // Migrate only those into appearance themes. Persepolis (value 4) intentionally
+        // remains a selectable UI mode, as it was in the original settings.
+        val legacyTheme = when (_themeMode.value) {
+            "3" -> "radar"
+            SURVIVAL_THEME_MODE -> "survival"
+            else -> null
+        }
+        if (legacyTheme != null) {
+            if (_uiTheme.value == "default") {
+                MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, legacyTheme)
+                _uiTheme.value = legacyTheme
+            }
+            MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, "0")
+            _themeMode.value = "0"
+        }
+        _radarTheme.value = _uiTheme.value == "radar"
     }
 
+    fun setUiTheme(theme: String) {
+        val safeTheme = theme.takeIf { it in setOf("default", "radar", "survival") } ?: "default"
+        MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, safeTheme)
+        _uiTheme.value = safeTheme
+        _radarTheme.value = safeTheme == "radar"
+    }
+
+    fun setRadarTheme(enabled: Boolean) = setUiTheme(if (enabled) "radar" else "default")
+
     fun setThemeMode(mode: String) {
-        MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, mode)
-        _themeMode.value = mode
+        // 0=system, 1=light, 2=dark, 4=the original Persepolis/Parseh mode.
+        // Radar and The Last of Us remain independent UI appearance themes.
+        val safeMode = mode.takeIf { it in setOf("0", "1", "2", PERSEPOLIS_THEME_MODE) } ?: "0"
+        MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, safeMode)
+        _themeMode.value = safeMode
     }
 
     fun setDynamicColorEnabled(enabled: Boolean) {
@@ -212,8 +252,8 @@ object ThemeManager {
             MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "0") ?: "0"
         _dynamicColorEnabled.value =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
-        _radarTheme.value =
-            MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME, "default") == "radar"
+        _uiTheme.value = MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME, "default") ?: "default"
+        _radarTheme.value = _uiTheme.value == "radar"
     }
 }
 
@@ -249,9 +289,7 @@ fun resolveDarkTheme(): Boolean {
     val mode by ThemeManager.themeMode.collectAsState()
     return when (mode) {
         "1" -> false
-        "2" -> true
-        RADAR_THEME_MODE -> true
-        PERSEPOLIS_THEME_MODE -> true
+        "2", PERSEPOLIS_THEME_MODE -> true
         else -> isSystemInDarkTheme()
     }
 }
@@ -265,14 +303,18 @@ fun AppTheme(
 ) {
     val dynamicColor by ThemeManager.dynamicColorEnabled.collectAsState()
     val themeMode by ThemeManager.themeMode.collectAsState()
-    val isRadar = themeMode == RADAR_THEME_MODE
+    val uiTheme by ThemeManager.uiTheme.collectAsState()
+    val isRadar = uiTheme == "radar"
     val isPersepolis = themeMode == PERSEPOLIS_THEME_MODE
+    val isSurvival = uiTheme == "survival"
     val context = LocalContext.current
-    // Keep special theme palettes consistent regardless of the system light/dark setting.
-    val effectiveDarkTheme = isRadar || isPersepolis || darkTheme
+    // RADAR is a UI theme, not a light/dark mode: honor the selected day/night setting.
+    // The Last of Us and Persepolis keep their intentionally fixed dark palettes.
+    val effectiveDarkTheme = isPersepolis || isSurvival || darkTheme
     val colorScheme = when {
-        isRadar -> RadarColorScheme
+        isRadar -> if (effectiveDarkTheme) RadarDarkColor else RadarLightColor
         isPersepolis -> PersepolisColorScheme
+        isSurvival -> SurvivalColorScheme
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
@@ -305,8 +347,8 @@ fun AppTheme(
             Box(modifier = Modifier.fillMaxSize()) {
                 AppSnackbarBridge(controller = snackbarController)
                 content()
-                if (isRadar) RadarOverlay()
                 if (isPersepolis) PersepolisOverlay()
+                if (isSurvival) SurvivalOverlay()
                 AppSnackbarHost(hostState = snackbarController.hostState)
             }
         }

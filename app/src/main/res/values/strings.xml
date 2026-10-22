@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name" translatable="false">ArasClient</string>
+    <string name="app_name" translatable="false">RADAR VPN</string>
     <string name="app_widget_name">Connect / Disconnect</string>
     <string name="app_tile_name">Aras: Connect / Disconnect</string>
     <string name="app_tile_first_use">Add a profile in the app before using this feature.</string>
@@ -462,6 +462,10 @@
     <string name="title_mode_help">Click me for more help</string>
     <string name="title_language">Language</string>
     <string name="title_ui_settings">UI settings</string>
+    <string name="title_ui_themes">Interface themes</string>
+    <string name="ui_mode_persepolis">Persepolis (Parseh)</string>
+    <string name="ui_mode_radar">UI RADAR — Tunnel Intelligence</string>
+    <string name="ui_mode_survival">THE LAST OF US — AFTER THE FALL</string>
     <string name="title_pref_ui_mode_night">UI mode settings</string>
     <string name="title_pref_ui_theme">Interface theme</string>
     <string name="title_pref_dynamic_color">Enable dynamic color</string>
@@ -642,6 +646,7 @@
         <item>Follow system</item>
         <item>Light</item>
         <item>Dark</item>
+        <item>@string/ui_mode_persepolis</item>
     </string-array>
 
     <string name="routing_preset_china_whitelist">China Whitelist</string>
@@ -736,4 +741,6 @@
     <string name="title_export_sub_txt">Export subscription (TXT)</string>
     <string name="title_reset_settings">Reset settings to default</string>
     <string name="summary_reset_settings">All preferences return to factory defaults. The app restarts this screen.</string>
+    <string name="widget_elite_description">RADAR VPN Elite Hybrid large VPN control widget</string>
+    <string name="widget_radar_indicator">Tunnel status indicator</string>
 </resources>

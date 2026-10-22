@@ -36,10 +36,10 @@ class RadarStateTest {
     }
 
     @Test
-    fun running_with_verified_ip_and_no_recent_traffic_is_still_connected() {
-        // An idle but healthy VPN tunnel may legitimately have no recent traffic.
+    fun running_with_verified_ip_but_no_verified_traffic_is_not_green() {
+        // An IP string alone is insufficient: green requires a successful request routed through VPN.
         val s = snap(TunnelPhase.RUNNING, traffic = 0L, ip = IpCheck.Verified("1.2.3.4"))
-        assertEquals(RadarState.CONNECTED_VERIFIED, resolveRadarState(s))
+        assertEquals(RadarState.TUNNEL_IP_UNVERIFIED, resolveRadarState(s))
     }
 
     @Test

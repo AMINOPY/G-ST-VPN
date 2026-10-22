@@ -59,9 +59,11 @@ fun MainBottomBar(
     hasPing: Boolean = false
 ) {
     val isRadarTheme by ThemeManager.radarTheme.collectAsState()
-    val barShape = RoundedCornerShape(if (isRadarTheme) 18.dp else 32.dp)
-    val barColor = if (isRadarTheme) Color(0xFF06110D) else MaterialTheme.colorScheme.surfaceContainerHigh
-    val barOutline = if (isRadarTheme) Color(0xFF20FF79).copy(alpha = 0.55f) else Color.Transparent
+    val uiTheme by ThemeManager.uiTheme.collectAsState()
+    val isSurvival = uiTheme == "survival"
+    val barShape = RoundedCornerShape(if (isSurvival) 8.dp else if (isRadarTheme) 18.dp else 32.dp)
+    val barColor = when { isSurvival -> Color(0xFF101711); isRadarTheme -> Color(0xFF06110D); else -> MaterialTheme.colorScheme.surfaceContainerHigh }
+    val barOutline = when { isSurvival -> Color(0xFF9BCB72).copy(alpha = 0.55f); isRadarTheme -> Color(0xFF20FF79).copy(alpha = 0.55f); else -> Color.Transparent }
     // Ping-aware colors: green when connected and ping is measured OK,
     // red when connected but no valid ping.
     val okColor = Color(0xFF2E7D32)
@@ -82,10 +84,10 @@ fun MainBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 64.dp)
-                .shadow(elevation = if (isRadarTheme) 12.dp else 8.dp, shape = barShape)
+                .shadow(elevation = if (isSurvival || isRadarTheme) 12.dp else 8.dp, shape = barShape)
                 .clip(barShape)
                 .background(barColor)
-                .border(width = if (isRadarTheme) 1.dp else 0.dp, color = barOutline, shape = barShape)
+                .border(width = if (isSurvival || isRadarTheme) 1.dp else 0.dp, color = barOutline, shape = barShape)
                 .clickable(onClick = { onAction(MainAction.TestCurrentServer) })
                 .padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically

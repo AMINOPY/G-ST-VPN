@@ -3,6 +3,11 @@ package com.aras.client.ui.main
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -28,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -38,31 +44,47 @@ import com.aras.client.ui.radar.RadarDisplay
 import com.aras.client.ui.radar.RadarPalette
 import com.aras.client.ui.radar.RadarNode
 import com.aras.client.ui.radar.RadarState
+import com.aras.client.ui.radar.TunnelSnapshot
+import com.aras.client.ui.radar.TunnelPhase
+import com.aras.client.ui.radar.IpCheck
+import com.aras.client.ui.radar.resolveRadarState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 
-private enum class RadarVerification { DISCONNECTED, CHECKING, VERIFIED, UNVERIFIED, TUNNEL_LOST }
+private enum class RadarVerification { DISCONNECTED, CHECKING, VERIFIED, TUNNEL_IP_UNVERIFIED, TUNNEL_LOST }
 
 private data class RadarIpResult(val tunnelActive: Boolean, val verified: Boolean, val ip: String? = null)
+
+/** Last measured ping for one saved profile. Non-positive values mean unverified. */
+data class RadarConfigSignal(val guid: String, val name: String, val pingMs: Long)
 
 @Composable
 fun RadarDashboard(
     isRunning: Boolean,
     hasPing: Boolean,
+    selectedGuid: String?,
     isDarkTheme: Boolean,
     serverTitle: String,
+    configPings: List<RadarConfigSignal> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val dangerTransition = rememberInfiniteTransition(label = "radar-danger-blink")
+    val dangerAlpha by dangerTransition.animateFloat(
+        initialValue = 0.38f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(620), repeatMode = RepeatMode.Reverse),
+        label = "danger-pulse"
+    )
     var verification by remember { mutableStateOf(RadarVerification.DISCONNECTED) }
     var publicIp by remember { mutableStateOf<String?>(null) }
     // Start compact so the server/configuration list remains visible on phone screens.
     var expanded by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isRunning, hasPing) {
+    LaunchedEffect(isRunning, hasPing, selectedGuid) {
         publicIp = null
         if (!isRunning) {
             verification = RadarVerification.DISCONNECTED
@@ -75,13 +97,28 @@ fun RadarDashboard(
         while (true) {
             val result = withContext(Dispatchers.IO) { verifyVpnEgress(context) }
             publicIp = result.ip
-            // A successful ping for the selected profile is a direct health signal.
-            // Do not keep the radar red merely because a public-IP endpoint is blocked.
-            verification = when {
-                hasPing -> RadarVerification.VERIFIED
-                !result.tunnelActive -> RadarVerification.TUNNEL_LOST
-                result.verified -> RadarVerification.VERIFIED
-                else -> RadarVerification.UNVERIFIED
+            // Feed the live Android VPN-network/IP probe through the same state
+            // resolver covered by RadarStateTest; do not infer success from animation.
+            val snapshot = TunnelSnapshot(
+                sessionId = selectedGuid?.hashCode()?.toLong() ?: 0L,
+                phase = if (result.tunnelActive) TunnelPhase.RUNNING else TunnelPhase.ERROR,
+                tunInterfaceUp = result.tunnelActive,
+                // A successful response from a connection opened on Android's VPN Network
+                // proves that request/response data crossed the tunnel. This is a verification
+                // signal, not a claim about the VPN service's full byte counters.
+                trafficBytesLastSample = if (result.verified && !result.ip.isNullOrBlank()) 1L else 0L,
+                ipCheck = if (result.verified && !result.ip.isNullOrBlank()) {
+                    IpCheck.Verified(result.ip)
+                } else {
+                    IpCheck.Failed
+                }
+            )
+            verification = when (resolveRadarState(snapshot)) {
+                RadarState.CONNECTED_VERIFIED -> RadarVerification.VERIFIED
+                RadarState.TUNNEL_IP_UNVERIFIED -> RadarVerification.TUNNEL_IP_UNVERIFIED
+                RadarState.ERROR -> RadarVerification.TUNNEL_LOST
+                RadarState.DISCONNECTED -> RadarVerification.DISCONNECTED
+                RadarState.CONNECTING -> RadarVerification.CHECKING
             }
             delay(5_000)
         }
@@ -89,25 +126,29 @@ fun RadarDashboard(
 
     val panel = when (verification) {
         RadarVerification.VERIFIED -> Color(0xFF00170A)
-        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFF210307)
+        RadarVerification.TUNNEL_IP_UNVERIFIED -> Color(0xFF210307)
+        RadarVerification.TUNNEL_LOST -> Color(0xFF210307)
         RadarVerification.DISCONNECTED -> Color(0xFF191C20)
         RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFF111821) else Color(0xFFFFFFFF)
     }
     val outline = when (verification) {
         RadarVerification.VERIFIED -> Color(0xFF07552C)
-        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFF74121C)
+        RadarVerification.TUNNEL_IP_UNVERIFIED -> Color(0xFF74121C)
+        RadarVerification.TUNNEL_LOST -> Color(0xFF74121C)
         RadarVerification.DISCONNECTED -> Color(0xFF414852)
         RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFF273442) else Color(0xFFD2D9E1)
     }
     val primaryText = when (verification) {
         RadarVerification.VERIFIED -> Color(0xFFB8FFD0)
-        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFFFFD9DC)
+        RadarVerification.TUNNEL_IP_UNVERIFIED -> Color(0xFFFFD9DC)
+        RadarVerification.TUNNEL_LOST -> Color(0xFFFFD9DC)
         RadarVerification.DISCONNECTED -> Color(0xFFE2E5E9)
         RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFFEAF1F7) else Color(0xFF17212E)
     }
     val secondaryText = when (verification) {
         RadarVerification.VERIFIED -> Color(0xFF64B982)
-        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFFFF737D)
+        RadarVerification.TUNNEL_IP_UNVERIFIED -> Color(0xFFFF737D)
+        RadarVerification.TUNNEL_LOST -> Color(0xFFFF737D)
         RadarVerification.DISCONNECTED -> Color(0xFFFF525C)
         RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFF8997A7) else Color(0xFF5D6978)
     }
@@ -115,21 +156,21 @@ fun RadarDashboard(
     val statusColor = when (verification) {
         RadarVerification.DISCONNECTED -> Color(0xFFFF525C)
         RadarVerification.CHECKING -> Color(0xFFC18A32)
-        RadarVerification.UNVERIFIED -> Color(0xFFFF2938)
+        RadarVerification.TUNNEL_IP_UNVERIFIED -> Color(0xFFFF2938)
         RadarVerification.TUNNEL_LOST -> Color(0xFFFF2938)
         RadarVerification.VERIFIED -> Color(0xFF20FF79)
     }
     val statusLabel = when (verification) {
         RadarVerification.DISCONNECTED -> "NO SIGNAL"
         RadarVerification.CHECKING -> "VERIFYING TUNNEL"
-        RadarVerification.UNVERIFIED -> "DANGER"
+        RadarVerification.TUNNEL_IP_UNVERIFIED -> "DANGER · NO VERIFIED EGRESS"
         RadarVerification.TUNNEL_LOST -> "DANGER"
         RadarVerification.VERIFIED -> "SIGNAL ACTIVE"
     }
     val statusDetail = when (verification) {
         RadarVerification.DISCONNECTED -> "VPN tunnel inactive"
-        RadarVerification.CHECKING -> "Checking the active VPN network"
-        RadarVerification.UNVERIFIED -> "Tunnel is active, but traffic could not be verified"
+        RadarVerification.CHECKING -> "Checking VPN tunnel, exit IP and selected-config ping"
+        RadarVerification.TUNNEL_IP_UNVERIFIED -> if (!hasPing) "DANGER: selected configuration has no successful ping" else "DANGER: traffic through the VPN could not be verified"
         RadarVerification.TUNNEL_LOST -> "VPN is enabled but the VPN network is not active"
         RadarVerification.VERIFIED -> "SECURE TUNNEL ESTABLISHED"
     }
@@ -176,10 +217,14 @@ fun RadarDashboard(
                     text = when (verification) {
                         RadarVerification.VERIFIED -> "ONLINE"
                         RadarVerification.DISCONNECTED -> "OFFLINE"
-                        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> "DANGER"
+                        RadarVerification.TUNNEL_IP_UNVERIFIED -> "UNVERIFIED"
+                        RadarVerification.TUNNEL_LOST -> "DANGER"
                         RadarVerification.CHECKING -> "CHECKING"
                     },
-                    color = statusColor,
+                    color = statusColor.copy(
+                        alpha = if (verification == RadarVerification.TUNNEL_IP_UNVERIFIED ||
+                            verification == RadarVerification.TUNNEL_LOST) dangerAlpha else 1f
+                    ),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -205,7 +250,7 @@ fun RadarDashboard(
                     RadarVerification.DISCONNECTED -> RadarState.DISCONNECTED
                     RadarVerification.CHECKING -> RadarState.CONNECTING
                     RadarVerification.VERIFIED -> RadarState.CONNECTED_VERIFIED
-                    RadarVerification.UNVERIFIED -> RadarState.ERROR
+                    RadarVerification.TUNNEL_IP_UNVERIFIED -> RadarState.TUNNEL_IP_UNVERIFIED
                     RadarVerification.TUNNEL_LOST -> RadarState.ERROR
                 },
                 modifier = Modifier
@@ -215,23 +260,36 @@ fun RadarDashboard(
                 palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,
                 title = statusLabel,
                 subtitle = statusDetail,
+                // One contact per saved configuration. Missing/failed profile pings
+                // remain red even when the selected tunnel is healthy; global danger
+                // forces all plotted contacts red.
                 nodes = when (verification) {
-                    RadarVerification.VERIFIED -> listOf(
-                        // Decorative radar blips indicate a verified tunnel signal; they are not scanned hosts.
-                        RadarNode(22f, 0.34f, 75),
-                        RadarNode(68f, 0.61f, 92),
-                        RadarNode(132f, 0.46f, 68),
-                        RadarNode(196f, 0.72f, 105),
-                        RadarNode(247f, 0.39f, 84),
-                        RadarNode(318f, 0.57f, 73),
-                    )
-                    RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> listOf(
-                        RadarNode(35f, 0.35f, 500),
-                        RadarNode(145f, 0.58f, 500),
-                        RadarNode(225f, 0.43f, 500),
-                        RadarNode(315f, 0.68f, 500),
-                    )
-                    else -> emptyList()
+                    RadarVerification.DISCONNECTED, RadarVerification.CHECKING -> emptyList()
+                    else -> if (configPings.isNotEmpty()) {
+                        configPings.mapIndexed { index, config ->
+                            // A selected profile must agree with the live selected-profile ping
+                            // signal; other profiles retain their own last measured ping result.
+                            val profileHealthy = config.pingMs > 0L &&
+                                (config.guid != selectedGuid || hasPing)
+                            val tunnelHealthy = verification == RadarVerification.VERIFIED
+                            RadarNode(
+                                bearingDeg = ((kotlin.math.abs(config.guid.hashCode().toLong()) % 360L).toFloat() + index * 17f) % 360f,
+                                distance01 = 0.24f + (index % 5) * 0.14f,
+                                pingMs = if (profileHealthy && tunnelHealthy) config.pingMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt() else null,
+                                tunnelWorking = tunnelHealthy,
+                                checked = true,
+                                id = config.guid,
+                                selected = config.guid == selectedGuid
+                            )
+                        }
+                    } else when (verification) {
+                        RadarVerification.VERIFIED -> listOf(
+                            RadarNode(45f, 0.52f, if (hasPing) 75 else null, tunnelWorking = true, checked = hasPing)
+                        )
+                        RadarVerification.TUNNEL_IP_UNVERIFIED, RadarVerification.TUNNEL_LOST ->
+                            listOf(RadarNode(45f, 0.52f, null, tunnelWorking = false, checked = false))
+                        else -> emptyList()
+                    }
                 },
             )
 
@@ -244,7 +302,7 @@ fun RadarDashboard(
                     .clip(RoundedCornerShape(10.dp))
                     .background(when (verification) {
                         RadarVerification.VERIFIED -> Color(0xFF00230F)
-                        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFF33060C)
+                        RadarVerification.TUNNEL_IP_UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFF33060C)
                         RadarVerification.DISCONNECTED -> Color(0xFF252A30)
                         RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFF171F29) else Color(0xFFF1F4F7)
                     })

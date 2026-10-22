@@ -30,12 +30,14 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -59,6 +61,7 @@ import com.aras.client.handler.AngConfigManager
 import com.aras.client.handler.FreeSubManager
 import com.aras.client.handler.ArasExportImportManager
 import com.aras.client.handler.MmkvManager
+import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.ReorderableGridItem
 import com.aras.client.ui.compose.ReorderableListItem
 import com.aras.client.ui.compose.colorConfigType
@@ -412,7 +415,8 @@ private fun ServerItemRow(
         onRemove = { onRemoveServer(serverCache.guid) },
         onMore = { onMoreServer(serverCache.guid, profile) },
         onTest = { onTestServer(serverCache.guid) },
-        isProtected = isProtected
+        isProtected = isProtected,
+        dogTagLabel = serverCache.guid.takeLast(4).uppercase()
     )
 }
 
@@ -480,7 +484,8 @@ private fun ServerItemColumn(
         onRemove = { onRemoveServer(serverCache.guid) },
         onMore = { onMoreServer(serverCache.guid, profile) },
         onTest = { onTestServer(serverCache.guid) },
-        isProtected = isProtected
+        isProtected = isProtected,
+        dogTagLabel = serverCache.guid.takeLast(4).uppercase()
     )
 }
 
@@ -503,7 +508,8 @@ fun ServerListItem(
     modifier: Modifier = Modifier,
     dragModifier: Modifier = Modifier,
     isProtected: Boolean = false,
-    country: String = ""
+    country: String = "",
+    dogTagLabel: String = "FIELD"
 ) {
     val showDelayChips = remember {
         MmkvManager.decodeSettingsBool(AppConfig.PREF_SHOW_DELAY_CHIPS, true)
@@ -518,10 +524,16 @@ fun ServerListItem(
     } else {
         null
     }
-    val cardShape = RoundedCornerShape(16.dp)
-    val cardColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-    else MaterialTheme.colorScheme.surfaceContainerLow
-    val pingColor = if (testDelayMillis < 0L) colorPingRed else colorPing
+    val uiTheme by ThemeManager.uiTheme.collectAsState()
+    val isSurvival = uiTheme == "survival"
+    val cardShape = RoundedCornerShape(if (isSurvival) 5.dp else 16.dp)
+    val cardColor = when {
+        isSurvival && isSelected -> Color(0xFFE8DFC0)
+        isSurvival -> Color(0xFFD8D0B8)
+        isSelected -> MaterialTheme.colorScheme.primaryContainer
+        else -> MaterialTheme.colorScheme.surfaceContainerLow
+    }
+    val pingColor = if (testDelayMillis <= 0L) colorPingRed else colorPing
 
     Row(
         modifier = modifier
@@ -534,9 +546,11 @@ fun ServerListItem(
             .clip(cardShape)
             .background(cardColor)
             .then(
-                if (isSelected) Modifier.border(
-                    1.5.dp,
-                    MaterialTheme.colorScheme.primary,
+                if (isSelected || isSurvival) Modifier.border(
+                    if (isSelected) 1.5.dp else 0.7.dp,
+                    if (isSurvival) {
+                        if (isSelected) Color(0xFF354531) else Color(0xFF9B9278)
+                    } else MaterialTheme.colorScheme.primary,
                     cardShape
                 ) else Modifier
             )
@@ -546,6 +560,26 @@ fun ServerListItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
 
+        // Last of Us field-issued dog tag: unique to this saved configuration.
+        if (isSurvival) {
+            Column(
+                modifier = Modifier
+                    .padding(end = 9.dp)
+                    .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 8.dp, bottomEnd = 8.dp))
+                    .background(Color(0xFFB8AE91))
+                    .border(1.dp, Color(0xFF6D6A56), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 7.dp, vertical = 5.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    Modifier.size(5.dp).clip(CircleShape).background(Color(0xFF6D6A56))
+                )
+                Spacer(Modifier.height(3.dp))
+                Text("FIELD", color = Color(0xFF3B4032), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp)
+                Text(dogTagLabel, color = Color(0xFF20271E), fontSize = 10.sp, fontWeight = FontWeight.Black)
+            }
+        }
+
         // Title, address, chips
         Column(
             Modifier
@@ -553,6 +587,7 @@ fun ServerListItem(
         ) {
             Text(
                 remarks,
+                color = if (isSurvival) Color(0xFF20271E) else MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.SemiBold,
                     lineBreak = LineBreak.Paragraph
@@ -561,6 +596,16 @@ fun ServerListItem(
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(2.dp))
+            if (isSurvival && testDelayMillis <= 0L) {
+                Text(
+                    "NO PING  //  NOT VERIFIED",
+                    color = Color(0xFFB3262D),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.4.sp,
+                    maxLines = 1
+                )
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (subscriptionRemarks.isNotBlank()) {
                     Text(
@@ -573,7 +618,7 @@ fun ServerListItem(
                 Text(
                     statistics,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isSurvival) Color(0xFF4C5144) else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

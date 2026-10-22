@@ -45,8 +45,6 @@ import com.aras.client.ui.compose.SettingsListItem
 import com.aras.client.ui.compose.SettingsMenuItem
 import com.aras.client.ui.compose.SettingsSwitchItem
 import com.aras.client.ui.compose.ThemeManager
-import com.aras.client.ui.compose.RADAR_THEME_MODE
-import com.aras.client.ui.compose.PERSEPOLIS_THEME_MODE
 import com.aras.client.ui.compose.verticalScrollbar
 import com.aras.client.util.Utils
 
@@ -79,6 +77,7 @@ fun SettingsScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     var connectionSettingsExpanded by rememberSaveable { mutableStateOf(false) }
     var uiSettingsExpanded by rememberSaveable { mutableStateOf(true) }
+    var uiThemesExpanded by rememberSaveable { mutableStateOf(true) }
     var vpnSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var coreSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var muxSettingsExpanded by rememberSaveable { mutableStateOf(false) }
@@ -176,12 +175,8 @@ fun SettingsScreen(
 
     val languageEntries = stringArrayResource(R.array.language_select).toList()
     val languageValues = stringArrayResource(R.array.language_select_value).toList()
-    val uiModeNightEntries = stringArrayResource(R.array.ui_mode_night).toList() +
-        stringResource(R.string.ui_mode_radar) +
-        stringResource(R.string.ui_mode_persepolis)
-    val uiModeNightValues = stringArrayResource(R.array.ui_mode_night_value).toList() +
-        RADAR_THEME_MODE +
-        PERSEPOLIS_THEME_MODE
+    val uiModeNightEntries = stringArrayResource(R.array.ui_mode_night).toList()
+    val uiModeNightValues = stringArrayResource(R.array.ui_mode_night_value).toList()
     val uiThemeEntries = stringArrayResource(R.array.ui_theme_entries).toList()
     val uiThemeValues = stringArrayResource(R.array.ui_theme_values).toList()
     val bypassLanEntries = stringArrayResource(R.array.vpn_bypass_lan).toList()
@@ -267,16 +262,6 @@ fun SettingsScreen(
                     }
                 )
                 SettingsListItem(
-                    title = stringResource(R.string.title_pref_ui_theme),
-                    entries = uiThemeEntries,
-                    values = uiThemeValues,
-                    selectedValue = uiTheme,
-                    onSelected = {
-                        uiTheme = it
-                        ThemeManager.setRadarTheme(it == "radar")
-                    }
-                )
-                SettingsListItem(
                     title = stringResource(R.string.title_language),
                     entries = languageEntries,
                     values = languageValues,
@@ -294,6 +279,24 @@ fun SettingsScreen(
                     onSelected = {
                         uiModeNight = it
                         ThemeManager.setThemeMode(it)
+                    }
+                )
+            }
+
+            CollapsiblePreferenceGroupHeader(
+                title = stringResource(R.string.title_ui_themes),
+                expanded = uiThemesExpanded,
+                onExpandedChange = { uiThemesExpanded = it }
+            )
+            if (uiThemesExpanded) {
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_ui_theme),
+                    entries = uiThemeEntries,
+                    values = uiThemeValues,
+                    selectedValue = uiTheme,
+                    onSelected = {
+                        uiTheme = it
+                        ThemeManager.setUiTheme(it)
                     }
                 )
             }

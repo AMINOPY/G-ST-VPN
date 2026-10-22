@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">ArasClient</string>
+    <string name="app_name" translatable="false">RADAR VPN</string>
     <string name="app_widget_name">اتصال / قطع</string>
     <string name="app_tile_name">آراس: اتصال / قطع</string>
     <string name="app_tile_first_use">برای اولین استفاده از این قابلیت، لطفاً ابتدا از داخل برنامه یک سرور اضافه کنید</string>
@@ -329,6 +329,10 @@
     <string name="title_mode_help">برای اطلاعات و راهنمایی بیشتر، روی این متن کلیک کنید</string>
     <string name="title_language">زبان</string>
     <string name="title_ui_settings">تنظیمات رابط کاربری</string>
+    <string name="title_ui_themes">تم‌های رابط کاربری</string>
+    <string name="ui_mode_persepolis">پرسپولیس (پارسه)</string>
+    <string name="ui_mode_radar">UI RADAR — هوشمندی تونل</string>
+    <string name="ui_mode_survival">آخرین بازمانده از ما — پس از سقوط</string>
     <string name="title_pref_ui_mode_night">تنظیمات حالت رابط کاربری</string>
     <string name="title_pref_ui_theme">تم رابط کاربری</string>
     <string name="title_pref_dynamic_color">فعال‌سازی رنگ پویا</string>
@@ -507,6 +511,7 @@
         <item>پیش فرض سیستم</item>
         <item>روشن</item>
         <item>تاریک</item>
+        <item>@string/ui_mode_persepolis</item>
     </string-array>
 
     <string name="routing_preset_china_whitelist">لیست سفید چین ( دور زدن سرزمین اصلی )</string>

@@ -4,6 +4,8 @@ import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
 import com.aras.client.ui.subscription.SubEditActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -64,15 +66,14 @@ fun MainScreen(
     val hasPing = if (isRunning && selectedGuid != null) {
         (MmkvManager.decodeServerAffiliationInfo(selectedGuid)?.testDelayMillis ?: -1L) > 0L
     } else false
+    val radarServers by mainViewModel.serversForGroup(uiState.selectedGroupId).collectAsStateWithLifecycle()
     val doubleColumnDisplay = uiState.doubleColumnDisplay
     val confirmRemove = uiState.confirmRemove
     val shareQRCodeBitmap = uiState.shareQRCodeBitmap
     val scrollToTopTick = uiState.scrollToTopTick
 
     val isDarkTheme = LocalDarkTheme.current
-    val isRadarTheme by ThemeManager.radarTheme.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
-    var showRadarConfig by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var showSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -158,18 +159,6 @@ fun MainScreen(
     if (shareQRCodeBitmap != null) {
         QRCodeDialog(bitmap = shareQRCodeBitmap, onDismiss = { onAction(MainAction.DismissQRCodeDialog) })
     }
-    if (showRadarConfig) {
-        RadarConfigDialog(
-            context = context,
-            onDismiss = { showRadarConfig = false },
-            onSelectBest = { guid ->
-                onAction(MainAction.RefreshGroups)
-                onAction(MainAction.SelectServer(guid))
-                showRadarConfig = false
-            }
-        )
-    }
-
     MainMenuSheet(
         show = showMenu,
         onDismiss = { showMenu = false },
@@ -200,7 +189,6 @@ fun MainScreen(
                     onSearchToggle = { show: Boolean -> showSearch = show },
                     onMenuClick = { showMenu = true },
                     onAction = onAction,
-                    onRadarConfig = { showRadarConfig = true },
                     onMoreMenuAction = { action ->
                         when (action) {
                             MainMoreMenuAction.RestartService -> onAction(MainAction.RestartService)
@@ -246,12 +234,30 @@ fun MainScreen(
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
                 ) {
-                    if (isRadarTheme) {
+                    val isSurvivalTheme by ThemeManager.uiTheme.collectAsStateWithLifecycle()
+                    if (isSurvivalTheme == "survival") {
+                        SurvivalFieldPanel(
+                            isConnected = isRunning,
+                            serverTitle = mainViewModel.connectedServerTitle().takeIf { isRunning }
+                                ?: mainViewModel.connectedServerTitle()
+                        )
+                    }
+                    // RADAR is a dedicated full UI theme. Its live monitor is shown
+                    // only in that theme; The Last of Us has its own field interface.
+                    if (isSurvivalTheme == "radar") {
                         RadarDashboard(
                             isRunning = isRunning,
                             hasPing = hasPing,
+                            selectedGuid = selectedGuid,
                             isDarkTheme = isDarkTheme,
-                            serverTitle = mainViewModel.connectedServerTitle()
+                            serverTitle = mainViewModel.connectedServerTitle(),
+                            configPings = radarServers.map { server ->
+                                RadarConfigSignal(
+                                    guid = server.guid,
+                                    name = server.profile.remarks,
+                                    pingMs = server.testDelayMillis
+                                )
+                            }
                         )
                     }
                     updateAnnouncement?.let { announcement ->
