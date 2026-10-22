@@ -140,14 +140,14 @@
     <string name="title_pref_show_sub_announcement">Show subscription announcements</string>
     <string name="summary_pref_show_sub_announcement">Show the announcement and creator message provided by the subscription below the subscription info. Hidden when the subscription has none</string>
 
-    <string name="share_method_arasc">Share as .arasc file</string>
+    <string name="share_method_arasc">Share as .RDR file</string>
     <string name="export_summary_normal">Export configs</string>
     <string name="export_summary_protected">Export protected configs</string>
     <string name="export_summary_subtitle">%1$d selected · %2$d groups</string>
     <string name="export_password_hint">The password encrypts the file. Anyone importing needs the same password. It is never stored.</string>
     <string name="arasc_err_empty">The file contains no configs</string>
 
-    <string name="menu_item_import_config_arasc">Import .arasc file</string>
+    <string name="menu_item_import_config_arasc">Import .RDR file</string>
     <string name="export_type_normal">Normal</string>
     <string name="export_type_protected">Protected</string>
     <string name="export_password">Password</string>
@@ -162,8 +162,8 @@
     <string name="export_success">Exported successfully</string>
     <string name="arasc_password_title">Protected file</string>
     <string name="arasc_import_success">Imported %d configs</string>
-    <string name="arasc_err_not_arasc">Not a valid .arasc file</string>
-    <string name="arasc_err_version">This .arasc version is not supported</string>
+    <string name="arasc_err_not_arasc">Not a valid .RDR file</string>
+    <string name="arasc_err_version">This .RDR version is not supported</string>
     <string name="arasc_err_password">Wrong password or corrupted file</string>
     <string name="arasc_err_integrity">File is corrupted or was modified</string>
 
