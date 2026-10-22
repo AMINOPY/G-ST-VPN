@@ -462,6 +462,7 @@
     <string name="title_mode_help">Click me for more help</string>
     <string name="title_language">Language</string>
     <string name="title_ui_settings">UI settings</string>
+    <string name="ui_mode_survival">THE LAST OF US — AFTER THE FALL</string>
     <string name="title_pref_ui_mode_night">UI mode settings</string>
     <string name="title_pref_ui_theme">Interface theme</string>
     <string name="title_pref_dynamic_color">Enable dynamic color</string>
