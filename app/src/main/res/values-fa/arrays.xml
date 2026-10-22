@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Theme selection is separate from the System/Light/Dark UI mode. -->
     <string-array name="ui_theme_entries">
         <item>پیش‌فرض</item>
-        <item>رادار</item>
+        <item>@string/ui_mode_persepolis</item>
+        <item>@string/ui_mode_radar</item>
+        <item>@string/ui_mode_survival</item>
     </string-array>
 </resources>
