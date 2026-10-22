@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name" translatable="false">Radar VPN</string>
+    <string name="app_name" translatable="false">RADAR VPN</string>
     <string name="app_widget_name">Radar VPN: Connect / Disconnect</string>
     <string name="app_tile_name">Radar VPN: Connect / Disconnect</string>
     <string name="app_tile_first_use">Add a profile in the app before using this feature.</string>
