@@ -72,7 +72,6 @@ fun MainScreen(
     val scrollToTopTick = uiState.scrollToTopTick
 
     val isDarkTheme = LocalDarkTheme.current
-    val isRadarTheme by ThemeManager.radarTheme.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     var showRadarConfig by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
