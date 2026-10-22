@@ -117,11 +117,12 @@ object NotificationManager {
     }
 
     private fun buildRadarDetails(service: Service, profileName: String?): String {
-        val guid = MmkvManager.decodeSettingsString(AppConfig.PREF_CURR_CONFIG_GUID, "")
+        val guid = MmkvManager.getSelectServer().orEmpty()
         val ping = guid?.takeIf { it.isNotBlank() }
             ?.let { MmkvManager.decodeServerAffiliationInfo(it)?.testDelayMillis }
             ?.takeIf { it >= 0L }
         val profile = profileName?.takeIf { it.isNotBlank() }
+            ?: guid.takeIf { it.isNotBlank() }?.let { MmkvManager.decodeServerConfig(it)?.remarks }?.takeIf { it.isNotBlank() }
         return when {
             profile != null && ping != null -> service.getString(R.string.radar_status_detail_profile_ping, profile, ping)
             profile != null -> service.getString(R.string.radar_status_detail_profile, profile)
