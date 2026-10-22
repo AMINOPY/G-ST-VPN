@@ -92,8 +92,9 @@ object NotificationManager {
             }
 
         mBuilder = NotificationCompat.Builder(service, channelId)
-            .setSmallIcon(R.drawable.ic_stat_name)
-            .setContentTitle(currentConfig?.remarks ?: service.getString(R.string.app_name))
+            .setSmallIcon(R.drawable.ic_radar)
+            .setContentTitle(service.getString(R.string.radar_status_connected))
+            .setContentText(buildRadarDetails(service, currentConfig?.remarks))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setShowWhen(false)
@@ -113,6 +114,20 @@ object NotificationManager {
         //mBuilder?.setDefaults(NotificationCompat.FLAG_ONLY_ALERT_ONCE)
 
         service.startForeground(NOTIFICATION_ID, mBuilder?.build())
+    }
+
+    private fun buildRadarDetails(service: Service, profileName: String?): String {
+        val guid = MmkvManager.decodeSettingsString(AppConfig.PREF_CURR_CONFIG_GUID, "")
+        val ping = guid?.takeIf { it.isNotBlank() }
+            ?.let { MmkvManager.decodeServerAffiliationInfo(it)?.testDelayMillis }
+            ?.takeIf { it >= 0L }
+        val profile = profileName?.takeIf { it.isNotBlank() }
+        return when {
+            profile != null && ping != null -> service.getString(R.string.radar_status_detail_profile_ping, profile, ping)
+            profile != null -> service.getString(R.string.radar_status_detail_profile, profile)
+            ping != null -> service.getString(R.string.radar_status_detail_ping, ping)
+            else -> service.getString(R.string.radar_status_detail_idle)
+        }
     }
 
     /**
