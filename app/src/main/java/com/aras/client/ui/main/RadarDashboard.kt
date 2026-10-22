@@ -97,9 +97,11 @@ fun RadarDashboard(
             // resolver covered by RadarStateTest; do not infer success from animation.
             val snapshot = TunnelSnapshot(
                 sessionId = selectedGuid?.hashCode()?.toLong() ?: 0L,
-                phase = TunnelPhase.RUNNING,
+                phase = if (result.tunnelActive) TunnelPhase.RUNNING else TunnelPhase.ERROR,
                 tunInterfaceUp = result.tunnelActive,
-                trafficBytesLastSample = 0L,
+                // A successful response and IP parsed on the Android VPN Network proves
+                // that this probe carried real bytes through the tunnel.
+                trafficBytesLastSample = if (result.verified && !result.ip.isNullOrBlank()) 1L else 0L,
                 ipCheck = if (result.verified && !result.ip.isNullOrBlank()) {
                     IpCheck.Verified(result.ip)
                 } else {
