@@ -29,9 +29,6 @@ import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
 
-/** Value stored in MMKV for the radar theme. "0" system, "1" light, "2" dark. */
-const val RADAR_THEME_MODE = "3"
-
 private val RadarGreen = Color(0xFF39FF88)
 private val RadarAmber = Color(0xFFFFB000)
 private val RadarCyan = Color(0xFF5CF2FF)
