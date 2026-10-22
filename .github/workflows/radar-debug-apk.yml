@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/radar-theme
+      - feature/last-of-us-survival-theme
   pull_request:
     branches:
       - main
