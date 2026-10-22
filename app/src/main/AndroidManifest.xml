@@ -93,7 +93,8 @@
                 <data android:scheme="content" />
                 <data android:scheme="file" />
                 <data android:mimeType="application/octet-stream" />
-                <data android:pathPattern=".*\\.arasc" />
+                <data android:pathPattern=".*\\.RDR" />
+                <data android:pathPattern=".*\\.rdr" />
             </intent-filter>
 
             <meta-data
