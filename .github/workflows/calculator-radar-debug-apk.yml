@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - feature/calculator-on-radar-restoration
+  pull_request:
+    branches:
+      - fix/radar-vpn-full-restoration
   workflow_dispatch:
 
 permissions:
