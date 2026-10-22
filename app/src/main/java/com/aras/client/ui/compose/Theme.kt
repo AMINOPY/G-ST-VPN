@@ -187,15 +187,19 @@ object ThemeManager {
     )
     val dynamicColorEnabled: StateFlow<Boolean> = _dynamicColorEnabled.asStateFlow()
 
-    private val _radarTheme = MutableStateFlow(
-        MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME, "default") == "radar"
+    private val _uiTheme = MutableStateFlow(
+        MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME, "default") ?: "default"
     )
-    val radarTheme: StateFlow<Boolean> = _radarTheme.asStateFlow()
+    val uiTheme: StateFlow<String> = _uiTheme.asStateFlow()
+    val radarTheme: StateFlow<Boolean> = MutableStateFlow(_uiTheme.value == "radar")
 
-    fun setRadarTheme(enabled: Boolean) {
-        MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, if (enabled) "radar" else "default")
-        _radarTheme.value = enabled
+    fun setUiTheme(theme: String) {
+        val safeTheme = theme.takeIf { it in setOf("default", "radar", "survival") } ?: "default"
+        MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, safeTheme)
+        _uiTheme.value = safeTheme
     }
+
+    fun setRadarTheme(enabled: Boolean) = setUiTheme(if (enabled) "radar" else "default")
 
     fun setThemeMode(mode: String) {
         MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, mode)
@@ -212,8 +216,7 @@ object ThemeManager {
             MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "0") ?: "0"
         _dynamicColorEnabled.value =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
-        _radarTheme.value =
-            MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME, "default") == "radar"
+        _uiTheme.value = MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME, "default") ?: "default"
     }
 }
 
@@ -252,7 +255,6 @@ fun resolveDarkTheme(): Boolean {
         "2" -> true
         RADAR_THEME_MODE -> true
         PERSEPOLIS_THEME_MODE -> true
-        SURVIVAL_THEME_MODE -> true
         else -> isSystemInDarkTheme()
     }
 }
@@ -266,9 +268,10 @@ fun AppTheme(
 ) {
     val dynamicColor by ThemeManager.dynamicColorEnabled.collectAsState()
     val themeMode by ThemeManager.themeMode.collectAsState()
-    val isRadar = themeMode == RADAR_THEME_MODE
+    val uiTheme by ThemeManager.uiTheme.collectAsState()
+    val isRadar = uiTheme == "radar" || themeMode == RADAR_THEME_MODE
     val isPersepolis = themeMode == PERSEPOLIS_THEME_MODE
-    val isSurvival = themeMode == SURVIVAL_THEME_MODE
+    val isSurvival = uiTheme == "survival"
     val context = LocalContext.current
     // Keep special theme palettes consistent regardless of the system light/dark setting.
     val effectiveDarkTheme = isRadar || isPersepolis || isSurvival || darkTheme
