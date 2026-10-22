@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,6 +74,9 @@ fun RadarDashboard(
     )
     var verification by remember { mutableStateOf(RadarVerification.DISCONNECTED) }
     var publicIp by remember { mutableStateOf<String?>(null) }
+    // Each blip represents an actual periodic health check of the selected tunnel,
+    // not a pretend scan of remote devices.
+    val recentHealthChecks = remember { mutableStateListOf<Boolean>() }
     // Start compact so the server/configuration list remains visible on phone screens.
     var expanded by remember { mutableStateOf(false) }
 
@@ -80,6 +84,7 @@ fun RadarDashboard(
         publicIp = null
         if (!isRunning) {
             verification = RadarVerification.DISCONNECTED
+            recentHealthChecks.clear()
             return@LaunchedEffect
         }
 
@@ -91,14 +96,16 @@ fun RadarDashboard(
             publicIp = result.ip
             // A successful ping for the selected profile is a direct health signal.
             // Do not keep the radar red merely because a public-IP endpoint is blocked.
+            val healthy = result.tunnelActive && result.verified && hasPing
             verification = when {
                 // A server-profile ping alone must never override a missing Android VPN tunnel.
                 !result.tunnelActive -> RadarVerification.TUNNEL_LOST
-                result.verified && hasPing -> RadarVerification.VERIFIED
-                // If the VPN tunnel is present but external egress cannot be confirmed,
-                // keep the radar in DANGER instead of showing a false green state.
+                healthy -> RadarVerification.VERIFIED
+                // No successful ping or no verified egress must never be shown as green.
                 else -> RadarVerification.UNVERIFIED
             }
+            recentHealthChecks.add(0, healthy)
+            while (recentHealthChecks.size > 6) recentHealthChecks.removeAt(recentHealthChecks.lastIndex)
             delay(5_000)
         }
     }
@@ -234,24 +241,15 @@ fun RadarDashboard(
                 palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,
                 title = statusLabel,
                 subtitle = statusDetail,
-                nodes = when (verification) {
-                    RadarVerification.VERIFIED -> listOf(
-                        // Decorative radar blips indicate a verified tunnel signal; they are not scanned hosts.
-                        RadarNode(22f, 0.34f, 75),
-                        RadarNode(68f, 0.61f, 92),
-                        RadarNode(132f, 0.46f, 68),
-                        RadarNode(196f, 0.72f, 105),
-                        RadarNode(247f, 0.39f, 84),
-                        RadarNode(318f, 0.57f, 73),
-                    )
-                    RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> listOf(
-                        RadarNode(35f, 0.35f, 500),
-                        RadarNode(145f, 0.58f, 500),
-                        RadarNode(225f, 0.43f, 500),
-                        RadarNode(315f, 0.68f, 500),
-                    )
-                    else -> emptyList()
-                },
+                nodes = if (verification == RadarVerification.DISCONNECTED ||
+                    verification == RadarVerification.CHECKING) emptyList() else
+                    recentHealthChecks.mapIndexed { index, healthy ->
+                        RadarNode(
+                            angleDeg = (28f + index * 57f) % 360f,
+                            distance = 0.32f + (index % 3) * 0.16f,
+                            delayMs = if (healthy) 75L else 500L
+                        )
+                    },
             )
 
             if (expanded) {
