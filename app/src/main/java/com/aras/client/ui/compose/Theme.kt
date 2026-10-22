@@ -70,7 +70,7 @@ private val LightColor = lightColorScheme(
     surfaceContainerHighest = Color(0xFFE5DCD0), // Deep Sand
 )
 
-private val DarkColor = darkColorScheme(
+private val AuroraDarkColor = darkColorScheme(
     primary = Color(0xFF54FFC0), // Aurora Mint
     onPrimary = Color(0xFF06140E), // Obsidian
     primaryContainer = Color(0xFF174A37), // Aurora Forest
@@ -105,6 +105,41 @@ private val DarkColor = darkColorScheme(
     surfaceContainer = Color(0xFF101817), // Glass
     surfaceContainerHigh = Color(0xFF16211E), // Elevated Glass
     surfaceContainerHighest = Color(0xFF1D2C26), // High Glass
+)
+
+private val DarkColor = darkColorScheme(
+    primary = Color(0xFF90CAF9),
+    onPrimary = Color(0xFF102A43),
+    primaryContainer = Color(0xFF244A68),
+    onPrimaryContainer = Color(0xFFD6EAFB),
+    secondary = Color(0xFFB0BEC5),
+    onSecondary = Color(0xFF263238),
+    secondaryContainer = Color(0xFF37474F),
+    onSecondaryContainer = Color(0xFFE0E7EB),
+    tertiary = Color(0xFFA5B4FC),
+    onTertiary = Color(0xFF20264A),
+    error = Color(0xFFFFB4AB),
+    errorContainer = Color(0xFF690005),
+    onError = Color(0xFF690005),
+    onErrorContainer = Color(0xFFFFDAD6),
+    background = Color(0xFF111418),
+    onBackground = Color(0xFFE1E2E8),
+    surface = Color(0xFF171A1F),
+    onSurface = Color(0xFFE1E2E8),
+    surfaceVariant = Color(0xFF30343B),
+    onSurfaceVariant = Color(0xFFC2C7D0),
+    outline = Color(0xFF8C919A),
+    outlineVariant = Color(0xFF444951),
+    inverseSurface = Color(0xFFE1E2E8),
+    inverseOnSurface = Color(0xFF292C31),
+    inversePrimary = Color(0xFF42617A),
+    scrim = Color(0xFF000000),
+    surfaceTint = Color(0xFF90CAF9),
+    surfaceContainerLowest = Color(0xFF0C0F12),
+    surfaceContainerLow = Color(0xFF191C21),
+    surfaceContainer = Color(0xFF1D2025),
+    surfaceContainerHigh = Color(0xFF282B31),
+    surfaceContainerHighest = Color(0xFF33363D),
 )
 
 private val CulturalNightColor = darkColorScheme(
@@ -194,6 +229,7 @@ val toastIconCircleBg = Color(0x33FFFFFF) // Semi-transparent White
 val toastTextColor = Color.White // White
 
 object ThemeManager {
+    private const val PREF_UI_THEME = "pref_ui_theme"
     private const val PREF_CULTURAL_PATTERN_INTENSITY = "cultural_pattern_intensity"
     private const val PREF_CULTURAL_REDUCED_MOTION = "cultural_reduced_motion"
     private const val PREF_CULTURAL_PERSIAN_DIGITS = "cultural_persian_digits"
@@ -243,6 +279,19 @@ object ThemeManager {
     private val _themeMode = MutableStateFlow(readThemeMode())
     val themeMode: StateFlow<String> = _themeMode.asStateFlow()
 
+    private val _uiTheme = MutableStateFlow(
+        MmkvManager.decodeSettingsString(PREF_UI_THEME, "default")?.takeIf {
+            it in setOf("default", "radar", "survival", "aurora")
+        } ?: "default"
+    )
+    val uiTheme: StateFlow<String> = _uiTheme.asStateFlow()
+
+    fun setUiTheme(value: String) {
+        val safeValue = value.takeIf { it in setOf("default", "radar", "survival", "aurora") } ?: "default"
+        MmkvManager.encodeSettings(PREF_UI_THEME, safeValue)
+        _uiTheme.value = safeValue
+    }
+
     private val _dynamicColorEnabled = MutableStateFlow(
         MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
     )
@@ -260,6 +309,9 @@ object ThemeManager {
 
     fun refresh() {
         _themeMode.value = readThemeMode()
+        _uiTheme.value = MmkvManager.decodeSettingsString(PREF_UI_THEME, "default")?.takeIf {
+            it in setOf("default", "radar", "survival", "aurora")
+        } ?: "default"
         _dynamicColorEnabled.value =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
     }
@@ -295,10 +347,11 @@ val AppTypography = Typography(
 @Composable
 fun resolveDarkTheme(): Boolean {
     val mode by ThemeManager.themeMode.collectAsState()
-    return when (mode) {
-        "1" -> false
-        "2", "3" -> true
-        "4" -> false
+    val uiTheme by ThemeManager.uiTheme.collectAsState()
+    return when {
+        uiTheme == "radar" || uiTheme == "survival" -> true
+        mode == "1" -> false
+        mode in setOf("2", "3", "4") -> true
         else -> isSystemInDarkTheme()
     }
 }
@@ -312,19 +365,26 @@ fun AppTheme(
 ) {
     val dynamicColor by ThemeManager.dynamicColorEnabled.collectAsState()
     val themeMode by ThemeManager.themeMode.collectAsState()
+    val uiTheme by ThemeManager.uiTheme.collectAsState()
     val context = LocalContext.current
-    // Dynamic Android colors apply only to the regular/system theme. Curated themes
-    // keep their palettes so the cultural night colors are never replaced by wallpaper colors.
-    val colorScheme = when (themeMode) {
-        "3" -> CulturalNightColor
-        "4" -> AncientPaperColor
-        else -> when {
-            dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-            }
-            darkTheme -> DarkColor
-            else -> LightColor
+    val isRadarTheme = uiTheme == "radar"
+    val isSurvivalTheme = uiTheme == "survival"
+    val isAuroraTheme = uiTheme == "aurora"
+    val isPersepolisTheme = themeMode == "4"
+    val effectiveDarkTheme = isRadarTheme || isSurvivalTheme || isPersepolisTheme ||
+        (isAuroraTheme && darkTheme) || themeMode == "3" || darkTheme
+    // Ordinary system appearance is the default; special themes are opt-in.
+    val colorScheme = when {
+        isRadarTheme -> RadarColorScheme
+        isSurvivalTheme -> SurvivalColorScheme
+        isPersepolisTheme -> PersepolisColorScheme
+        themeMode == "3" -> CulturalNightColor
+        isAuroraTheme && darkTheme -> AuroraDarkColor
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
+        darkTheme -> DarkColor
+        else -> LightColor
     }
     val snackbarController = rememberAppSnackbarController()
 
@@ -334,8 +394,8 @@ fun AppTheme(
             val activity = view.context as? Activity ?: return@SideEffect
             val window = activity.window
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !darkTheme
-                isAppearanceLightNavigationBars = !darkTheme
+                isAppearanceLightStatusBars = !effectiveDarkTheme
+                isAppearanceLightNavigationBars = !effectiveDarkTheme
             }
         }
     }
@@ -351,6 +411,8 @@ fun AppTheme(
             Box(modifier = Modifier.fillMaxSize()) {
                 AppSnackbarBridge(controller = snackbarController)
                 content()
+                if (isPersepolisTheme) PersepolisOverlay()
+                if (isSurvivalTheme) SurvivalOverlay()
                 AppSnackbarHost(hostState = snackbarController.hostState)
             }
         }
