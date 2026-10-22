@@ -749,4 +749,7 @@
     <string name="radar_cmd_lost">Commander, signal lost. Checking recovery.</string>
     <string name="radar_cmd_manual_stop">Commander, operation stopped.</string>
 
+    <string name="radar_status_connecting">RADAR · Starting VPN…</string>
+    <string name="radar_status_detail_starting">Preparing the tunnel</string>
+
 </resources>
