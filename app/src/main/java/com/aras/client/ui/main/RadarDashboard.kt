@@ -93,14 +93,14 @@ fun RadarDashboard(
         while (true) {
             val result = withContext(Dispatchers.IO) { verifyVpnEgress(context) }
             publicIp = result.ip
-            // A successful ping for the selected profile is a direct health signal.
-            // Do not keep the radar red merely because a public-IP endpoint is blocked.
-            val healthy = result.tunnelActive && result.verified && hasPing
+            // Overall radar state reflects the real VPN tunnel and VPN-routed egress check.
+            // Individual configuration pings are evaluated separately below: one broken
+            // profile must not make a healthy tunnel itself look broken.
+            val tunnelVerified = result.tunnelActive && result.verified
             verification = when {
-                // A server-profile ping alone must never override a missing Android VPN tunnel.
                 !result.tunnelActive -> RadarVerification.TUNNEL_LOST
-                healthy -> RadarVerification.VERIFIED
-                // No successful ping or no verified egress must never be shown as green.
+                tunnelVerified -> RadarVerification.VERIFIED
+                // The tunnel exists, but egress verification failed: never show green.
                 else -> RadarVerification.UNVERIFIED
             }
             delay(5_000)
@@ -245,7 +245,10 @@ fun RadarDashboard(
                     RadarVerification.DISCONNECTED, RadarVerification.CHECKING -> emptyList()
                     else -> if (configPings.isNotEmpty()) {
                         configPings.mapIndexed { index, config ->
-                            val profileHealthy = config.pingMs > 0L
+                            // A selected profile must agree with the live selected-profile ping
+                            // signal; other profiles retain their own last measured ping result.
+                            val profileHealthy = config.pingMs > 0L &&
+                                (config.guid != selectedGuid || hasPing)
                             val tunnelHealthy = verification == RadarVerification.VERIFIED
                             RadarNode(
                                 bearingDeg = ((kotlin.math.abs(config.guid.hashCode().toLong()) % 360L).toFloat() + index * 17f) % 360f,
