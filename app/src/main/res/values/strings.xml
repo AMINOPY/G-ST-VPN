@@ -646,6 +646,7 @@
         <item>Follow system</item>
         <item>Light</item>
         <item>Dark</item>
+        <item>@string/ui_mode_persepolis</item>
     </string-array>
 
     <string name="routing_preset_china_whitelist">China Whitelist</string>
