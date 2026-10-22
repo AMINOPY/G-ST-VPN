@@ -905,4 +905,5 @@
     <string name="theme_ui_aurora_title">آرورا سنتینل</string>
     <string name="theme_ui_aurora_summary">داشبورد شیشه‌ای آینده‌نگر با جزئیات نورانی</string>
     <string name="theme_ui_style_title">سبک رابط اصلی برنامه</string>
+    <string name="menu_dpi_diagnostics">آزمایش تشخیصی DPI</string>
 </resources>
