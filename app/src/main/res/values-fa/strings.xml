@@ -682,8 +682,8 @@
     <string name="server_lab_xdrive_extra">JSON خام اضافی XDRIVE، قالب: { XDriveObject }</string>
 
     <!-- .arasc export and import -->
-    <string name="menu_item_import_config_arasc">وارد کردن فایل .arasc</string>
-    <string name="share_method_arasc">اشتراک‌گذاری به‌صورت فایل .arasc</string>
+    <string name="menu_item_import_config_arasc">وارد کردن فایل .RDR</string>
+    <string name="share_method_arasc">اشتراک‌گذاری به‌صورت فایل .RDR</string>
     <string name="title_export">خروجی</string>
     <string name="export_type_normal">عادی</string>
     <string name="export_type_protected">محافظت‌شده</string>
@@ -709,8 +709,8 @@
     <string name="export_success">با موفقیت خروجی گرفته شد</string>
     <string name="arasc_import_success">%d کانفیگ وارد شد</string>
     <string name="arasc_err_empty">فایل هیچ کانفیگی ندارد</string>
-    <string name="arasc_err_not_arasc">فایل .arasc معتبر نیست</string>
-    <string name="arasc_err_version">این نسخه .arasc پشتیبانی نمی‌شود</string>
+    <string name="arasc_err_not_arasc">فایل .RDR معتبر نیست</string>
+    <string name="arasc_err_version">این نسخه .RDR پشتیبانی نمی‌شود</string>
     <string name="arasc_err_password">رمز عبور اشتباه است یا فایل خراب شده</string>
     <string name="arasc_err_integrity">فایل خراب شده یا تغییر کرده است</string>
 
