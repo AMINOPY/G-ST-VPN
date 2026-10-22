@@ -39,7 +39,13 @@ jobs:
       - name: Install required Android SDK packages
         run: |
           set -euo pipefail
-          sdkmanager --install "platforms;android-37" "build-tools;37.0.0"
+          sdkmanager --install "platforms;android-37.0" "build-tools;37.0.0"
+          # Ubuntu 24.04 runners install API 37 under android-37.0, while
+          # Android Gradle Plugin resolves compileSdk = 37 via android-37.
+          if [ -d "$ANDROID_HOME/platforms/android-37.0" ] && [ ! -e "$ANDROID_HOME/platforms/android-37" ]; then
+            ln -s android-37.0 "$ANDROID_HOME/platforms/android-37"
+          fi
+          test -f "$ANDROID_HOME/platforms/android-37/android.jar"
           sdkmanager --list_installed
 
       - name: Set up Gradle
