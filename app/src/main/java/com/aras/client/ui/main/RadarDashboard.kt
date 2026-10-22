@@ -64,6 +64,13 @@ fun RadarDashboard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val dangerTransition = rememberInfiniteTransition(label = "radar-danger-blink")
+    val dangerAlpha by dangerTransition.animateFloat(
+        initialValue = 0.38f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(620), repeatMode = RepeatMode.Reverse),
+        label = "danger-pulse"
+    )
     var verification by remember { mutableStateOf(RadarVerification.DISCONNECTED) }
     var publicIp by remember { mutableStateOf<String?>(null) }
     // Start compact so the server/configuration list remains visible on phone screens.
@@ -188,7 +195,10 @@ fun RadarDashboard(
                         RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> "DANGER"
                         RadarVerification.CHECKING -> "CHECKING"
                     },
-                    color = statusColor,
+                    color = statusColor.copy(
+                        alpha = if (verification == RadarVerification.UNVERIFIED ||
+                            verification == RadarVerification.TUNNEL_LOST) dangerAlpha else 1f
+                    ),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
