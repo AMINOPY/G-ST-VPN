@@ -264,18 +264,19 @@
         <item>2</item>
     </string-array>
 
+    <!-- Appearance themes are separate from the System/Light/Dark UI mode setting. -->
     <string-array name="ui_theme_entries">
         <item>Default</item>
+        <item>@string/ui_mode_persepolis</item>
         <item>@string/ui_mode_radar</item>
         <item>@string/ui_mode_survival</item>
-        <item>@string/ui_mode_persepolis</item>
     </string-array>
 
     <string-array name="ui_theme_values" translatable="false">
         <item>default</item>
+        <item>persepolis</item>
         <item>radar</item>
         <item>survival</item>
-        <item>persepolis</item>
     </string-array>
 
     <string-array name="outbound_tag" translatable="false">
