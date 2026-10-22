@@ -892,4 +892,13 @@
     <string name="radar_cmd_manual_stop">Commander, operation stopped.</string>
     <string name="radar_status_connecting">Radar VPN · Starting VPN…</string>
     <string name="radar_status_detail_starting">Preparing the tunnel</string>
+    <string name="theme_ui_default_title">Default interface</string>
+    <string name="theme_ui_default_summary">Classic, clean interface with no special dashboard</string>
+    <string name="theme_ui_radar_title">Radar</string>
+    <string name="theme_ui_radar_summary">Live radar dashboard with signal and tunnel status</string>
+    <string name="theme_ui_survival_title">The Last of Us</string>
+    <string name="theme_ui_survival_summary">Survival-inspired field interface</string>
+    <string name="theme_ui_aurora_title">Aurora Sentinel</string>
+    <string name="theme_ui_aurora_summary">Futuristic glass dashboard with luminous details</string>
+    <string name="theme_ui_style_title">Home interface style</string>
 </resources>
