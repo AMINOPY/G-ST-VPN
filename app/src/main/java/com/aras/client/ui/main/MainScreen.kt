@@ -177,6 +177,7 @@ fun MainScreen(
 
     MainMenuSheet(
         show = showMenu,
+        isRdrX = uiTheme == "radar",
         onDismiss = { showMenu = false },
         onNavigate = onNavigate,
     )
