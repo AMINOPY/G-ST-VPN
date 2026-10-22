@@ -12,6 +12,7 @@ import com.aras.client.R
 import com.aras.client.core.CoreServiceManager
 import com.aras.client.core.LauncherManager
 import com.aras.client.handler.MmkvManager
+import com.aras.client.ui.main.MainActivity
 
 /**
  * AETHER GLASS is a separate home-screen widget. The legacy WidgetProvider
@@ -36,10 +37,16 @@ class AetherGlassWidgetProvider : AppWidgetProvider() {
         when (intent.action) {
             ACTION_TOGGLE -> {
                 try {
-                    if (CoreServiceManager.isRunning()) {
-                        LauncherManager.stopService(context)
-                    } else {
-                        LauncherManager.startServiceFromToggle(context)
+                    when {
+                        CoreServiceManager.isRunning() ->
+                            LauncherManager.stopService(context)
+                        !MmkvManager.getSelectServer().isNullOrBlank() ->
+                            LauncherManager.startServiceFromToggle(context)
+                        else ->
+                            context.startActivity(
+                                Intent(context, MainActivity::class.java)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
                     }
                 } finally {
                     refreshAll(context)
@@ -92,7 +99,7 @@ class AetherGlassWidgetProvider : AppWidgetProvider() {
         views.setTextViewText(
             R.id.aether_status,
             when {
-                running -> "SECURE LINK ACTIVE"
+                running -> "VPN SERVICE RUNNING"
                 hasProfile -> "SYSTEM STANDBY"
                 else -> "NO PROFILE SELECTED"
             },
