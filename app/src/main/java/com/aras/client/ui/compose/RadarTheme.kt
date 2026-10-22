@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
-import kotlin.random.Random
 
 /** Value stored in MMKV for the radar theme. "0" system, "1" light, "2" dark. */
 const val RADAR_THEME_MODE = "3"
@@ -78,19 +77,6 @@ val RadarColorScheme: ColorScheme = darkColorScheme(
     surfaceContainerHighest = Color(0xFF0E2B1C),
 )
 
-private data class RadarBlip(val angleDeg: Float, val distance: Float, val color: Color)
-
-private fun makeBlips(): List<RadarBlip> {
-    val rnd = Random(7)
-    return List(14) {
-        RadarBlip(
-            angleDeg = rnd.nextFloat() * 360f,
-            distance = 0.2f + rnd.nextFloat() * 0.75f,
-            color = if (rnd.nextInt(4) == 0) RadarAmber else RadarGreen
-        )
-    }
-}
-
 /**
  * Full-screen HUD layer drawn above the app content when the radar theme is on.
  * It never consumes touches, so the UI underneath stays fully usable.
@@ -107,7 +93,6 @@ fun RadarOverlay(modifier: Modifier = Modifier) {
         ),
         label = "sweep"
     )
-    val blips = remember { makeBlips() }
     val labelPaint = remember {
         Paint().apply {
             isAntiAlias = true
@@ -120,10 +105,9 @@ fun RadarOverlay(modifier: Modifier = Modifier) {
         val radius = min(size.width, size.height) * 0.42f
 
         drawRadarGrid(center, radius)
-        drawRadarBlips(center, radius, sweep, blips)
         drawRadarSweep(center, radius, sweep)
         drawHudFrame()
-        drawHudLabels(sweep, blips.size, labelPaint)
+        drawHudLabels(sweep, labelPaint)
     }
 }
 
@@ -162,27 +146,6 @@ private fun DrawScope.drawRadarGrid(center: Offset, radius: Float) {
             end = Offset(center.x + ux * radius, center.y + uy * radius),
             strokeWidth = line
         )
-    }
-}
-
-private fun DrawScope.drawRadarBlips(
-    center: Offset,
-    radius: Float,
-    sweep: Float,
-    blips: List<RadarBlip>
-) {
-    blips.forEach { blip ->
-        // Degrees since the sweep last passed this contact: small = freshly lit.
-        val age = ((sweep - blip.angleDeg) % 360f + 360f) % 360f
-        val glow = (1f - age / 140f).coerceIn(0f, 1f)
-        if (glow <= 0f) return@forEach
-        val rad = Math.toRadians(blip.angleDeg.toDouble())
-        val p = Offset(
-            center.x + cos(rad).toFloat() * radius * blip.distance,
-            center.y + sin(rad).toFloat() * radius * blip.distance
-        )
-        drawCircle(blip.color.copy(alpha = 0.25f * glow), radius = 10.dp.toPx(), center = p)
-        drawCircle(blip.color.copy(alpha = glow), radius = 2.5.dp.toPx(), center = p)
     }
 }
 
@@ -232,7 +195,7 @@ private fun DrawScope.drawHudFrame() {
     }
 }
 
-private fun DrawScope.drawHudLabels(sweep: Float, contacts: Int, paint: Paint) {
+private fun DrawScope.drawHudLabels(sweep: Float, paint: Paint) {
     paint.textSize = 11.sp.toPx()
     paint.color = android.graphics.Color.argb(200, 57, 255, 136)
     val margin = 22.dp.toPx()
@@ -241,7 +204,7 @@ private fun DrawScope.drawHudLabels(sweep: Float, contacts: Int, paint: Paint) {
         drawText("RADAR // SECTOR 07", margin, margin, paint)
         drawText("AZ $azimuth°", size.width - margin - paint.measureText("AZ $azimuth°"), margin, paint)
         drawText("RNG 25 NM", margin, size.height - margin, paint)
-        val contactsText = "CONTACTS $contacts"
+        val contactsText = "LIVE STATUS IN RADAR PANEL"
         drawText(
             contactsText,
             size.width - margin - paint.measureText(contactsText),
