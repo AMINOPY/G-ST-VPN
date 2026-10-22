@@ -878,4 +878,5 @@
     <string name="ai_diagnosis_vpn_note">VPN is active. If the issue occurs only in some apps, compare diagnostics with VPN on and off.</string>
     <string name="ai_diagnosis_healthy">No major issue was detected in the measurements collected. Results are estimates and can vary by destination, device, and server load.</string>
     <string name="ai_local_model_note">This first version uses local rule-based analysis; it does not send your data to an AI service.</string>
+    <string name="aether_glass_widget_description">Radar VPN glass connection widget</string>
 </resources>
