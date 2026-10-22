@@ -115,10 +115,14 @@ class RadarScanView @JvmOverloads constructor(
 
     /** Add a candidate at a radius derived from its measured latency; lower latency is nearer the center. */
     fun addTestedCandidate(pingMs: Long) {
+        val reachable = pingMs >= 0L
         val safePing = pingMs.coerceAtLeast(0L)
-        val fraction = (0.18f + (safePing.coerceAtMost(600L) / 600f) * 0.72f).coerceIn(0.18f, 0.9f)
+        // Unreachable candidates are deliberately shown as red, not coerced to a false green 0 ms.
+        val fraction = if (!reachable) 0.9f else
+            (0.18f + (safePing.coerceAtMost(600L) / 600f) * 0.72f).coerceIn(0.18f, 0.9f)
         val angle = Math.toRadians((sweepDegrees + 15f).toDouble()).toFloat()
-        blips.add(Blip(angle, fraction, colorForPing(safePing), System.currentTimeMillis()))
+        val color = if (reachable) colorForPing(safePing) else RED
+        blips.add(Blip(angle, fraction, color, System.currentTimeMillis()))
         if (blips.size > MAX_BLIPS) blips.removeAt(0)
         invalidate()
     }
