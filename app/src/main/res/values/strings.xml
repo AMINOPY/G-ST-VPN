@@ -901,4 +901,5 @@
     <string name="theme_ui_aurora_title">Aurora Sentinel</string>
     <string name="theme_ui_aurora_summary">Futuristic glass dashboard with luminous details</string>
     <string name="theme_ui_style_title">Home interface style</string>
+    <string name="menu_dpi_diagnostics">Run DPI diagnostics</string>
 </resources>
