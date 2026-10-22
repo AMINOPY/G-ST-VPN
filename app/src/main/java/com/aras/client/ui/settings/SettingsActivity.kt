@@ -45,6 +45,7 @@ import com.aras.client.ui.compose.SettingsListItem
 import com.aras.client.ui.compose.SettingsMenuItem
 import com.aras.client.ui.compose.SettingsSwitchItem
 import com.aras.client.ui.compose.ThemeManager
+import com.aras.client.ui.compose.ThemePicker
 import com.aras.client.ui.compose.verticalScrollbar
 import com.aras.client.util.Utils
 
@@ -267,10 +268,7 @@ fun SettingsScreen(
                         AppLocaleManager.setApplicationLanguage(it)
                     }
                 )
-                SettingsListItem(
-                    title = stringResource(R.string.title_pref_ui_mode_night),
-                    entries = uiModeNightEntries,
-                    values = uiModeNightValues,
+                ThemePicker(
                     selectedValue = uiModeNight,
                     onSelected = {
                         uiModeNight = it
