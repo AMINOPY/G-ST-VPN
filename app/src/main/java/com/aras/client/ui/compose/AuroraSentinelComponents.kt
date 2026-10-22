@@ -54,7 +54,7 @@ enum class AuroraLinkState {
 data class AuroraRadarContact(
     val id: String,
     val pingMs: Int?,
-    val tunnelVerified: Boolean,
+    val profileResponding: Boolean,
     val tested: Boolean = true
 )
 
@@ -242,7 +242,7 @@ fun AuroraSentinelRadar(
                     val ping = contact.pingMs
                     val pointColor = when {
                         !contact.tested -> Color(0xFFFFC56E)
-                        !contact.tunnelVerified -> Color(0xFFFF5369)
+                        !contact.profileResponding -> Color(0xFFFF5369)
                         ping == null || ping < 0 -> Color(0xFFFF5369)
                         else -> Color(0xFF55FFC0)
                     }
