@@ -754,4 +754,7 @@
     <string name="radar_cmd_lost">فرمانده، سیگنال از دست رفت؛ در حال بررسی بازیابی.</string>
     <string name="radar_cmd_manual_stop">فرمانده، عملیات متوقف شد.</string>
 
+    <string name="radar_status_connecting">رادار · در حال راه‌اندازی VPN…</string>
+    <string name="radar_status_detail_starting">در حال آماده‌سازی تونل</string>
+
 </resources>
