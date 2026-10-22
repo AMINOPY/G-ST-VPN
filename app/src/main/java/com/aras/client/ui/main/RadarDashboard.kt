@@ -103,9 +103,10 @@ fun RadarDashboard(
                 sessionId = selectedGuid?.hashCode()?.toLong() ?: 0L,
                 phase = if (result.tunnelActive) TunnelPhase.RUNNING else TunnelPhase.ERROR,
                 tunInterfaceUp = result.tunnelActive,
-                // A successful response and IP parsed on the Android VPN Network proves
-                // that this probe carried real bytes through the tunnel.
-                trafficBytesLastSample = if (result.verified && !result.ip.isNullOrBlank()) 1L else 0L,
+                // This lightweight probe does not read the VPN service's byte counters.
+                // Keep telemetry honest: the successful VPN-bound IP request is represented
+                // by IpCheck.Verified, not by inventing a traffic-byte count.
+                trafficBytesLastSample = 0L,
                 ipCheck = if (result.verified && !result.ip.isNullOrBlank()) {
                     IpCheck.Verified(result.ip)
                 } else {
