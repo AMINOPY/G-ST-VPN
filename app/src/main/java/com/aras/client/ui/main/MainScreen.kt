@@ -4,6 +4,18 @@ import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
 import com.aras.client.ui.subscription.SubEditActivity
 import androidx.compose.foundation.layout.Column
+import com.aras.client.ui.compose.AuroraStatusPill
+import com.aras.client.ui.compose.AuroraSentinelRadar
+import com.aras.client.ui.compose.AuroraRadarContact
+import com.aras.client.ui.compose.AuroraLinkState
+import com.aras.client.ui.compose.AuroraGlassCard
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -230,6 +242,11 @@ fun MainScreen(
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
                 ) {
+                    AuroraSentinelHero(
+                        isRunning = isRunning,
+                        selectedGuid = selectedGuid,
+                        selectedServerTitle = mainViewModel.connectedServerTitle(),
+                    )
                     updateAnnouncement?.let { announcement ->
                         UpdateAnnouncementBanner(
                             result = announcement,
@@ -308,4 +325,137 @@ fun MainScreen(
                 }
             }
         }
+}
+
+
+@Composable
+private fun AuroraSentinelHero(
+    isRunning: Boolean,
+    selectedGuid: String?,
+    selectedServerTitle: String,
+) {
+    val pingMs = selectedGuid?.let { guid ->
+        MmkvManager.decodeServerAffiliationInfo(guid)?.testDelayMillis
+    }?.takeIf { it > 0L }?.toInt()
+
+    // "Connected" is shown only when the existing app state says the VPN is running
+    // and the selected profile has a successful positive ping. Running without a
+    // successful test is shown as VERIFYING, not falsely labelled healthy.
+    val state = when {
+        !isRunning -> AuroraLinkState.OFF
+        pingMs != null -> AuroraLinkState.CONNECTED
+        else -> AuroraLinkState.CONNECTING
+    }
+    val statusLabel = when (state) {
+        AuroraLinkState.OFF -> "NO SIGNAL"
+        AuroraLinkState.CONNECTING -> "VERIFYING TUNNEL"
+        AuroraLinkState.CONNECTED -> "TUNNEL RESPONDING"
+        AuroraLinkState.DANGER -> "LINK FAILURE"
+    }
+    val statusSubtitle = when (state) {
+        AuroraLinkState.OFF -> "VPN DISCONNECTED"
+        AuroraLinkState.CONNECTING -> "WAITING FOR A VALID PING"
+        AuroraLinkState.CONNECTED -> "PROFILE RESPONSE CONFIRMED"
+        AuroraLinkState.DANGER -> "CONNECTION NEEDS ATTENTION"
+    }
+
+    AuroraGlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        androidx.compose.foundation.layout.Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "A U R O R A   /   S E N T I N E L",
+                    color = Color(0xFF91A39A),
+                    fontSize = 9.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.7.sp
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "TUNNEL RADAR",
+                    color = Color(0xFFF1F8F4),
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.5.sp
+                )
+            }
+            AuroraStatusPill(label = statusLabel, state = state)
+        }
+        Spacer(Modifier.height(2.dp))
+        AuroraSentinelRadar(
+            state = state,
+            contacts = if (selectedGuid != null && pingMs != null) {
+                listOf(
+                    AuroraRadarContact(
+                        id = selectedGuid,
+                        pingMs = pingMs,
+                        tunnelVerified = true,
+                        tested = true
+                    )
+                )
+            } else {
+                emptyList()
+            },
+            centerLabel = if (state == AuroraLinkState.OFF) "NO SIGNAL" else {
+                pingMs?.let { "$it MS" } ?: "SCANNING"
+            },
+            centerSubtitle = statusSubtitle,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+        )
+        Spacer(Modifier.height(8.dp))
+        androidx.compose.foundation.layout.Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "SELECTED PROFILE",
+                    color = Color(0xFF91A39A),
+                    fontSize = 8.sp,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 0.8.sp
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = selectedServerTitle.ifBlank { "No profile selected" },
+                    color = Color(0xFFE5F4EC),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1
+                )
+            }
+            Column(horizontalAlignment = androidx.compose.ui.Alignment.End) {
+                Text(
+                    text = "PROFILE PING",
+                    color = Color(0xFF91A39A),
+                    fontSize = 8.sp,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 0.8.sp
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = pingMs?.let { "$it ms" } ?: "--",
+                    color = when {
+                        !isRunning -> Color(0xFF77827F)
+                        pingMs != null -> Color(0xFF55FFC0)
+                        else -> Color(0xFFFFC56E)
+                    },
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
+        }
+    }
 }
