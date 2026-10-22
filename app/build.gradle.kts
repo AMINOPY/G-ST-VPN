@@ -113,7 +113,7 @@ android {
             .map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }
             .forEach { output ->
                 val abi = output.getFilter("ABI") ?: "universal"
-                output.outputFileName = "ArasClient_${variant.versionName}_${abi}.apk"
+                output.outputFileName = "RADAR_VPN_${variant.versionName}_${abi}.apk"
                 output.versionCodeOverride =
                     variant.versionCode + (abiVersionCodes[abi] ?: 0)
             }
