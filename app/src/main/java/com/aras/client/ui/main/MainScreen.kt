@@ -256,14 +256,14 @@ fun MainScreen(
                                 ?: mainViewModel.connectedServerTitle()
                         )
                     }
-                    if (isRadarTheme) {
-                        RadarDashboard(
-                            isRunning = isRunning,
-                            hasPing = hasPing,
-                            isDarkTheme = isDarkTheme,
-                            serverTitle = mainViewModel.connectedServerTitle()
-                        )
-                    }
+                    // The live radar is a core VPN status feature, not a UI theme.
+                    // Keep it visible with every theme; only its appearance may follow the theme.
+                    RadarDashboard(
+                        isRunning = isRunning,
+                        hasPing = hasPing,
+                        isDarkTheme = isDarkTheme,
+                        serverTitle = mainViewModel.connectedServerTitle()
+                    )
                     updateAnnouncement?.let { announcement ->
                         UpdateAnnouncementBanner(
                             result = announcement,
