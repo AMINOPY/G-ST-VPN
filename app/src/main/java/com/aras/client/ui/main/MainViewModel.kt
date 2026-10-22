@@ -390,11 +390,10 @@ class MainViewModel(
                 initialPageReady.await()
                 delay(32)
                 dataSource.initAssets()
-                FreeSubManager.sync(getApplication())  // suspend, syncMutex-serialized
-                // The Free group is created by the sync above — refresh tabs
+                // Public free-config feeds are intentionally not fetched during first-run
+                // initialization. Users can discover and review candidates from Radar Config.
                 setupGroupTab(forceRefresh = true).join()
                 dataSource.syncSubscriptions()
-                FreeSubManager.protectAll()  // covers sub-fetch imports
                 refreshGeoIPIfDue()
             } catch (cancelled: CancellationException) {
                 throw cancelled
