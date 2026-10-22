@@ -28,7 +28,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -74,9 +73,6 @@ fun RadarDashboard(
     )
     var verification by remember { mutableStateOf(RadarVerification.DISCONNECTED) }
     var publicIp by remember { mutableStateOf<String?>(null) }
-    // Each blip represents an actual periodic health check of the selected tunnel,
-    // not a pretend scan of remote devices.
-    val recentHealthChecks = remember { mutableStateListOf<Boolean>() }
     // Start compact so the server/configuration list remains visible on phone screens.
     var expanded by remember { mutableStateOf(false) }
 
@@ -84,7 +80,6 @@ fun RadarDashboard(
         publicIp = null
         if (!isRunning) {
             verification = RadarVerification.DISCONNECTED
-            recentHealthChecks.clear()
             return@LaunchedEffect
         }
 
@@ -104,8 +99,6 @@ fun RadarDashboard(
                 // No successful ping or no verified egress must never be shown as green.
                 else -> RadarVerification.UNVERIFIED
             }
-            recentHealthChecks.add(0, healthy)
-            while (recentHealthChecks.size > 6) recentHealthChecks.removeAt(recentHealthChecks.lastIndex)
             delay(5_000)
         }
     }
@@ -241,15 +234,14 @@ fun RadarDashboard(
                 palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,
                 title = statusLabel,
                 subtitle = statusDetail,
-                nodes = if (verification == RadarVerification.DISCONNECTED ||
-                    verification == RadarVerification.CHECKING) emptyList() else
-                    recentHealthChecks.mapIndexed { index, healthy ->
-                        RadarNode(
-                            bearingDeg = (28f + index * 57f) % 360f,
-                            distance01 = 0.32f + (index % 3) * 0.16f,
-                            pingMs = if (healthy) 75 else 500
-                        )
-                    },
+                // One blip represents the currently selected configuration/tunnel health.
+                // Never fabricate a cluster of "other configs" from repeated samples.
+                nodes = when (verification) {
+                    RadarVerification.VERIFIED -> listOf(RadarNode(45f, 0.52f, 75))
+                    RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST ->
+                        listOf(RadarNode(45f, 0.52f, 500))
+                    else -> emptyList()
+                },
             )
 
             if (expanded) {
