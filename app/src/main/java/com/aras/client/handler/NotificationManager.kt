@@ -93,8 +93,8 @@ object NotificationManager {
 
         mBuilder = NotificationCompat.Builder(service, channelId)
             .setSmallIcon(R.drawable.ic_radar)
-            .setContentTitle(service.getString(R.string.radar_status_connected))
-            .setContentText(buildRadarDetails(service, currentConfig?.remarks))
+            .setContentTitle(service.getString(R.string.radar_status_connecting))
+            .setContentText(service.getString(R.string.radar_status_detail_starting))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setShowWhen(false)
@@ -128,6 +128,15 @@ object NotificationManager {
             ping != null -> service.getString(R.string.radar_status_detail_ping, ping)
             else -> service.getString(R.string.radar_status_detail_idle)
         }
+    }
+
+    /** Update the existing foreground notification after the core loop starts. */
+    fun updateRadarConnected() {
+        val service = getService() ?: return
+        val builder = mBuilder ?: return
+        builder.setContentTitle(service.getString(R.string.radar_status_connected))
+        builder.setContentText(buildRadarDetails(service, null))
+        getNotificationManager()?.notify(NOTIFICATION_ID, builder.build())
     }
 
     /**
@@ -189,13 +198,8 @@ object NotificationManager {
      */
     private fun updateNotification(contentText: String?, proxyTraffic: Long, directTraffic: Long) {
         if (mBuilder != null) {
-            if (proxyTraffic < NOTIFICATION_ICON_THRESHOLD && directTraffic < NOTIFICATION_ICON_THRESHOLD) {
-                mBuilder?.setSmallIcon(R.drawable.ic_stat_name)
-            } else if (proxyTraffic > directTraffic) {
-                mBuilder?.setSmallIcon(R.drawable.ic_stat_proxy)
-            } else {
-                mBuilder?.setSmallIcon(R.drawable.ic_stat_direct)
-            }
+            // Keep the monochrome R mark stable; traffic values remain in the notification text.
+            mBuilder?.setSmallIcon(R.drawable.ic_radar)
             mBuilder?.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
             mBuilder?.setContentText(contentText)
             getNotificationManager()?.notify(NOTIFICATION_ID, mBuilder?.build())
