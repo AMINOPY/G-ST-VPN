@@ -252,6 +252,7 @@ fun resolveDarkTheme(): Boolean {
         "2" -> true
         RADAR_THEME_MODE -> true
         PERSEPOLIS_THEME_MODE -> true
+        SURVIVAL_THEME_MODE -> true
         else -> isSystemInDarkTheme()
     }
 }
@@ -267,12 +268,14 @@ fun AppTheme(
     val themeMode by ThemeManager.themeMode.collectAsState()
     val isRadar = themeMode == RADAR_THEME_MODE
     val isPersepolis = themeMode == PERSEPOLIS_THEME_MODE
+    val isSurvival = themeMode == SURVIVAL_THEME_MODE
     val context = LocalContext.current
     // Keep special theme palettes consistent regardless of the system light/dark setting.
-    val effectiveDarkTheme = isRadar || isPersepolis || darkTheme
+    val effectiveDarkTheme = isRadar || isPersepolis || isSurvival || darkTheme
     val colorScheme = when {
         isRadar -> RadarColorScheme
         isPersepolis -> PersepolisColorScheme
+        isSurvival -> SurvivalColorScheme
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
@@ -307,6 +310,7 @@ fun AppTheme(
                 content()
                 if (isRadar) RadarOverlay()
                 if (isPersepolis) PersepolisOverlay()
+                if (isSurvival) SurvivalOverlay()
                 AppSnackbarHost(hostState = snackbarController.hostState)
             }
         }
