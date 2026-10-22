@@ -100,28 +100,33 @@ class WidgetProvider : AppWidgetProvider() {
         val affiliation = selectedGuid?.let(MmkvManager::decodeServerAffiliationInfo)
         val ping = affiliation?.testDelayMillis ?: -1L
         val configName = profile?.remarks?.takeIf { it.isNotBlank() } ?: profile?.server ?: "No configuration selected"
+        val configPingOk = ping > 0L
         val status = when {
             checking -> "CHECKING TUNNEL"
             !serviceRunning -> "OFFLINE · NO TUNNEL"
-            verifiedTunnel -> "TUNNEL VERIFIED"
-            else -> "DANGER · TUNNEL NOT VERIFIED"
+            !verifiedTunnel -> "DANGER · TUNNEL NOT VERIFIED"
+            !configPingOk -> "DANGER · NO CONFIG PING"
+            else -> "TUNNEL VERIFIED"
         }
         val statusColor = when {
             checking -> 0xFFFFD36A.toInt()
-            verifiedTunnel -> 0xFF79F2A0.toInt()
-            else -> 0xFFFF646E.toInt()
+            serviceRunning && verifiedTunnel && configPingOk -> 0xFF79F2A0.toInt()
+            else -> 0xFFFF2938.toInt()
         }
         val detail = when {
             checking -> "Checking the Android VPN network"
             !serviceRunning -> "VPN service is not running"
-            verifiedTunnel -> "Traffic reached an external IP endpoint through VPN"
-            else -> "VPN service runs, but tunneled traffic could not be verified"
+            !verifiedTunnel -> "VPN service runs, but tunneled traffic could not be verified"
+            !configPingOk -> "Tunnel egress works, but the selected profile has no successful ping"
+            else -> "Tunnel egress and selected-profile ping are verified"
         }
 
         ids.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.widget_switch)
             views.setTextViewText(R.id.widget_status, status)
             views.setTextColor(R.id.widget_status, statusColor)
+            views.setInt(R.id.widget_status_dot, "setBackgroundColor", statusColor)
+            views.setInt(R.id.widget_radar_center_dot, "setBackgroundColor", statusColor)
             views.setTextViewText(R.id.widget_detail, detail)
             views.setTextViewText(R.id.widget_config_name, configName)
             views.setTextViewText(
