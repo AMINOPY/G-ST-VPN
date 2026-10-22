@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.aras.client.radar.ui.RadarScanView
+import android.content.Intent
+import com.aras.client.ui.main.MainActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
@@ -52,6 +54,15 @@ class RadarConfigActivity : ComponentActivity() {
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
                                         Text(if (item.latency == null) item.note else "TCP " + item.latency + " ms · " + item.note,
                                             color = when { item.latency == null -> MaterialTheme.colorScheme.error; item.latency <= 150 -> Color(0xFF00A86B); item.latency <= 300 -> Color(0xFFB8860B); else -> Color(0xFFC62828) })
+                                        if (item.latency != null) {
+                                            Button(onClick = {
+                                                startActivity(Intent(this@RadarConfigActivity, MainActivity::class.java).apply {
+                                                    action = "com.aras.client.action.IMPORT_RADAR_CONFIG"
+                                                    putExtra("radar_config", item.uri)
+                                                })
+                                                finish()
+                                            }) { Text("افزودن برای تست واقعی") }
+                                        }
                                     }
                                 }
                             }
