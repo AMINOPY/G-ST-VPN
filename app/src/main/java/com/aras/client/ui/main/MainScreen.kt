@@ -185,6 +185,7 @@ fun MainScreen(
             contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
             topBar = {
                 MainTopBar(
+                    isRdrX = uiTheme == "radar",
                     isLoading = isLoading,
                     showSearch = showSearch,
                     searchQuery = searchQuery,
@@ -232,6 +233,7 @@ fun MainScreen(
                         )
                     }
                     MainBottomBar(
+                        isRdrX = uiTheme == "radar",
                         displayText = barText.title,
                         subtitleOverride = if (uiState.status == MainStatus.Disconnected) null else barText.subtitle,
                         isRunning = isRunning,
