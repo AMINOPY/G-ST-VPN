@@ -54,6 +54,9 @@ private enum class RadarVerification { DISCONNECTED, CHECKING, VERIFIED, UNVERIF
 
 private data class RadarIpResult(val tunnelActive: Boolean, val verified: Boolean, val ip: String? = null)
 
+/** Last measured ping for one saved profile. Non-positive values mean unverified. */
+data class RadarConfigSignal(val guid: String, val name: String, val pingMs: Long)
+
 @Composable
 fun RadarDashboard(
     isRunning: Boolean,
@@ -61,6 +64,7 @@ fun RadarDashboard(
     selectedGuid: String?,
     isDarkTheme: Boolean,
     serverTitle: String,
+    configPings: List<RadarConfigSignal> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -234,13 +238,27 @@ fun RadarDashboard(
                 palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,
                 title = statusLabel,
                 subtitle = statusDetail,
-                // One blip represents the currently selected configuration/tunnel health.
-                // Never fabricate a cluster of "other configs" from repeated samples.
+                // One contact per saved configuration. Missing/failed profile pings
+                // remain red even when the selected tunnel is healthy; global danger
+                // forces all plotted contacts red.
                 nodes = when (verification) {
-                    RadarVerification.VERIFIED -> listOf(RadarNode(45f, 0.52f, 75))
-                    RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST ->
-                        listOf(RadarNode(45f, 0.52f, 500))
-                    else -> emptyList()
+                    RadarVerification.DISCONNECTED, RadarVerification.CHECKING -> emptyList()
+                    else -> if (configPings.isNotEmpty()) {
+                        configPings.mapIndexed { index, config ->
+                            val profileHealthy = config.pingMs > 0L
+                            val tunnelHealthy = verification == RadarVerification.VERIFIED
+                            RadarNode(
+                                bearingDeg = ((kotlin.math.abs(config.guid.hashCode().toLong()) % 360L).toFloat() + index * 17f) % 360f,
+                                distance01 = 0.24f + (index % 5) * 0.14f,
+                                pingMs = if (profileHealthy && tunnelHealthy) config.pingMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt() else 500
+                            )
+                        }
+                    } else when (verification) {
+                        RadarVerification.VERIFIED -> listOf(RadarNode(45f, 0.52f, 75))
+                        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST ->
+                            listOf(RadarNode(45f, 0.52f, 500))
+                        else -> emptyList()
+                    }
                 },
             )
 
