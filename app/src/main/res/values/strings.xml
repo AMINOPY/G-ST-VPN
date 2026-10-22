@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name" translatable="false">RADAR VPN</string>
+    <string name="app_name" translatable="false">Radar VPN</string>
     <string name="app_widget_name">Connect / Disconnect</string>
-    <string name="app_tile_name">RADAR VPN: Connect / Disconnect</string>
+    <string name="app_tile_name">Radar VPN: Connect / Disconnect</string>
     <string name="app_tile_first_use">Add a profile in the app before using this feature.</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
@@ -20,9 +20,9 @@
     <string name="toast_permission_denied">Permission denied</string>
     <string name="toast_permission_denied_notification">Notification permission denied</string>
     <string name="notification_action_more">Tap for more</string>
-    <string name="app_quick_connect_tile_name" tools:ignore="MissingTranslation">RADAR VPN: Update &amp; Connect</string>
-    <string name="quick_settings_tiles_title" tools:ignore="MissingTranslation">Add the two RADAR VPN tiles</string>
-    <string name="quick_settings_tiles_message" tools:ignore="MissingTranslation">Open Quick Settings, tap Edit, then add both RADAR VPN tiles: “Aras: Connect / Disconnect” and “Update &amp; Connect”. Android does not add third-party tiles automatically.</string>
+    <string name="app_quick_connect_tile_name" tools:ignore="MissingTranslation">Radar VPN: Update &amp; Connect</string>
+    <string name="quick_settings_tiles_title" tools:ignore="MissingTranslation">Add the two Radar VPN tiles</string>
+    <string name="quick_settings_tiles_message" tools:ignore="MissingTranslation">Open Quick Settings, tap Edit, then add both Radar VPN tiles: “Radar VPN: Connect / Disconnect” and “Update &amp; Connect”. Android does not add third-party tiles automatically.</string>
     <string name="action_got_it" tools:ignore="MissingTranslation">Got it</string>
     <string name="quick_connect_tile_running" tools:ignore="MissingTranslation">Updating subscription…</string>
     <string name="quick_connect_progress_stopping" tools:ignore="MissingTranslation">Stopping current connection…</string>
@@ -33,7 +33,7 @@
     <string name="quick_connect_success" tools:ignore="MissingTranslation">Subscription updated and connected</string>
     <string name="quick_connect_failure" tools:ignore="MissingTranslation">Update and connect failed</string>
     <string name="quick_connect_no_server" tools:ignore="MissingTranslation">No reachable server was found</string>
-    <string name="quick_connect_vpn_permission" tools:ignore="MissingTranslation">Allow VPN access in ArasClient first</string>
+    <string name="quick_connect_vpn_permission" tools:ignore="MissingTranslation">Allow VPN access in Radar VPN first</string>
     <string name="quick_connect_already_running" tools:ignore="MissingTranslation">An update is already running</string>
     <string name="toast_services_start">Starting service</string>
     <string name="toast_services_stop">Stopping service</string>
@@ -127,7 +127,7 @@
     <string name="menu_sub_check_update">Check new version</string>
     <string name="menu_sub_backup">Backup data</string>
     <string name="menu_sub_logcat">View logs</string>
-    <string name="menu_sub_about">About RADAR VPN</string>
+    <string name="menu_sub_about">About Radar VPN</string>
 
     <string name="export_include_subs">Include subscription links</string>
     <string name="export_include_subs_hint">Carry the subscription URLs so the receiver gets updates too</string>
@@ -721,7 +721,7 @@
     <string name="toast_connect_first_to_test">Connect first, then tap here to test the server</string>
     <string name="bar_test">Test</string>
     <string name="title_test_single">Test this server</string>
-    <string name="setup_title">Welcome to ArasClient</string>
+    <string name="setup_title">Welcome to Radar VPN</string>
     <string name="setup_subtitle">Pick a few quick preferences. You can change these later in settings.</string>
     <string name="setup_auto_sort">Auto-sort servers by ping after testing</string>
     <string name="setup_auto_connect">Auto-connect to the fastest server on launch</string>
