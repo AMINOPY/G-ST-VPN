@@ -146,8 +146,7 @@ fun SettingsScreen(
     var uiTheme by rememberMmkvString(AppConfig.PREF_UI_THEME, "default")
     var uiIconMode by remember {
         mutableStateOf(
-            context.getSharedPreferences("radar_launcher", android.content.Context.MODE_PRIVATE)
-                .getString("icon_mode", LauncherIconManager.MODE_DEFAULT) ?: LauncherIconManager.MODE_DEFAULT
+            LauncherIconManager.selectedMode(context)
         )
     }
     var calculatorAccessCodeInput by remember { mutableStateOf("") }
