@@ -36,6 +36,7 @@ class CoreVpnService : VpnService(), ServiceControl {
     private var isRunning = false
     private var tun2SocksService: Tun2SocksControl? = null
     private val isStartingLock = AtomicBoolean(false)
+    private val radarNotifier by lazy { com.aras.client.radar.RadarNotifier(this) }
 
     override fun onCreate() {
         super.onCreate()
@@ -74,6 +75,7 @@ class CoreVpnService : VpnService(), ServiceControl {
         }
 
         unlockStart()
+        radarNotifier.release()
         NotificationManager.cancelNotification()
     }
 
@@ -122,12 +124,14 @@ class CoreVpnService : VpnService(), ServiceControl {
             stopAllService()
             return
         }
+        radarNotifier.onTunnelConnected()
 
         // Start LAN sharing if enabled in settings
         RootLanSharing.startClientSharing(this)
     }
 
     override fun stopService() {
+        radarNotifier.onManualStop()
         stopAllService(true)
     }
 
@@ -358,7 +362,10 @@ private fun isAmneziaWgSelected(): Boolean {
 //        val info = loadVpnNetworkInfo(configName, emptyInfo)!! + (lastNetworkInfo ?: emptyInfo)
 //        saveVpnNetworkInfo(configName, info)
         unlockStart()
-        if (isRunning) ConnectionStatsManager.onSessionStopped()
+        if (isRunning) {
+            radarNotifier.onTunnelDisconnected()
+            ConnectionStatsManager.onSessionStopped()
+        }
         isRunning = false
 
         tun2SocksService?.stopTun2Socks()
