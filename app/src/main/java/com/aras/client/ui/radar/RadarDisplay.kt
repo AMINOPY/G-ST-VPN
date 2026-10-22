@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -42,7 +43,8 @@ enum class RadarState(val isActive: Boolean) {
     DISCONNECTED(false),
     CONNECTING(false),
     CONNECTED_VERIFIED(true),
-    TUNNEL_IP_UNVERIFIED(true),
+    // A tunnel interface without a verified VPN-routed request is not green/healthy.
+    TUNNEL_IP_UNVERIFIED(false),
     ERROR(false),
 }
 
@@ -83,6 +85,10 @@ data class RadarNode(
     val bearingDeg: Float,
     val distance01: Float,
     val pingMs: Int?,
+    val tunnelWorking: Boolean = true,
+    val checked: Boolean = true,
+    val id: String? = null,
+    val selected: Boolean = false,
 )
 
 data class RadarPalette(
@@ -153,7 +159,7 @@ fun RadarDisplay(
             warning = Color(0xFFFF3948),
             accent = Color(0xFF20FF79),
         )
-        RadarState.ERROR -> palette.copy(
+        RadarState.ERROR, RadarState.TUNNEL_IP_UNVERIFIED -> palette.copy(
             background = Color(0xFF210307),
             surface = Color(0xFF2A050A),
             radarBase = Color(0xFF260309),
@@ -193,13 +199,13 @@ fun RadarDisplay(
             RadarState.DISCONNECTED, RadarState.ERROR -> displayPalette.warning
             RadarState.CONNECTING -> displayPalette.connecting
             RadarState.CONNECTED_VERIFIED -> displayPalette.active
-            RadarState.TUNNEL_IP_UNVERIFIED -> displayPalette.connecting
+            RadarState.TUNNEL_IP_UNVERIFIED -> displayPalette.warning
         }, tween(500), label = "radarTitle"
     )
 
     val blinkOn = remember { androidx.compose.runtime.mutableStateOf(true) }
     LaunchedEffect(state) {
-        if (state == RadarState.ERROR) {
+        if (state == RadarState.ERROR || state == RadarState.TUNNEL_IP_UNVERIFIED) {
             while (true) {
                 blinkOn.value = !blinkOn.value
                 kotlinx.coroutines.delay(420)
@@ -209,7 +215,7 @@ fun RadarDisplay(
         }
     }
 
-    val radarActive = state.isActive || state == RadarState.ERROR
+    val radarActive = state.isActive || state == RadarState.ERROR || state == RadarState.TUNNEL_IP_UNVERIFIED
     val sweepAngle = remember { mutableFloatStateOf(0f) }
     LaunchedEffect(radarActive, reducedMotion) {
         if (!radarActive || reducedMotion) {
@@ -294,10 +300,13 @@ fun RadarDisplay(
                         val diff = ((angle - node.bearingDeg) % 360f + 360f) % 360f
                         val glow = if (reducedMotion || diff > 40f) 0f else 1f - diff / 40f
                         drawCircle(
-                            color = nodeColor(node.pingMs, displayPalette).copy(alpha = 0.35f + 0.5f * glow),
-                            radius = 3.dp.toPx() + 3.dp.toPx() * glow,
+                            color = nodeColor(node, displayPalette).copy(alpha = 0.35f + 0.5f * glow),
+                            radius = (if (node.selected) 4.dp.toPx() else 3.dp.toPx()) + 3.dp.toPx() * glow,
                             center = p,
                         )
+                        if (node.selected) {
+                            drawCircle(color = nodeColor(node, displayPalette), radius = 8.dp.toPx(), center = p, style = Stroke(width = 1.2.dp.toPx()))
+                        }
                     }
                 } else {
                     drawCircle(color = displayPalette.inactiveRing, radius = 2.5.dp.toPx(), center = c)
@@ -305,7 +314,7 @@ fun RadarDisplay(
             }
         }
         Spacer(Modifier.height(12.dp))
-        Text(title, color = titleColor.copy(alpha = if (state == RadarState.ERROR && !blinkOn.value) 0.28f else 1f), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+        Text(title, color = titleColor.copy(alpha = if ((state == RadarState.ERROR || state == RadarState.TUNNEL_IP_UNVERIFIED) && !blinkOn.value) 0.28f else 1f), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
         Spacer(Modifier.height(4.dp))
         Text(
             subtitle,
@@ -317,11 +326,13 @@ fun RadarDisplay(
     }
 }
 
-private fun nodeColor(pingMs: Int?, palette: RadarPalette): Color = when {
-    pingMs == null -> palette.inactiveRing
-    pingMs < 150 -> palette.active
-    pingMs < 300 -> palette.connecting
-    else -> palette.warning
+private fun nodeColor(node: RadarNode, palette: RadarPalette): Color = when {
+    !node.tunnelWorking -> Color(0xFFFF3038)
+    !node.checked -> Color(0xFFFFB547)
+    node.pingMs == null || node.pingMs < 0 -> Color(0xFFFF3038)
+    node.pingMs < 150 -> Color(0xFF35FF83)
+    node.pingMs < 300 -> Color(0xFFFFB547)
+    else -> Color(0xFFFF3038)
 }
 
 fun defaultTitle(state: RadarState): String = when (state) {
@@ -329,7 +340,7 @@ fun defaultTitle(state: RadarState): String = when (state) {
     RadarState.ERROR -> "DANGER"
     RadarState.CONNECTING -> "ESTABLISHING LINK"
     RadarState.CONNECTED_VERIFIED -> "SIGNAL ACTIVE"
-    RadarState.TUNNEL_IP_UNVERIFIED -> "TUNNEL ACTIVE · IP UNVERIFIED"
+    RadarState.TUNNEL_IP_UNVERIFIED -> "DANGER · NO VERIFIED EGRESS"
 }
 
 fun defaultSubtitle(state: RadarState): String = when (state) {
