@@ -1,12 +1,11 @@
 package com.aras.client.ui.calculator
 
 import android.content.Intent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -137,7 +135,7 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
                         Box(
                             modifier = Modifier.weight(1f).padding(vertical = 5.dp).aspectRatio(1f)
                                 .scale(scale).background(color, CircleShape)
-                                .clickable {
+                                .combinedClickable(onClick = {
                                     pressed = true
                                     when (key) {
                                         "AC" -> { display = "0"; storedValue = null; pendingOperator = null; startNewNumber = false }
@@ -197,7 +195,15 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
                                             }
                                         }
                                     }
-                                },
+                                }, onLongClick = {
+                                    if (key == "AC") {
+                                        LauncherIconManager.apply(context, LauncherIconManager.MODE_DEFAULT)
+                                        display = "RESTORED"
+                                        storedValue = null
+                                        pendingOperator = null
+                                        startNewNumber = true
+                                    }
+                                }),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(key, color = textColor, fontSize = if (key.length > 2) 21.sp else 27.sp, fontWeight = FontWeight.Medium)
