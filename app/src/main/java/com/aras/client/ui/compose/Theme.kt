@@ -281,10 +281,11 @@ fun AppTheme(
     val isPersepolis = uiTheme == "persepolis"
     val isSurvival = uiTheme == "survival"
     val context = LocalContext.current
-    // Keep special theme palettes consistent regardless of the system light/dark setting.
-    val effectiveDarkTheme = isRadar || isPersepolis || isSurvival || darkTheme
+    // RADAR is a UI theme, not a light/dark mode: honor the selected day/night setting.
+    // The Last of Us and Persepolis keep their intentionally fixed dark palettes.
+    val effectiveDarkTheme = isPersepolis || isSurvival || darkTheme
     val colorScheme = when {
-        isRadar -> RadarColorScheme
+        isRadar -> if (effectiveDarkTheme) RadarDarkColor else RadarLightColor
         isPersepolis -> PersepolisColorScheme
         isSurvival -> SurvivalColorScheme
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
