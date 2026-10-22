@@ -230,7 +230,7 @@ private fun SurvivalMenuSheet(
     val signal = Color(0xFF9BCB72)
     val paper = Color(0xFFD8D0B8)
     val muted = Color(0xFF8D9986)
-    val panel = Color(0xFF101711)
+    val panel = Color(0xFFD8D0B8)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -247,14 +247,14 @@ private fun SurvivalMenuSheet(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(5.dp))
-                    .background(Brush.horizontalGradient(listOf(Color(0xFF263827), panel, Color(0xFF1A2118))))
-                    .border(1.dp, signal.copy(alpha = 0.28f), RoundedCornerShape(5.dp))
+                    .background(Brush.horizontalGradient(listOf(Color(0xFFE7DFC5), Color(0xFFD8D0B8), Color(0xFFC8BEA1))))
+                    .border(1.dp, Color(0xFF80795F), RoundedCornerShape(5.dp))
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     Modifier.size(52.dp).clip(RoundedCornerShape(4.dp))
-                        .background(Color(0xFF354531)).border(1.dp, signal.copy(alpha = 0.45f), RoundedCornerShape(4.dp)),
+                        .background(Color(0xFF354531)).border(1.dp, Color(0xFF6F765F), RoundedCornerShape(4.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(painterResource(R.drawable.ic_aras_logo), contentDescription = null,
@@ -262,22 +262,22 @@ private fun SurvivalMenuSheet(
                 }
                 Spacer(Modifier.size(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("AFTER THE FALL", color = signal, style = MaterialTheme.typography.titleMedium,
+                    Text("AFTER THE FALL", color = Color(0xFF354531), style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Black)
-                    Text("FIELD TERMINAL  //  RADAR VPN", color = paper.copy(alpha = 0.85f),
+                    Text("FIELD TERMINAL  //  RADAR VPN", color = Color(0xFF343A2E),
                         style = MaterialTheme.typography.labelSmall)
-                    Text("FIELD MENU  •  ACCESS POINTS", color = muted, style = MaterialTheme.typography.labelSmall)
+                    Text("FIELD MENU  •  ACCESS POINTS", color = Color(0xFF5F6554), style = MaterialTheme.typography.labelSmall)
                 }
             }
             Spacer(Modifier.height(18.dp))
-            Text("OPERATIONS", color = signal, style = MaterialTheme.typography.labelMedium,
+            Text("FIELD NOTES  /  OPERATIONS", color = paper, style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 4.dp, bottom = 7.dp))
-            HorizontalDivider(color = signal.copy(alpha = 0.25f))
+            HorizontalDivider(color = Color(0xFF6A765C))
             Spacer(Modifier.height(4.dp))
             menuSections().forEach { section ->
                 Text(
                     text = stringResource(section.titleRes).uppercase(),
-                    color = muted,
+                    color = paper,
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 4.dp, top = 10.dp, bottom = 3.dp)
@@ -287,7 +287,7 @@ private fun SurvivalMenuSheet(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
                             .clip(RoundedCornerShape(5.dp))
                             .background(panel)
-                            .border(1.dp, Color(0xFF354235).copy(alpha = 0.7f), RoundedCornerShape(5.dp))
+                            .border(1.dp, Color(0xFF8D866C), RoundedCornerShape(5.dp))
                             .clickable {
                                 onDismiss()
                                 onNavigate(item.destination)
@@ -305,9 +305,9 @@ private fun SurvivalMenuSheet(
                         }
                         Spacer(Modifier.size(12.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(stringResource(item.destination.labelRes), color = paper,
+                            Text(stringResource(item.destination.labelRes), color = Color(0xFF20271E),
                                 style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                            Text(stringResource(item.subtitleRes), color = muted,
+                            Text(stringResource(item.subtitleRes), color = Color(0xFF59604F),
                                 style = MaterialTheme.typography.labelSmall)
                         }
                         Text("›", color = signal, style = MaterialTheme.typography.titleLarge)
