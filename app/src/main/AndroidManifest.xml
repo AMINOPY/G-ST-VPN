@@ -67,6 +67,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".ui.radar.DpiTestActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.main.MainActivity"
             android:exported="true"
             android:launchMode="singleTask">
