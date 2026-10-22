@@ -124,6 +124,12 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
                             animationSpec = tween(110, easing = FastOutSlowInEasing),
                             label = "calculator-button-scale"
                         )
+                        LaunchedEffect(pressed) {
+                            if (pressed) {
+                                delay(110)
+                                pressed = false
+                            }
+                        }
                         Box(
                             modifier = Modifier.weight(1f).padding(vertical = 5.dp).aspectRatio(1f)
                                 .scale(scale).background(color, CircleShape)
