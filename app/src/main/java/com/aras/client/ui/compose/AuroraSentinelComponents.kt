@@ -273,7 +273,7 @@ fun AuroraSentinelRadar(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = centerLabel,
-                color = accent,
+                color = if (state == AuroraLinkState.OFF) Color(0xFFFF5369) else accent,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Black,
                 fontFamily = FontFamily.Monospace,
