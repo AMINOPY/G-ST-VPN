@@ -195,12 +195,11 @@ object ThemeManager {
     val radarTheme: StateFlow<Boolean> = _radarTheme.asStateFlow()
 
     init {
-        // Older builds stored special themes in the day/night mode preference:
-        // 3 = Radar, 4 = Persepolis, 5 = The Last of Us. Migrate them into the
-        // independent UI-theme preference and restore a valid day/night mode.
+        // Older builds stored Radar and The Last of Us in the mode preference.
+        // Migrate only those into appearance themes. Persepolis (value 4) intentionally
+        // remains a selectable UI mode, as it was in the original settings.
         val legacyTheme = when (_themeMode.value) {
             "3" -> "radar"
-            PERSEPOLIS_THEME_MODE -> "persepolis"
             SURVIVAL_THEME_MODE -> "survival"
             else -> null
         }
@@ -216,7 +215,7 @@ object ThemeManager {
     }
 
     fun setUiTheme(theme: String) {
-        val safeTheme = theme.takeIf { it in setOf("default", "radar", "survival", "persepolis") } ?: "default"
+        val safeTheme = theme.takeIf { it in setOf("default", "radar", "survival") } ?: "default"
         MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, safeTheme)
         _uiTheme.value = safeTheme
         _radarTheme.value = safeTheme == "radar"
@@ -225,9 +224,9 @@ object ThemeManager {
     fun setRadarTheme(enabled: Boolean) = setUiTheme(if (enabled) "radar" else "default")
 
     fun setThemeMode(mode: String) {
-        // Day/night mode accepts only system, light, or dark. Special UI themes
-        // are stored exclusively in PREF_UI_THEME.
-        val safeMode = mode.takeIf { it in setOf("0", "1", "2") } ?: "0"
+        // 0=system, 1=light, 2=dark, 4=the original Persepolis/Parseh mode.
+        // Radar and The Last of Us remain independent UI appearance themes.
+        val safeMode = mode.takeIf { it in setOf("0", "1", "2", PERSEPOLIS_THEME_MODE) } ?: "0"
         MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, safeMode)
         _themeMode.value = safeMode
     }
@@ -279,7 +278,7 @@ fun resolveDarkTheme(): Boolean {
     val mode by ThemeManager.themeMode.collectAsState()
     return when (mode) {
         "1" -> false
-        "2" -> true
+        "2", PERSEPOLIS_THEME_MODE -> true
         else -> isSystemInDarkTheme()
     }
 }
@@ -295,7 +294,7 @@ fun AppTheme(
     val themeMode by ThemeManager.themeMode.collectAsState()
     val uiTheme by ThemeManager.uiTheme.collectAsState()
     val isRadar = uiTheme == "radar"
-    val isPersepolis = uiTheme == "persepolis"
+    val isPersepolis = themeMode == PERSEPOLIS_THEME_MODE
     val isSurvival = uiTheme == "survival"
     val context = LocalContext.current
     // RADAR is a UI theme, not a light/dark mode: honor the selected day/night setting.
