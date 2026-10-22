@@ -266,7 +266,7 @@
 
     <string-array name="ui_theme_entries">
         <item>Default</item>
-        <item>Radar</item>
+        <item>@string/ui_mode_radar</item>
         <item>@string/ui_mode_survival</item>
         <item>@string/ui_mode_persepolis</item>
     </string-array>
