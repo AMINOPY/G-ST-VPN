@@ -78,9 +78,11 @@ fun RadarDashboard(
             // A successful ping for the selected profile is a direct health signal.
             // Do not keep the radar red merely because a public-IP endpoint is blocked.
             verification = when {
-                hasPing -> RadarVerification.VERIFIED
+                // A server-profile ping alone must never override a missing Android VPN tunnel.
                 !result.tunnelActive -> RadarVerification.TUNNEL_LOST
                 result.verified -> RadarVerification.VERIFIED
+                // If the VPN tunnel is present but external egress cannot be confirmed,
+                // keep the radar in DANGER instead of showing a false green state.
                 else -> RadarVerification.UNVERIFIED
             }
             delay(5_000)
