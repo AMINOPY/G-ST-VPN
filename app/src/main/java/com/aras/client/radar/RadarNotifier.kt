@@ -80,12 +80,14 @@ class RadarNotifier(context: Context) {
 
     @Synchronized
     fun onManualStop() {
+        val hadActiveOrPendingConnection = connected || pendingLoss != null
         pendingLoss?.let(handler::removeCallbacks)
         pendingLoss = null
-        val shouldNotify = connected || hasConnectedBefore
         connected = false
-        suppressNextDisconnect = true
-        if (shouldNotify) showCommand(R.string.radar_cmd_manual_stop, GRAY)
+        suppressNextDisconnect = hadActiveOrPendingConnection
+        if (hadActiveOrPendingConnection) {
+            showCommand(R.string.radar_cmd_manual_stop, GRAY)
+        }
     }
 
     @Synchronized
