@@ -6,7 +6,6 @@
 [![Release](https://img.shields.io/github/v/release/AMINOPY/G-ST-VPN?style=for-the-badge&logo=github&color=0284c7&labelColor=101418)](https://github.com/AMINOPY/G-ST-VPN/releases)
 [![License](https://img.shields.io/badge/GPL--3.0-licensed?style=for-the-badge&color=38bdf8&labelColor=101418)](LICENSE)
 [![Platform](https://img.shields.io/badge/Android-7.0%2B-3ddc84?style=for-the-badge&logo=android&labelColor=101418)]()
-[![Telegram](https://img.shields.io/badge/Telegram-%40imArasTey-26a5e4?style=for-the-badge&logo=telegram&labelColor=101418)](https://t.me/imArasTey)
 
 </div>
 
@@ -328,12 +327,10 @@ See [LICENSE](LICENSE) for the full license text.
 
 <div align="center">
 
-[![GitHub](https://img.shields.io/badge/GitHub-ArasTey-181717?style=for-the-badge&logo=github)](https://github.com/ArasTey)
-[![Telegram](https://img.shields.io/badge/Telegram-imArasTey-26a5e4?style=for-the-badge&logo=telegram)](https://t.me/imArasTey)
 
 </div>
 
 ---
 
-<sub>Built with ☕️ by ArasTey</sub>
+<sub>RADAR VPN</sub>
 </div>
