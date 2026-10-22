@@ -156,14 +156,14 @@ fun RadarDashboard(
     val statusLabel = when (verification) {
         RadarVerification.DISCONNECTED -> "NO SIGNAL"
         RadarVerification.CHECKING -> "VERIFYING TUNNEL"
-        RadarVerification.TUNNEL_IP_UNVERIFIED -> "TUNNEL ACTIVE · IP UNVERIFIED"
+        RadarVerification.TUNNEL_IP_UNVERIFIED -> "DANGER · NO VERIFIED EGRESS"
         RadarVerification.TUNNEL_LOST -> "DANGER"
         RadarVerification.VERIFIED -> "SIGNAL ACTIVE"
     }
     val statusDetail = when (verification) {
         RadarVerification.DISCONNECTED -> "VPN tunnel inactive"
         RadarVerification.CHECKING -> "Checking VPN tunnel, exit IP and selected-config ping"
-        RadarVerification.TUNNEL_IP_UNVERIFIED -> if (!hasPing) "Tunnel is active; selected configuration has no successful ping" else "Tunnel is active, but VPN-routed IP verification failed"
+        RadarVerification.TUNNEL_IP_UNVERIFIED -> if (!hasPing) "DANGER: selected configuration has no successful ping" else "DANGER: traffic through the VPN could not be verified"
         RadarVerification.TUNNEL_LOST -> "VPN is enabled but the VPN network is not active"
         RadarVerification.VERIFIED -> "SECURE TUNNEL ESTABLISHED"
     }
@@ -268,7 +268,11 @@ fun RadarDashboard(
                             RadarNode(
                                 bearingDeg = ((kotlin.math.abs(config.guid.hashCode().toLong()) % 360L).toFloat() + index * 17f) % 360f,
                                 distance01 = 0.24f + (index % 5) * 0.14f,
-                                pingMs = if (profileHealthy && tunnelHealthy) config.pingMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt() else 500
+                                pingMs = if (profileHealthy && tunnelHealthy) config.pingMs.coerceAtMost(Int.MAX_VALUE.toLong()).toInt() else null,
+                                tunnelWorking = tunnelHealthy,
+                                checked = true,
+                                id = config.guid,
+                                selected = config.guid == selectedGuid
                             )
                         }
                     } else when (verification) {
