@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Theme selection is separate from the System/Light/Dark UI mode. -->
+    <!-- Radar and The Last of Us are themes; Persepolis belongs to UI mode settings. -->
     <string-array name="ui_theme_entries">
         <item>پیش‌فرض</item>
-        <item>@string/ui_mode_persepolis</item>
         <item>@string/ui_mode_radar</item>
         <item>@string/ui_mode_survival</item>
     </string-array>
