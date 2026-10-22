@@ -1,6 +1,7 @@
 package com.aras.client.ui.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.aras.client.R
 import com.aras.client.ui.compose.NeonConnectButton
+import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.colorFabActive
 import com.aras.client.ui.compose.colorFabInactiveDark
 import com.aras.client.ui.compose.colorFabInactiveLight
@@ -54,7 +58,10 @@ fun MainBottomBar(
     subtitleOverride: String? = null,
     hasPing: Boolean = false
 ) {
-    val barColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val isRadarTheme by ThemeManager.radarTheme.collectAsState()
+    val barShape = RoundedCornerShape(if (isRadarTheme) 18.dp else 32.dp)
+    val barColor = if (isRadarTheme) Color(0xFF06110D) else MaterialTheme.colorScheme.surfaceContainerHigh
+    val barOutline = if (isRadarTheme) Color(0xFF20FF79).copy(alpha = 0.55f) else Color.Transparent
     // Ping-aware colors: green when connected and ping is measured OK,
     // red when connected but no valid ping.
     val okColor = Color(0xFF2E7D32)
@@ -75,9 +82,10 @@ fun MainBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 64.dp)
-                .shadow(elevation = 8.dp, shape = RoundedCornerShape(32.dp))
-                .clip(RoundedCornerShape(32.dp))
+                .shadow(elevation = if (isRadarTheme) 12.dp else 8.dp, shape = barShape)
+                .clip(barShape)
                 .background(barColor)
+                .border(width = if (isRadarTheme) 1.dp else 0.dp, color = barOutline, shape = barShape)
                 .clickable(onClick = { onAction(MainAction.TestCurrentServer) })
                 .padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically

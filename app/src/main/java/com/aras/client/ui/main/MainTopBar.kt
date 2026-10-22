@@ -32,6 +32,7 @@ fun MainTopBar(
     onSearchToggle: (Boolean) -> Unit,
     onMenuClick: () -> Unit,
     onAction: (MainAction) -> Unit,
+    onRadarConfig: () -> Unit,
     onMoreMenuAction: (MainMoreMenuAction) -> Unit
 ) {
     var showImportMenu by remember { mutableStateOf(false) }
@@ -45,6 +46,10 @@ fun MainTopBar(
             onAction = { action ->
                 showImportMenu = false
                 onAction(action)
+            },
+            onRadarConfig = {
+                showImportMenu = false
+                onRadarConfig()
             }
         )
     }

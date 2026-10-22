@@ -6,6 +6,7 @@ import com.aras.client.ui.subscription.SubEditActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -32,6 +33,7 @@ import com.aras.client.AppConfig
 import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.handler.MmkvManager
 import com.aras.client.ui.compose.LocalDarkTheme
+import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.QRCodeDialog
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -68,7 +70,9 @@ fun MainScreen(
     val scrollToTopTick = uiState.scrollToTopTick
 
     val isDarkTheme = LocalDarkTheme.current
+    val isRadarTheme by ThemeManager.radarTheme.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
+    var showRadarConfig by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var showSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -154,6 +158,17 @@ fun MainScreen(
     if (shareQRCodeBitmap != null) {
         QRCodeDialog(bitmap = shareQRCodeBitmap, onDismiss = { onAction(MainAction.DismissQRCodeDialog) })
     }
+    if (showRadarConfig) {
+        RadarConfigDialog(
+            context = context,
+            onDismiss = { showRadarConfig = false },
+            onSelectBest = { guid ->
+                onAction(MainAction.RefreshGroups)
+                onAction(MainAction.SelectServer(guid))
+                showRadarConfig = false
+            }
+        )
+    }
 
     MainMenuSheet(
         show = showMenu,
@@ -185,6 +200,7 @@ fun MainScreen(
                     onSearchToggle = { show: Boolean -> showSearch = show },
                     onMenuClick = { showMenu = true },
                     onAction = onAction,
+                    onRadarConfig = { showRadarConfig = true },
                     onMoreMenuAction = { action ->
                         when (action) {
                             MainMoreMenuAction.RestartService -> onAction(MainAction.RestartService)
@@ -230,6 +246,14 @@ fun MainScreen(
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
                 ) {
+                    if (isRadarTheme) {
+                        RadarDashboard(
+                            isRunning = isRunning,
+                            hasPing = hasPing,
+                            isDarkTheme = isDarkTheme,
+                            serverTitle = mainViewModel.connectedServerTitle()
+                        )
+                    }
                     updateAnnouncement?.let { announcement ->
                         UpdateAnnouncementBanner(
                             result = announcement,
@@ -257,7 +281,9 @@ fun MainScreen(
 
                     HorizontalPager(
                         state = pagerState,
-                        modifier = Modifier.fillMaxSize(),
+                        // Keep the config list inside the remaining viewport below the radar.
+                        // This lets each configuration page scroll normally on smaller phones.
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
                         userScrollEnabled = true,
                         beyondViewportPageCount = 1,
                         key = { page -> groups.getOrNull(page)?.id ?: "group-page-$page" }

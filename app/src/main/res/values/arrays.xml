@@ -264,6 +264,16 @@
         <item>2</item>
     </string-array>
 
+    <string-array name="ui_theme_entries">
+        <item>Default</item>
+        <item>Radar</item>
+    </string-array>
+
+    <string-array name="ui_theme_values" translatable="false">
+        <item>default</item>
+        <item>radar</item>
+    </string-array>
+
     <string-array name="outbound_tag" translatable="false">
         <item>proxy</item>
         <item>direct</item>

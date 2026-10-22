@@ -70,6 +70,55 @@ private val LightColor = lightColorScheme(
     surfaceContainerHighest = Color(0xFFE5DCD0), // Deep Sand
 )
 
+
+private val RadarLightColor = lightColorScheme(
+    primary = Color(0xFF087F8C),
+    onPrimary = Color(0xFFFFFFFF),
+    primaryContainer = Color(0xFFD1F1F0),
+    onPrimaryContainer = Color(0xFF07383D),
+    secondary = Color(0xFF397A73),
+    onSecondary = Color(0xFFFFFFFF),
+    secondaryContainer = Color(0xFFD7EDE7),
+    onSecondaryContainer = Color(0xFF163D38),
+    tertiary = Color(0xFF6750A4),
+    onTertiary = Color(0xFFFFFFFF),
+    error = Color(0xFFD94B4B),
+    onError = Color(0xFFFFFFFF),
+    background = Color(0xFFF1F4F7),
+    onBackground = Color(0xFF17212E),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF17212E),
+    surfaceVariant = Color(0xFFE5EAF0),
+    onSurfaceVariant = Color(0xFF5D6978),
+    outline = Color(0xFF8793A3),
+    outlineVariant = Color(0xFFD2D9E1),
+    surfaceTint = Color(0xFF087F8C),
+)
+
+private val RadarDarkColor = darkColorScheme(
+    primary = Color(0xFF00D9F5),
+    onPrimary = Color(0xFF002F36),
+    primaryContainer = Color(0xFF16414A),
+    onPrimaryContainer = Color(0xFFB5F5FF),
+    secondary = Color(0xFF7FE3AC),
+    onSecondary = Color(0xFF123528),
+    secondaryContainer = Color(0xFF244A3A),
+    onSecondaryContainer = Color(0xFFC5F6D8),
+    tertiary = Color(0xFFB9A6FF),
+    onTertiary = Color(0xFF2B2053),
+    error = Color(0xFFFF525C),
+    onError = Color(0xFF4A0005),
+    background = Color(0xFF090D12),
+    onBackground = Color(0xFFEAF1F7),
+    surface = Color(0xFF111821),
+    onSurface = Color(0xFFEAF1F7),
+    surfaceVariant = Color(0xFF171F29),
+    onSurfaceVariant = Color(0xFF8997A7),
+    outline = Color(0xFF526171),
+    outlineVariant = Color(0xFF273442),
+    surfaceTint = Color(0xFF00D9F5),
+)
+
 private val DarkColor = darkColorScheme(
     primary = Color(0xFF4FB3F0), // Light Aras Blue
     onPrimary = Color(0xFF04253D), // Deep Navy
@@ -138,6 +187,16 @@ object ThemeManager {
     )
     val dynamicColorEnabled: StateFlow<Boolean> = _dynamicColorEnabled.asStateFlow()
 
+    private val _radarTheme = MutableStateFlow(
+        MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME, "default") == "radar"
+    )
+    val radarTheme: StateFlow<Boolean> = _radarTheme.asStateFlow()
+
+    fun setRadarTheme(enabled: Boolean) {
+        MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, if (enabled) "radar" else "default")
+        _radarTheme.value = enabled
+    }
+
     fun setThemeMode(mode: String) {
         MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, mode)
         _themeMode.value = mode
@@ -153,6 +212,8 @@ object ThemeManager {
             MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "0") ?: "0"
         _dynamicColorEnabled.value =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
+        _radarTheme.value =
+            MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME, "default") == "radar"
     }
 }
 
@@ -189,6 +250,8 @@ fun resolveDarkTheme(): Boolean {
     return when (mode) {
         "1" -> false
         "2" -> true
+        RADAR_THEME_MODE -> true
+        PERSEPOLIS_THEME_MODE -> true
         else -> isSystemInDarkTheme()
     }
 }
@@ -201,8 +264,15 @@ fun AppTheme(
     content: @Composable () -> Unit
 ) {
     val dynamicColor by ThemeManager.dynamicColorEnabled.collectAsState()
+    val themeMode by ThemeManager.themeMode.collectAsState()
+    val isRadar = themeMode == RADAR_THEME_MODE
+    val isPersepolis = themeMode == PERSEPOLIS_THEME_MODE
     val context = LocalContext.current
+    // Keep special theme palettes consistent regardless of the system light/dark setting.
+    val effectiveDarkTheme = isRadar || isPersepolis || darkTheme
     val colorScheme = when {
+        isRadar -> RadarColorScheme
+        isPersepolis -> PersepolisColorScheme
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
@@ -218,14 +288,14 @@ fun AppTheme(
             val activity = view.context as? Activity ?: return@SideEffect
             val window = activity.window
             WindowCompat.getInsetsController(window, view).apply {
-                isAppearanceLightStatusBars = !darkTheme
-                isAppearanceLightNavigationBars = !darkTheme
+                isAppearanceLightStatusBars = !effectiveDarkTheme
+                isAppearanceLightNavigationBars = !effectiveDarkTheme
             }
         }
     }
 
     CompositionLocalProvider(
-        LocalDarkTheme provides darkTheme,
+        LocalDarkTheme provides effectiveDarkTheme,
         LocalAppSnackbar provides snackbarController
     ) {
         MaterialTheme(
@@ -235,6 +305,8 @@ fun AppTheme(
             Box(modifier = Modifier.fillMaxSize()) {
                 AppSnackbarBridge(controller = snackbarController)
                 content()
+                if (isRadar) RadarOverlay()
+                if (isPersepolis) PersepolisOverlay()
                 AppSnackbarHost(hostState = snackbarController.hostState)
             }
         }
