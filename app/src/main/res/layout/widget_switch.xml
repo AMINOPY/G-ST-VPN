@@ -24,7 +24,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="RADAR VPN"
-                android:textColor="#E4FFE9"
+                android:textColor="#2D3327"
                 android:textSize="17sp"
                 android:textStyle="bold"
                 android:letterSpacing="0.06" />
@@ -32,8 +32,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="ELITE HYBRID  /  TUNNEL INTELLIGENCE"
-                android:textColor="#75B88A"
+                android:text="FIELD DOSSIER  /  TUNNEL INTELLIGENCE"
+                android:textColor="#555C45"
                 android:textSize="9sp"
                 android:letterSpacing="0.04" />
         </LinearLayout>
@@ -48,13 +48,13 @@
                 android:layout_width="1dp"
                 android:layout_height="54dp"
                 android:layout_gravity="center"
-                android:background="#476F55" />
+                android:background="#737A56" />
 
             <View
                 android:layout_width="54dp"
                 android:layout_height="1dp"
                 android:layout_gravity="center"
-                android:background="#476F55" />
+                android:background="#737A56" />
 
             <View
                 android:id="@+id/widget_radar_center_dot"
@@ -70,7 +70,7 @@
         android:layout_height="1dp"
         android:layout_marginTop="10dp"
         android:layout_marginBottom="9dp"
-        android:background="#294B35" />
+        android:background="#8B876F" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -101,7 +101,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="RTT  —"
-            android:textColor="#A8CDB2"
+            android:textColor="#515746"
             android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
@@ -113,8 +113,8 @@
         android:layout_marginTop="7dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:text="ACTIVE CONFIG: —"
-        android:textColor="#E4FFE9"
+        android:text="DOG TAG // ACTIVE CONFIG: —"
+        android:textColor="#2D3327"
         android:textSize="11sp"
         android:textStyle="bold" />
 
@@ -126,7 +126,7 @@
         android:ellipsize="middle"
         android:maxLines="1"
         android:text="Tunnel egress IP: checking…"
-        android:textColor="#A8CDB2"
+        android:textColor="#515746"
         android:textSize="11sp" />
 
     <LinearLayout
@@ -143,7 +143,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Verifying the Android VPN network"
-            android:textColor="#789A82"
+            android:textColor="#646651"
             android:textSize="10sp" />
 
         <TextView
@@ -155,7 +155,7 @@
             android:paddingStart="7dp"
             android:paddingEnd="7dp"
             android:text="‹ PREV"
-            android:textColor="#B8FFD0"
+            android:textColor="#E6DFC7"
             android:textSize="9sp"
             android:textStyle="bold"
             android:background="@drawable/widget_action_background"
@@ -170,7 +170,7 @@
             android:paddingStart="9dp"
             android:paddingEnd="9dp"
             android:text="NEXT  ›"
-            android:textColor="#B8FFD0"
+            android:textColor="#E6DFC7"
             android:textSize="10sp"
             android:textStyle="bold"
             android:background="@drawable/widget_action_background"
@@ -199,7 +199,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
                 android:text="CONNECT"
-                android:textColor="#E4FFE9"
+                android:textColor="#2D3327"
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </LinearLayout>
