@@ -533,7 +533,7 @@ fun ServerListItem(
         isSelected -> MaterialTheme.colorScheme.primaryContainer
         else -> MaterialTheme.colorScheme.surfaceContainerLow
     }
-    val pingColor = if (testDelayMillis < 0L) colorPingRed else colorPing
+    val pingColor = if (testDelayMillis <= 0L) colorPingRed else colorPing
 
     Row(
         modifier = modifier
@@ -596,6 +596,16 @@ fun ServerListItem(
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(2.dp))
+            if (isSurvival && testDelayMillis <= 0L) {
+                Text(
+                    "NO PING  //  NOT VERIFIED",
+                    color = Color(0xFFB3262D),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.4.sp,
+                    maxLines = 1
+                )
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (subscriptionRemarks.isNotBlank()) {
                     Text(
