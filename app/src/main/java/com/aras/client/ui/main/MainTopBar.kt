@@ -13,6 +13,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import androidx.compose.material3.TextButton
+import com.aras.client.ui.radar.RadarConfigActivity
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.painterResource
@@ -34,6 +38,7 @@ fun MainTopBar(
     onAction: (MainAction) -> Unit,
     onMoreMenuAction: (MainMoreMenuAction) -> Unit
 ) {
+    val context = LocalContext.current
     var showImportMenu by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
 
@@ -47,6 +52,12 @@ fun MainTopBar(
                 onAction(action)
             }
         )
+        TextButton(onClick = {
+            showImportMenu = false
+            context.startActivity(Intent(context, RadarConfigActivity::class.java))
+        }) {
+            Text("رادار کانفیگ")
+        }
     }
     AnchoredDropdown(
         expanded = showMenu,
