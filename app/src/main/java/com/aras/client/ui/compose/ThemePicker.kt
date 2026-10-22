@@ -82,6 +82,45 @@ fun ThemePicker(
             foreground = Color(0xFF1E3650)
         )
     )
+    val uiTheme by ThemeManager.uiTheme.collectAsState()
+    val uiChoices = listOf(
+        ThemeChoice(
+            value = "default",
+            title = stringResource(R.string.theme_ui_default_title),
+            description = stringResource(R.string.theme_ui_default_summary),
+            background = Color(0xFFFAF6F0),
+            surface = Color(0xFFEFE6DA),
+            accent = Color(0xFF0284C7),
+            foreground = Color(0xFF222226)
+        ),
+        ThemeChoice(
+            value = "radar",
+            title = stringResource(R.string.theme_ui_radar_title),
+            description = stringResource(R.string.theme_ui_radar_summary),
+            background = Color(0xFF020A06),
+            surface = Color(0xFF06150C),
+            accent = Color(0xFF39FF88),
+            foreground = Color(0xFFB8FFD2)
+        ),
+        ThemeChoice(
+            value = "survival",
+            title = stringResource(R.string.theme_ui_survival_title),
+            description = stringResource(R.string.theme_ui_survival_summary),
+            background = Color(0xFF090E0B),
+            surface = Color(0xFF141B15),
+            accent = Color(0xFF9BCB72),
+            foreground = Color(0xFFD8D0B8)
+        ),
+        ThemeChoice(
+            value = "aurora",
+            title = stringResource(R.string.theme_ui_aurora_title),
+            description = stringResource(R.string.theme_ui_aurora_summary),
+            background = Color(0xFF070A0B),
+            surface = Color(0xFF0C1212),
+            accent = Color(0xFF54FFC0),
+            foreground = Color(0xFFF1F8F4)
+        )
+    )
 
     Column(
         modifier = modifier
@@ -189,6 +228,85 @@ fun ThemePicker(
                         )
                     }
                 }
+            }
+        }
+        Text(
+            text = stringResource(R.string.theme_ui_style_title),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp)
+        )
+        uiChoices.chunked(2).forEach { rowChoices ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                rowChoices.forEach { choice ->
+                    val selected = uiTheme == choice.value
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .selectable(
+                                selected = selected,
+                                role = Role.RadioButton,
+                                onClick = { ThemeManager.setUiTheme(choice.value) }
+                            ),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        border = BorderStroke(
+                            width = if (selected) 2.dp else 1.dp,
+                            color = if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(7.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(42.dp)
+                                    .clip(RoundedCornerShape(9.dp))
+                                    .background(choice.background)
+                                    .padding(7.dp)
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Box(
+                                        Modifier.fillMaxWidth(0.55f).height(4.dp)
+                                            .clip(CircleShape).background(choice.accent)
+                                    )
+                                    Box(
+                                        Modifier.fillMaxWidth().height(10.dp)
+                                            .clip(RoundedCornerShape(4.dp)).background(choice.surface)
+                                    )
+                                }
+                                if (selected) {
+                                    Text(
+                                        text = "✓",
+                                        color = choice.accent,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.align(Alignment.BottomEnd)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = choice.title,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                            Text(
+                                text = choice.description,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                minLines = 2
+                            )
+                        }
+                    }
+                }
+                if (rowChoices.size == 1) Spacer(Modifier.weight(1f))
             }
         }
         if (selectedValue == "3") {
