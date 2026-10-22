@@ -265,6 +265,7 @@ fun MainScreen(
                             selectedGuid = selectedGuid,
                             isDarkTheme = isDarkTheme,
                             serverTitle = mainViewModel.connectedServerTitle(),
+                            onToggleConnection = { onAction(MainAction.ToggleService) },
                         )
                         "survival" -> SurvivalFieldPanel(
                             isConnected = isRunning && hasPing,
