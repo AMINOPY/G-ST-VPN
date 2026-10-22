@@ -54,6 +54,7 @@ fun RadarDashboard(
     hasPing: Boolean,
     isDarkTheme: Boolean,
     serverTitle: String,
+    isSurvivalTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -92,26 +93,26 @@ fun RadarDashboard(
     val panel = when (verification) {
         RadarVerification.VERIFIED -> Color(0xFF00170A)
         RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFF210307)
-        RadarVerification.DISCONNECTED -> Color(0xFF191C20)
-        RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFF111821) else Color(0xFFFFFFFF)
+        RadarVerification.DISCONNECTED -> if (isSurvivalTheme) Color(0xFF11170F) else Color(0xFF191C20)
+        RadarVerification.CHECKING -> if (isSurvivalTheme) Color(0xFF151D13) else if (isDarkTheme) Color(0xFF111821) else Color(0xFFFFFFFF)
     }
     val outline = when (verification) {
         RadarVerification.VERIFIED -> Color(0xFF07552C)
         RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFF74121C)
-        RadarVerification.DISCONNECTED -> Color(0xFF414852)
-        RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFF273442) else Color(0xFFD2D9E1)
+        RadarVerification.DISCONNECTED -> if (isSurvivalTheme) Color(0xFF46533A) else Color(0xFF414852)
+        RadarVerification.CHECKING -> if (isSurvivalTheme) Color(0xFF3B4A31) else if (isDarkTheme) Color(0xFF273442) else Color(0xFFD2D9E1)
     }
     val primaryText = when (verification) {
         RadarVerification.VERIFIED -> Color(0xFFB8FFD0)
         RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFFFFD9DC)
-        RadarVerification.DISCONNECTED -> Color(0xFFE2E5E9)
-        RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFFEAF1F7) else Color(0xFF17212E)
+        RadarVerification.DISCONNECTED -> if (isSurvivalTheme) Color(0xFFD8D0B8) else Color(0xFFE2E5E9)
+        RadarVerification.CHECKING -> if (isSurvivalTheme) Color(0xFFD8D0B8) else if (isDarkTheme) Color(0xFFEAF1F7) else Color(0xFF17212E)
     }
     val secondaryText = when (verification) {
         RadarVerification.VERIFIED -> Color(0xFF64B982)
         RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFFFF737D)
-        RadarVerification.DISCONNECTED -> Color(0xFFFF525C)
-        RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFF8997A7) else Color(0xFF5D6978)
+        RadarVerification.DISCONNECTED -> if (isSurvivalTheme) Color(0xFF9BCB72) else Color(0xFFFF525C)
+        RadarVerification.CHECKING -> if (isSurvivalTheme) Color(0xFF8D9986) else if (isDarkTheme) Color(0xFF8997A7) else Color(0xFF5D6978)
     }
 
     val statusColor = when (verification) {
@@ -214,7 +215,23 @@ fun RadarDashboard(
                     .fillMaxWidth()
                     .padding(horizontal = if (expanded) 18.dp else 42.dp)
                     .heightIn(max = if (expanded) 280.dp else 145.dp),
-                palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,
+                palette = when {
+                    isSurvivalTheme -> RadarPalette.Night.copy(
+                        background = Color(0xFF090E0B),
+                        surface = Color(0xFF101711),
+                        radarBase = Color(0xFF0D160E),
+                        gridLine = Color(0xFF354531),
+                        inactiveRing = Color(0xFF58664A),
+                        primaryText = Color(0xFFD8D0B8),
+                        secondaryText = Color(0xFF8D9986),
+                        active = Color(0xFF9BCB72),
+                        warning = Color(0xFFFF3948),
+                        connecting = Color(0xFFC6A85A),
+                        accent = Color(0xFF9BCB72),
+                    )
+                    isDarkTheme -> RadarPalette.Night
+                    else -> RadarPalette.Day
+                },
                 title = statusLabel,
                 subtitle = statusDetail,
                 nodes = when (verification) {
@@ -247,8 +264,8 @@ fun RadarDashboard(
                     .background(when (verification) {
                         RadarVerification.VERIFIED -> Color(0xFF00230F)
                         RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFF33060C)
-                        RadarVerification.DISCONNECTED -> Color(0xFF252A30)
-                        RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFF171F29) else Color(0xFFF1F4F7)
+                        RadarVerification.DISCONNECTED -> if (isSurvivalTheme) Color(0xFF1A2418) else Color(0xFF252A30)
+                        RadarVerification.CHECKING -> if (isSurvivalTheme) Color(0xFF1A2418) else if (isDarkTheme) Color(0xFF171F29) else Color(0xFFF1F4F7)
                     })
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
