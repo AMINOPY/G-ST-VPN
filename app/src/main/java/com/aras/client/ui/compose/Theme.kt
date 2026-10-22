@@ -225,8 +225,11 @@ object ThemeManager {
     fun setRadarTheme(enabled: Boolean) = setUiTheme(if (enabled) "radar" else "default")
 
     fun setThemeMode(mode: String) {
-        MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, mode)
-        _themeMode.value = mode
+        // Day/night mode accepts only system, light, or dark. Special UI themes
+        // are stored exclusively in PREF_UI_THEME.
+        val safeMode = mode.takeIf { it in setOf("0", "1", "2") } ?: "0"
+        MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, safeMode)
+        _themeMode.value = safeMode
     }
 
     fun setDynamicColorEnabled(enabled: Boolean) {
