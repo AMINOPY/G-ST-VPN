@@ -86,6 +86,7 @@ fun MainScreen(
 
     val isDarkTheme = LocalDarkTheme.current
     val themeMode by ThemeManager.themeMode.collectAsStateWithLifecycle()
+    val uiTheme by ThemeManager.uiTheme.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     var showSearch by remember { mutableStateOf(false) }
@@ -248,11 +249,26 @@ fun MainScreen(
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
                 ) {
-                    AuroraSentinelHero(
-                        isRunning = isRunning,
-                        selectedGuid = selectedGuid,
-                        selectedServerTitle = mainViewModel.connectedServerTitle(),
-                    )
+                    // Keep the ordinary app layout as the default. Special dashboards
+                    // appear only when the user explicitly selects that UI theme.
+                    when (uiTheme) {
+                        "aurora" -> AuroraSentinelHero(
+                            isRunning = isRunning,
+                            selectedGuid = selectedGuid,
+                            selectedServerTitle = mainViewModel.connectedServerTitle(),
+                        )
+                        "radar" -> RadarDashboard(
+                            isRunning = isRunning,
+                            hasPing = hasPing,
+                            selectedGuid = selectedGuid,
+                            isDarkTheme = isDarkTheme,
+                            serverTitle = mainViewModel.connectedServerTitle(),
+                        )
+                        "survival" -> SurvivalFieldPanel(
+                            isConnected = isRunning && hasPing,
+                            serverTitle = mainViewModel.connectedServerTitle(),
+                        )
+                    }
                     updateAnnouncement?.let { announcement ->
                         UpdateAnnouncementBanner(
                             result = announcement,
