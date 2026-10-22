@@ -98,8 +98,8 @@ class ExportActivity : BaseComponentActivity() {
 
 /** Shared MIME/extension constants. */
 object ArascMime {
-    const val MIME = "application/x-arasc"
-    const val EXT = "arasc"
+    const val MIME = "application/vnd.aras.rdr"
+    const val EXT = "RDR"
 }
 
 @Composable
