@@ -193,8 +193,18 @@ object ThemeManager {
     val uiTheme: StateFlow<String> = _uiTheme.asStateFlow()
     val radarTheme: StateFlow<Boolean> = MutableStateFlow(_uiTheme.value == "radar")
 
+    init {
+        // Migrate legacy special-theme values out of the light/dark-mode preference.
+        if (_themeMode.value == PERSEPOLIS_THEME_MODE) {
+            MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, "persepolis")
+            MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, "0")
+            _uiTheme.value = "persepolis"
+            _themeMode.value = "0"
+        }
+    }
+
     fun setUiTheme(theme: String) {
-        val safeTheme = theme.takeIf { it in setOf("default", "radar", "survival") } ?: "default"
+        val safeTheme = theme.takeIf { it in setOf("default", "radar", "survival", "persepolis") } ?: "default"
         MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, safeTheme)
         _uiTheme.value = safeTheme
     }
@@ -253,7 +263,6 @@ fun resolveDarkTheme(): Boolean {
     return when (mode) {
         "1" -> false
         "2" -> true
-        PERSEPOLIS_THEME_MODE -> true
         else -> isSystemInDarkTheme()
     }
 }
@@ -269,7 +278,7 @@ fun AppTheme(
     val themeMode by ThemeManager.themeMode.collectAsState()
     val uiTheme by ThemeManager.uiTheme.collectAsState()
     val isRadar = uiTheme == "radar"
-    val isPersepolis = themeMode == PERSEPOLIS_THEME_MODE
+    val isPersepolis = uiTheme == "persepolis"
     val isSurvival = uiTheme == "survival"
     val context = LocalContext.current
     // Keep special theme palettes consistent regardless of the system light/dark setting.
@@ -310,7 +319,6 @@ fun AppTheme(
             Box(modifier = Modifier.fillMaxSize()) {
                 AppSnackbarBridge(controller = snackbarController)
                 content()
-                if (isRadar) RadarOverlay()
                 if (isPersepolis) PersepolisOverlay()
                 if (isSurvival) SurvivalOverlay()
                 AppSnackbarHost(hostState = snackbarController.hostState)
