@@ -896,4 +896,13 @@
     <string name="radar_cmd_manual_stop">فرمانده، عملیات متوقف شد.</string>
     <string name="radar_status_connecting">Radar VPN · در حال راه‌اندازی VPN…</string>
     <string name="radar_status_detail_starting">در حال آماده‌سازی تونل</string>
+    <string name="theme_ui_default_title">رابط پیش‌فرض</string>
+    <string name="theme_ui_default_summary">ظاهر کلاسیک و سادهٔ برنامه بدون داشبورد ویژه</string>
+    <string name="theme_ui_radar_title">رادار</string>
+    <string name="theme_ui_radar_summary">داشبورد راداری با وضعیت سیگنال و تونل</string>
+    <string name="theme_ui_survival_title">لست آف آس</string>
+    <string name="theme_ui_survival_summary">رابط میدانی با الهام از فضای بقا</string>
+    <string name="theme_ui_aurora_title">آرورا سنتینل</string>
+    <string name="theme_ui_aurora_summary">داشبورد شیشه‌ای آینده‌نگر با جزئیات نورانی</string>
+    <string name="theme_ui_style_title">سبک رابط اصلی برنامه</string>
 </resources>
