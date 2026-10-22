@@ -95,7 +95,7 @@ fun ThemePicker(
         ),
         ThemeChoice(
             value = "radar",
-            title = stringResource(R.string.theme_ui_radar_title),
+            title = "RDR X",
             description = stringResource(R.string.theme_ui_radar_summary),
             background = Color(0xFF020A06),
             surface = Color(0xFF06150C),
