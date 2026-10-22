@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -348,8 +351,8 @@ private fun AuroraSentinelHero(
     }
     val statusLabel = when (state) {
         AuroraLinkState.OFF -> "NO SIGNAL"
-        AuroraLinkState.CONNECTING -> "VERIFYING TUNNEL"
-        AuroraLinkState.CONNECTED -> "TUNNEL RESPONDING"
+        AuroraLinkState.CONNECTING -> "VERIFYING PROFILE"
+        AuroraLinkState.CONNECTED -> "PROFILE RESPONDING"
         AuroraLinkState.DANGER -> "LINK FAILURE"
     }
     val statusSubtitle = when (state) {
@@ -397,7 +400,7 @@ private fun AuroraSentinelHero(
                     AuroraRadarContact(
                         id = selectedGuid,
                         pingMs = pingMs,
-                        tunnelVerified = true,
+                        profileResponding = true,
                         tested = true
                     )
                 )
