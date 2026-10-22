@@ -380,12 +380,12 @@ fun RadarDisplay(
 }
 
 private fun nodeColor(node: RadarNode, palette: RadarPalette): Color = when {
+    // Tunnel health is authoritative: a reachable config with high latency is still
+    // a live signal; a missing/failed ping or failed tunnel is always red.
     !node.tunnelWorking -> Color(0xFFFF3038)
-    !node.checked -> Color(0xFFFFB547)
+    !node.checked -> Color(0xFFFF3038)
     node.pingMs == null || node.pingMs < 0 -> Color(0xFFFF3038)
-    node.pingMs < 150 -> Color(0xFF35FF83)
-    node.pingMs < 300 -> Color(0xFFFFB547)
-    else -> Color(0xFFFF3038)
+    else -> Color(0xFF35FF83)
 }
 
 fun defaultTitle(state: RadarState): String = when (state) {
