@@ -1,6 +1,8 @@
 package com.aras.client.ui.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,11 +24,19 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -52,9 +62,10 @@ fun MainBottomBar(
     isDarkTheme: Boolean,
     onAction: (MainAction) -> Unit,
     subtitleOverride: String? = null,
-    hasPing: Boolean = false
+    hasPing: Boolean = false,
+    isRdrX: Boolean = false
 ) {
-    val barColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val barColor = if (isRdrX) Color(0xF20B1220) else MaterialTheme.colorScheme.surfaceContainerHigh
     // Ping-aware colors: green when connected and ping is measured OK,
     // red when connected but no valid ping.
     val okColor = Color(0xFF2E7D32)
@@ -77,6 +88,7 @@ fun MainBottomBar(
                 .heightIn(min = 64.dp)
                 .shadow(elevation = 8.dp, shape = RoundedCornerShape(32.dp))
                 .clip(RoundedCornerShape(32.dp))
+                .then(if (isRdrX) Modifier.border(1.dp, Color(0x553DA9FF), RoundedCornerShape(32.dp)) else Modifier)
                 .background(barColor)
                 .clickable(onClick = { onAction(MainAction.TestCurrentServer) })
                 .padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
@@ -147,10 +159,66 @@ fun MainBottomBar(
 
             // Main connect button. The light it gives off stays inside the circle, so
             // it never hazes what sits behind it.
-            NeonConnectButton(
-                isRunning = isRunning,
-                onClick = { onAction(MainAction.ToggleService) },
+            if (isRdrX) {
+                RdrXMiniRadarButton(
+                    isRunning = isRunning,
+                    hasPing = hasPing,
+                    onClick = { onAction(MainAction.ToggleService) }
+                )
+            } else {
+                NeonConnectButton(
+                    isRunning = isRunning,
+                    onClick = { onAction(MainAction.ToggleService) },
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun RdrXMiniRadarButton(
+    isRunning: Boolean,
+    hasPing: Boolean,
+    onClick: () -> Unit,
+) {
+    val sweep = rememberInfiniteTransition(label = "rdrx-mini-radar")
+    val angle by sweep.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2600),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rdrx-mini-sweep"
+    )
+    val signalColor = when {
+        !isRunning -> Color(0xFF687386)
+        hasPing -> Color(0xFF39FF88)
+        else -> Color(0xFFFFC857)
+    }
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(Color(0xFF111C2A))
+            .border(1.dp, signalColor.copy(alpha = 0.8f), CircleShape)
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = if (isRunning) "Disconnect VPN" else "Connect VPN" },
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(Modifier.size(38.dp)) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val radius = size.minDimension * 0.39f
+            drawCircle(signalColor.copy(alpha = 0.28f), radius = radius, style = Stroke(width = 1.dp.toPx()))
+            drawCircle(signalColor.copy(alpha = 0.55f), radius = radius * 0.62f, style = Stroke(width = 1.dp.toPx()))
+            drawCircle(signalColor, radius = size.minDimension * 0.08f)
+            val radians = Math.toRadians(angle.toDouble())
+            val end = Offset(
+                x = center.x + kotlin.math.cos(radians).toFloat() * radius,
+                y = center.y + kotlin.math.sin(radians).toFloat() * radius
             )
+            drawLine(signalColor.copy(alpha = 0.95f), center, end, strokeWidth = 1.6.dp.toPx())
         }
     }
 }
