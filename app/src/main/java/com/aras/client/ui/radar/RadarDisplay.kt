@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -310,6 +311,56 @@ fun RadarDisplay(
                     }
                 } else {
                     drawCircle(color = displayPalette.inactiveRing, radius = 2.5.dp.toPx(), center = c)
+                }
+
+                // Compass labels and central tactical status are rendered inside the scope,
+                // matching the military HUD supplied for the RADAR UI theme.
+                val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                    textAlign = android.graphics.Paint.Align.CENTER
+                    typeface = android.graphics.Typeface.create("monospace", android.graphics.Typeface.BOLD)
+                    textSize = size.width * 0.035f
+                    color = displayPalette.secondaryText.toArgb()
+                }
+                val labelRadius = r * 0.88f
+                listOf("N" to -90f, "E" to 0f, "S" to 90f, "W" to 180f).forEach { (label, degrees) ->
+                    val rad = Math.toRadians(degrees.toDouble())
+                    drawContext.canvas.nativeCanvas.drawText(
+                        label,
+                        c.x + cos(rad).toFloat() * labelRadius,
+                        c.y + sin(rad).toFloat() * labelRadius + paint.textSize * 0.35f,
+                        paint
+                    )
+                }
+                val centerLabel = when (state) {
+                    RadarState.DISCONNECTED -> "NO SIGNAL"
+                    RadarState.CONNECTING -> "SEARCHING"
+                    RadarState.CONNECTED_VERIFIED -> "ONLINE"
+                    RadarState.TUNNEL_IP_UNVERIFIED, RadarState.ERROR -> "DANGER"
+                }
+                paint.textSize = size.width * 0.045f
+                paint.color = when (state) {
+                    RadarState.DISCONNECTED, RadarState.ERROR, RadarState.TUNNEL_IP_UNVERIFIED -> android.graphics.Color.rgb(255, 48, 56)
+                    RadarState.CONNECTING -> android.graphics.Color.rgb(255, 181, 71)
+                    RadarState.CONNECTED_VERIFIED -> android.graphics.Color.rgb(53, 255, 131)
+                }
+                drawContext.canvas.nativeCanvas.drawText(
+                    centerLabel,
+                    c.x,
+                    c.y + r * 0.62f,
+                    paint
+                )
+                if (state == RadarState.CONNECTED_VERIFIED) {
+                    val validPings = nodes.mapNotNull { node ->
+                        node.pingMs?.takeIf { node.checked && node.tunnelWorking && it >= 0 }
+                    }
+                    val pingLabel = validPings.minOrNull()?.let { "PING: $it ms" } ?: "PING: --"
+                    paint.textSize = size.width * 0.029f
+                    drawContext.canvas.nativeCanvas.drawText(
+                        pingLabel,
+                        c.x,
+                        c.y + r * 0.75f,
+                        paint
+                    )
                 }
             }
         }
