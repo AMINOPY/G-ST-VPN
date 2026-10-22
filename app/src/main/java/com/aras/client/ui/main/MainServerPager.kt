@@ -30,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -59,6 +60,7 @@ import com.aras.client.handler.AngConfigManager
 import com.aras.client.handler.FreeSubManager
 import com.aras.client.handler.ArasExportImportManager
 import com.aras.client.handler.MmkvManager
+import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.ReorderableGridItem
 import com.aras.client.ui.compose.ReorderableListItem
 import com.aras.client.ui.compose.colorConfigType
@@ -518,9 +520,15 @@ fun ServerListItem(
     } else {
         null
     }
-    val cardShape = RoundedCornerShape(16.dp)
-    val cardColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-    else MaterialTheme.colorScheme.surfaceContainerLow
+    val uiTheme by ThemeManager.uiTheme.collectAsState()
+    val isSurvival = uiTheme == "survival"
+    val cardShape = RoundedCornerShape(if (isSurvival) 5.dp else 16.dp)
+    val cardColor = when {
+        isSurvival && isSelected -> Color(0xFF273A27)
+        isSurvival -> Color(0xFF111811)
+        isSelected -> MaterialTheme.colorScheme.primaryContainer
+        else -> MaterialTheme.colorScheme.surfaceContainerLow
+    }
     val pingColor = if (testDelayMillis < 0L) colorPingRed else colorPing
 
     Row(
@@ -534,9 +542,11 @@ fun ServerListItem(
             .clip(cardShape)
             .background(cardColor)
             .then(
-                if (isSelected) Modifier.border(
-                    1.5.dp,
-                    MaterialTheme.colorScheme.primary,
+                if (isSelected || isSurvival) Modifier.border(
+                    if (isSelected) 1.5.dp else 0.7.dp,
+                    if (isSurvival) {
+                        if (isSelected) Color(0xFF9BCB72) else Color(0xFF3D5039)
+                    } else MaterialTheme.colorScheme.primary,
                     cardShape
                 ) else Modifier
             )
