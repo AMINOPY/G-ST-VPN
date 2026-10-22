@@ -13,6 +13,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import androidx.compose.material3.TextButton
+import com.aras.client.ui.radar.RadarConfigActivity
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.painterResource
@@ -34,6 +38,7 @@ fun MainTopBar(
     onAction: (MainAction) -> Unit,
     onMoreMenuAction: (MainMoreMenuAction) -> Unit
 ) {
+    val context = LocalContext.current
     var showImportMenu by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
 
@@ -47,6 +52,12 @@ fun MainTopBar(
                 onAction(action)
             }
         )
+        TextButton(onClick = {
+            showImportMenu = false
+            context.startActivity(Intent(context, RadarConfigActivity::class.java))
+        }) {
+            Text("رادار کانفیگ")
+        }
     }
     AnchoredDropdown(
         expanded = showMenu,
@@ -61,21 +72,12 @@ fun MainTopBar(
     AppTopBar(
         title = stringResource(R.string.app_name),
         titleContent = {
-            // The wordmark is two Texts in a Row. In a Persian layout that Row lays out
-            // right to left, so the two halves swapped and the title read
-            // "ClientAras". A brand reads the same in every language, so this one Row
-            // is pinned left to right.
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Aras", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(
-                        "Client",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
+            Text(
+                text = stringResource(R.string.app_name),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         },
         onBackClick = {},
         isLoading = isLoading,

@@ -17,11 +17,11 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.aras.client"
+        applicationId = "com.RDR.vpn"
         minSdk = 24
         targetSdk = 37
-        versionCode = 181
-        versionName = "1.8.1"
+        versionCode = 182
+        versionName = "1.0.1"
 
         val abiFilterList = (properties["ABI_FILTERS"] as? String)?.split(';')
         splits {
@@ -68,13 +68,19 @@ android {
             // produces an APK that installs over a debug-signed one and refuses to
             // install over a release-signed one — the "Package invalid" people report.
             // Fail the build rather than ship an APK nobody can upgrade.
-            signingConfig = signingConfigs.findByName("release")
-                ?: throw GradleException(
-                    "No release signing key. Copy keystore-example.properties to " +
-                        "keystore.properties and point it at a keystore; CI takes the same " +
-                        "key from the KEYSTORE_B64, KEYSTORE_PASSWORD, KEY_ALIAS and " +
-                        "KEY_PASSWORD secrets."
+            val releaseSigning = signingConfigs.findByName("release")
+            if (releaseSigning != null) {
+                signingConfig = releaseSigning
+            } else if (gradle.startParameter.taskNames.any {
+                    it.contains("assembleRelease", ignoreCase = true) ||
+                        it.contains("bundleRelease", ignoreCase = true) ||
+                        it.contains("publishRelease", ignoreCase = true)
+                }) {
+                throw GradleException(
+                    "No release signing key. Configure keystore.properties or the CI " +
+                        "KEYSTORE_B64, KEYSTORE_PASSWORD, KEY_ALIAS and KEY_PASSWORD secrets."
                 )
+            }
         }
     }
 
@@ -107,7 +113,7 @@ android {
             .map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }
             .forEach { output ->
                 val abi = output.getFilter("ABI") ?: "universal"
-                output.outputFileName = "ArasClient_${variant.versionName}_${abi}.apk"
+                output.outputFileName = "RADAR_VPN_${variant.versionName}_${abi}.apk"
                 output.versionCodeOverride =
                     variant.versionCode + (abiVersionCodes[abi] ?: 0)
             }

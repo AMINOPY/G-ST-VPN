@@ -1,4 +1,4 @@
-# ArasClient — Development Plan & AI Handoff (Post-1.8.0 Maintenance Round)
+# RADAR VPN — Development Plan & AI Handoff (Post-1.8.0 Maintenance Round)
 
 > This file is the plan-and-state document for the maintenance round started
 > 2026-10-12. `AI-HANDOFF-BRIEF.md` remains the entry point for build/signing/
@@ -93,17 +93,17 @@ the whole LazyColumn ~100 times mid-test: dropped frames, janky scroll, the
 ### 1.4 PattNG options audit — nothing to add
 
 User asked to port PattNG (github.com/patterniha/PattNG, local mirror
-`~/Documents/ArasClient/pattng-src`). Audited prefs, `ProfileItem` fields,
+`~/Documents/RADAR VPN/pattng-src`). Audited prefs, `ProfileItem` fields,
 settings UI, fmt parsers, and core behavior. Result: **full parity already.**
 
-| PattNG feature | ArasClient status |
+| PattNG feature | RADAR VPN status |
 |---|---|
 | `cipherSuites` (`cs=`) in settings + share links | Present — `ProfileItem.cipherSuites`, `FmtBase` `cs=`, VMess `cs`, editor UI, `CoreOutboundBuilder:814` |
 | `unsafe` TLS fingerprint | Present — parses any `fp=`, core accepts `unsafe` (`transport_security.go:181`) |
 | Unencrypted VLESS/TROJAN to public addresses | Present in core — patterniha's `validateOutboundTransportSecurity` enforcement is commented out in `xray.go:341-343` of the Aras core |
 | IPv6 enable / prefer IPv6 settings | Present (`PREF_IPV6_ENABLED`, `PREF_PREFER_IPV6`, VPN settings group) |
 
-ArasClient additionally has what PattNG lacks: Aether, Mieru, AmneziaWG (with
+RADAR VPN additionally has what PattNG lacks: Aether, Mieru, AmneziaWG (with
 mimic packets), MASQUE, AnyTLS, Clash YAML import, protected `.arasc` export,
 Free sub, quick connect, smart connect. **Do not "port" anything from PattNG
 without a specific user-visible gap.**
@@ -186,7 +186,7 @@ only hellochrome_120. No string resources touched (translatable=false).
 ### 6.4 Core updated to patterniha v26.10.13
 
 Branch `feat/awg-mimic-packets-26.10` (local): our two patches
-(ArasClient port + AWG mimic packets) rebased onto patterniha's
+(RADAR VPN port + AWG mimic packets) rebased onto patterniha's
 `v26.10.13` (`709648e0`), 91 upstream commits newer than the previous base.
 Key conflicts resolved:
 
@@ -217,7 +217,7 @@ Tag created locally: `aras-core-26.10.13` → commit `3c378877`. CI's
 App bumped to `versionName 1.8.1 / versionCode 181` locally — v1.8.0 is already
 published on GitHub, so the next shipped APK set has to upgrade cleanly over
 it. Full gate (tests + both assembles + lintVital) green, APK names are
-`ArasClient_1.8.1_*.apk`.
+`RADAR VPN_1.8.1_*.apk`.
 
 ### 6.7 Readiness checklist for the owner's "push" command
 
@@ -233,7 +233,7 @@ Everything is local and verified. Push in this exact order or CI fails:
    missing from the bindings the CI builds).
 3. **App**: push `main` with the postBuffer flags (brief §4), 3 commits.
 4. Tag `v1.8.1` + `gh release create v1.8.1` + upload the five
-   `ArasClient_1.8.1_*.apk`.
+   `RADAR VPN_1.8.1_*.apk`.
 5. Watch CI end-to-end green, including the Restore signing key step
    (the env-mapping fix is in `44e6050`).
 

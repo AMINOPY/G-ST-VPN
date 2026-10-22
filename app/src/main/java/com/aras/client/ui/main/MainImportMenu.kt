@@ -63,6 +63,7 @@ enum class MainMoreMenuAction(@StringRes val labelRes: Int) {
     PingSelectedSubscription(R.string.title_ping_selected_subscription),
     TestAll(R.string.title_ping_all_server),
     TestAllRealPing(R.string.title_real_ping_all_server),
+    DpiDiagnostics(R.string.menu_dpi_diagnostics),
     UpdateSubscriptions(R.string.title_sub_update)
 }
 

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">ArasClient</string>
+    <string name="app_name" translatable="false">RADAR VPN</string>
     <string name="app_widget_name">اتصال / قطع</string>
-    <string name="app_tile_name">آراس: اتصال / قطع</string>
+    <string name="app_tile_name">Radar VPN: اتصال / قطع</string>
     <string name="app_tile_first_use">برای اولین استفاده از این قابلیت، لطفاً ابتدا از داخل برنامه یک سرور اضافه کنید</string>
     <string name="navigation_drawer_open">باز کردن منو کشویی</string>
     <string name="navigation_drawer_close">بستن منو کشویی</string>
@@ -585,7 +585,7 @@
     <string name="toast_connect_first_to_test">اول وصل شو، بعد برای تست سرور اینجا لمس کن</string>
     <string name="bar_test">تست</string>
     <string name="title_test_single">تست این سرور</string>
-    <string name="setup_title">به ArasClient خوش آمدید</string>
+    <string name="setup_title">به Radar VPN خوش آمدید</string>
     <string name="setup_subtitle">چند تنظیم سریع را انتخاب کنید. بعداً در تنظیمات قابل تغییر است.</string>
     <string name="setup_auto_sort">مرتب‌سازی خودکار سرورها بر اساس پینگ</string>
     <string name="setup_auto_connect">اتصال خودکار به سریع‌ترین سرور هنگام اجرا</string>
@@ -605,7 +605,7 @@
     <string name="quick_connect_success">اشتراک به‌روز شد و متصل شد</string>
     <string name="quick_connect_failure">به‌روزرسانی و اتصال ناموفق بود</string>
     <string name="quick_connect_no_server">هیچ سرور در دسترسی یافت نشد</string>
-    <string name="quick_connect_vpn_permission">ابتدا اجازه دسترسی VPN را به ArasClient بدهید</string>
+    <string name="quick_connect_vpn_permission">ابتدا اجازه دسترسی VPN را به Radar VPN بدهید</string>
     <string name="quick_connect_already_running">یک به‌روزرسانی از قبل در حال اجراست</string>
     <string name="protected_config_hidden">کانفیگ محافظت‌شده</string>
     <string name="acc_auto_scroll">پیمایش خودکار به بهترین سرور (کلید)</string>
@@ -680,9 +680,9 @@
     <string name="server_lab_xdrive_secrets">اسرار XDRIVE، جداشده با ویرگول</string>
     <string name="server_lab_xdrive_extra">JSON خام اضافی XDRIVE، قالب: { XDriveObject }</string>
 
-    <!-- .arasc export and import -->
-    <string name="menu_item_import_config_arasc">وارد کردن فایل .arasc</string>
-    <string name="share_method_arasc">اشتراک‌گذاری به‌صورت فایل .arasc</string>
+    <!-- .RDR export and import -->
+    <string name="menu_item_import_config_arasc">وارد کردن فایل .RDR</string>
+    <string name="share_method_arasc">اشتراک‌گذاری به‌صورت فایل .RDR</string>
     <string name="title_export">خروجی</string>
     <string name="export_type_normal">عادی</string>
     <string name="export_type_protected">محافظت‌شده</string>
@@ -699,7 +699,7 @@
     <string name="export_action">خروجی (%d)</string>
     <string name="export_no_configs">کانفیگی برای خروجی گرفتن موجود نیست</string>
     <string name="export_config_count">%d کانفیگ</string>
-    <string name="export_config_count_selected">%d از %d کانفیگ</string>
+    <string name="export_config_count_selected" formatted="false">%d از %d کانفیگ</string>
     <string name="export_ungrouped">کانفیگ‌های مستقل</string>
     <string name="export_summary_normal">خروجی گرفتن از کانفیگ‌ها</string>
     <string name="export_summary_protected">خروجی کانفیگ‌های محافظت‌شده</string>
@@ -708,8 +708,8 @@
     <string name="export_success">با موفقیت خروجی گرفته شد</string>
     <string name="arasc_import_success">%d کانفیگ وارد شد</string>
     <string name="arasc_err_empty">فایل هیچ کانفیگی ندارد</string>
-    <string name="arasc_err_not_arasc">فایل .arasc معتبر نیست</string>
-    <string name="arasc_err_version">این نسخه .arasc پشتیبانی نمی‌شود</string>
+    <string name="arasc_err_not_arasc">فایل .RDR معتبر نیست</string>
+    <string name="arasc_err_version">این نسخه .RDR پشتیبانی نمی‌شود</string>
     <string name="arasc_err_password">رمز عبور اشتباه است یا فایل خراب شده</string>
     <string name="arasc_err_integrity">فایل خراب شده یا تغییر کرده است</string>
 
@@ -726,7 +726,7 @@
     <string name="menu_sub_check_update">بررسی نسخه جدید</string>
     <string name="menu_sub_backup">پشتیبان‌گیری</string>
     <string name="menu_sub_logcat">مشاهده گزارش‌ها</string>
-    <string name="menu_sub_about">درباره ArasClient</string>
+    <string name="menu_sub_about">درباره Radar VPN</string>
     <string name="title_connection_stats">آمار اتصال</string>
     <string name="stats_connections">اتصال‌ها</string>
     <string name="stats_total_time">مجموع زمان اتصال</string>
@@ -740,4 +740,170 @@
     <string name="title_pref_show_sub_announcement">نمایش اطلاعیه‌های اشتراک</string>
     <string name="summary_pref_show_sub_announcement">نمایش اطلاعیه و پیام سازنده که اشتراک ارائه می‌دهد، زیر اطلاعات اشتراک. اگر اشتراک نداشته باشد پنهان می‌شود</string>
     <string name="update_no_notes">برای این نسخه یادداشت انتشاری وجود ندارد</string>
+
+    <string name="theme_system_title">پیش‌فرض سیستم</string>
+    <string name="theme_system_summary">پیروی از حالت شب و روز گوشی</string>
+    <string name="theme_cultural_night_title">شب کویر؛ فرهنگی</string>
+    <string name="theme_cultural_night_summary">نیلی، طلایی ایرانی و فیروزه‌ای</string>
+    <string name="theme_ancient_paper_title">پارسه (کاغذ کهن)</string>
+    <string name="theme_ancient_paper_summary">کرم گرم و آبی جوهری با الهام از هنر ایران باستان</string>
+
+    <string name="radar_no_signal">No signal</string>
+    <string name="radar_no_signal_fa">بدون سیگنال</string>
+    <string name="radar_add_config">یک کانفیگ اضافه کن</string>
+    <string name="radar_add_config_hint">برای شروع، کانفیگ VPN را وارد کن.</string>
+    <string name="radar_clipboard">از کلیپ‌بورد</string>
+    <string name="radar_scan_qr">اسکن QR</string>
+
+    <string name="theme_pattern_intensity">شدت الگوهای تزئینی</string>
+    <string name="theme_reduced_motion">کاهش حرکت</string>
+    <string name="theme_reduced_motion_summary">توقف جاروب و نبض رادار</string>
+
+    <string name="theme_persian_digits">اعداد فارسی</string>
+    <string name="theme_persian_digits_summary">نمایش زمان اتصال با اعداد فارسی</string>
+
+    <!-- Hybrid mode -->
+    <string name="hybrid_title">حالت ترکیبی</string>
+    <string name="menu_section_connection">حالت‌های اتصال</string>
+    <string name="menu_sub_hybrid">ترکیبی</string>
+    <string name="hybrid_status_title">وضعیت اتصال</string>
+    <string name="hybrid_backend_notice">این بخش یک اتصال موقت سایفون و ویتوری/Xray می‌سازد و پس از قطع، پروفایل قبلی را برمی‌گرداند.</string>
+    <string name="hybrid_config_label">پیکربندی سرور</string>
+    <string name="hybrid_config_hint">لینک VLESS، VMess، Trojan یا Shadowsocks را وارد کن</string>
+    <string name="hybrid_paste">چسباندن از کلیپ‌بورد</string>
+    <string name="hybrid_clear">پاک کردن</string>
+    <string name="hybrid_direction_label">ترتیب زنجیره</string>
+    <string name="hybrid_psiphon_first">اول سایفون، سپس ویتوری/Xray</string>
+    <string name="hybrid_v2ray_first">اول ویتوری/Xray، سپس سایفون</string>
+    <string name="hybrid_validate">بررسی قالب کانفیگ</string>
+    <string name="hybrid_validation_ok">پیشوند لینک پشتیبانی‌شده پیدا شد. این فقط بررسی اولیه قالب است.</string>
+    <string name="hybrid_validation_error">لینک پشتیبانی‌شده‌ای پیدا نشد. لینک VLESS، VMess، Trojan یا SS را وارد کن.</string>
+    <string name="hybrid_not_connected_yet">اتصال از این صفحه هنوز فعال نشده است. موفقیت بررسی قالب به معنی برقرار شدن VPN نیست.</string>
+    <string name="hybrid_route_badge">سایفون، سپس ویتوری/Xray</string>
+    <string name="hybrid_route_description">برنامه سایفون داخلی را به‌عنوان پروکسی محلی اجرا می‌کند و اتصال ویتوری/Xray شما را از آن عبور می‌دهد.</string>
+    <string name="hybrid_how_it_works">نحوه کار زنجیره</string>
+    <string name="hybrid_route_steps">دستگاه ← پروکسی محلی سایفون ← سرور ویتوری/Xray ← اینترنت. هسته فعلی فقط از این ترتیب پشتیبانی می‌کند.</string>
+    <string name="hybrid_status_idle">آماده دریافت کانفیگ</string>
+    <string name="hybrid_status_starting">در حال آماده‌سازی اتصال ترکیبی…</string>
+    <string name="hybrid_status_connected">اتصال برقرار شد؛ سرویس شروع موفق زنجیره ترکیبی را گزارش کرده است.</string>
+    <string name="hybrid_status_request_sent">درخواست اتصال ارسال شد. وضعیت واقعی اتصال را از اعلان VPN بررسی کن.</string>
+    <string name="hybrid_status_stopping">در حال قطع زنجیره و بازگرداندن پروفایل قبلی…</string>
+    <string name="hybrid_invalid_config">این لینک قابل‌خواندن نیست. یک لینک کامل VLESS، VMess، Trojan، Shadowsocks یا SOCKS وارد کن.</string>
+    <string name="hybrid_unsupported_config">این نوع پروفایل هنوز در حالت ترکیبی پشتیبانی نمی‌شود. از VLESS، VMess، Trojan، Shadowsocks یا SOCKS استفاده کن.</string>
+    <string name="hybrid_already_prepared">یک نشست ترکیبی موقت وجود دارد. ابتدا آن را قطع کن و به پروفایل قبلی برگرد.</string>
+    <string name="hybrid_prepare_failed">آماده‌سازی حالت ترکیبی ناموفق بود: %1$s</string>
+    <string name="hybrid_start_failed">برنامه نتوانست اتصال ترکیبی را شروع کند. حالت اتصال و گزارش‌ها را بررسی کن.</string>
+    <string name="hybrid_permission_denied">مجوز VPN داده نشد؛ پروفایل‌های موقت ترکیبی پاک‌سازی می‌شوند.</string>
+    <string name="hybrid_connect">اتصال در حالت ترکیبی</string>
+    <string name="hybrid_stop_restore">قطع اتصال و بازگشت به حالت عادی</string>
+    <string name="hybrid_cleanup_notice">لینک واردشده و پروفایل‌های کمکی موقت‌اند. با قطع این حالت، انتخاب قبلی سرور برمی‌گردد و پروفایل‌های موقت حذف می‌شوند.</string>
+    <string name="menu_section_hybrid">ترکیبی</string>
+
+    <!-- عیب‌یابی هوشمند شبکه -->
+    <string name="ai_title">تشخیص هوشمند شبکه</string>
+    <string name="menu_section_ai">AI</string>
+    <string name="menu_sub_ai">اسکن هوشمند شبکه</string>
+    <string name="ai_hero_title">وضعیت اتصال را بشناس</string>
+    <string name="ai_hero_subtitle">نوع شبکه، دسترسی اینترنت، وضعیت VPN، DNS و در صورت اجازه، اپراتور و نوع شبکه سیم‌کارت بررسی می‌شود. تحلیل روی گوشی انجام می‌شود.</string>
+    <string name="ai_scan_now">اسکن شبکه</string>
+    <string name="ai_scan_hint">برای ساخت گزارش، اسکن را اجرا کن.</string>
+    <string name="ai_scan_complete">اسکن تمام شد. نتیجه‌ها بر اساس API شبکه اندروید تخمینی هستند.</string>
+    <string name="ai_scan_failed">خواندن وضعیت شبکه ناموفق بود. دوباره اسکن کن.</string>
+    <string name="ai_report_title">گزارش شبکه</string>
+    <string name="ai_connection_type">نوع اتصال</string>
+    <string name="ai_internet_status">قابلیت اینترنت</string>
+    <string name="ai_internet_validation">تأیید اینترنت توسط اندروید</string>
+    <string name="ai_vpn_status">تونل VPN</string>
+    <string name="ai_metered">اتصال حجمی</string>
+    <string name="ai_dns_servers">سرورهای DNS</string>
+    <string name="ai_carrier">اپراتور سیم‌کارت</string>
+    <string name="ai_mobile_radio">نسل شبکه موبایل</string>
+    <string name="ai_latency_label">تأخیر پاسخ HTTPS (میانهٔ ۳ آزمون)</string>
+    <string name="ai_dns_lookup_latency">زمان پاسخ‌گویی DNS سیستم</string>
+    <string name="ai_dns_latency_result">%1$d میلی‌ثانیه</string>
+    <string name="ai_latency_not_run">هنوز اندازه‌گیری نشده</string>
+    <string name="ai_latency_running">در حال اندازه‌گیری زمان پاسخ HTTPS…</string>
+    <string name="ai_latency_result">%1$d میلی‌ثانیه</string>
+    <string name="ai_latency_failed">اندازه‌گیری نشد؛ ممکن است دسترسی به مقصد آزمایش مسدود باشد</string>
+    <string name="ai_value_unknown">نامشخص</string>
+    <string name="ai_value_not_scanned">اسکن نشده</string>
+    <string name="ai_network_none">شبکه فعالی وجود ندارد</string>
+    <string name="ai_network_vpn">VPN</string>
+    <string name="ai_network_wifi">وای‌فای</string>
+    <string name="ai_network_mobile">داده موبایل</string>
+    <string name="ai_network_ethernet">اترنت</string>
+    <string name="ai_network_other">شبکه دیگر</string>
+    <string name="ai_internet_capable">شبکه قابلیت اینترنت را گزارش می‌کند</string>
+    <string name="ai_internet_no_capability">قابلیت اینترنت گزارش نشده</string>
+    <string name="ai_status_validated">تأیید شده</string>
+    <string name="ai_status_not_validated">تأیید نشده</string>
+    <string name="ai_status_active">فعال</string>
+    <string name="ai_status_inactive">غیرفعال</string>
+    <string name="ai_metered_yes">بله</string>
+    <string name="ai_metered_no">خیر</string>
+    <string name="ai_sim_permission_needed">نیازمند مجوز</string>
+    <string name="ai_sim_permission_denied">مجوز اطلاعات سیم‌کارت داده نشد؛ بقیه بررسی‌ها همچنان کار می‌کنند.</string>
+    <string name="ai_allow_sim_info">اجازه نمایش اطلاعات سیم‌کارت و اپراتور</string>
+    <string name="ai_radio_2g">2G</string>
+    <string name="ai_radio_3g">3G</string>
+    <string name="ai_radio_4g">4G / LTE</string>
+    <string name="ai_radio_5g">5G</string>
+    <string name="ai_radio_unknown">نامشخص / در دسترس نیست</string>
+    <string name="ai_signal_strength">قدرت آنتن موبایل (۰ تا ۴)</string>
+    <string name="ai_signal_level">سطح %1$d از ۴ (تخمین اندروید)</string>
+    <string name="ai_mobile_data_usage">مصرف داده موبایل از زمان روشن‌شدن دستگاه</string>
+    <string name="ai_mobile_usage_value">%1$s دریافت و ارسال</string>
+    <string name="ai_share_report">اشتراک‌گذاری گزارش تشخیصی</string>
+    <string name="ai_analysis_title">تحلیل هوشمند</string>
+    <string name="ai_analysis_not_ready">برای دریافت پیشنهاد، ابتدا اسکن را اجرا کن.</string>
+    <string name="ai_advice_no_network">شبکه فعالی پیدا نشد. وای‌فای یا داده موبایل را روشن و دوباره اسکن کن.</string>
+    <string name="ai_advice_no_internet">اندروید دسترسی اینترنت را تأیید نکرده است. صفحه ورود شبکه، بسته اینترنت، DNS یا آنتن‌دهی را بررسی کن.</string>
+    <string name="ai_advice_vpn">VPN فعال است. اگر برنامه‌ها وصل نمی‌شوند، نتیجه را با VPN خاموش و روشن مقایسه کن.</string>
+    <string name="ai_advice_mobile">داده موبایل فعال است. آنتن‌دهی و موقعیت را مقایسه و تست سرعت اجرا کن؛ نسل شبکه به‌تنهایی سرعت را مشخص نمی‌کند.</string>
+    <string name="ai_advice_wifi">وای‌فای فعال است. نزدیک و دور از روتر تست کن تا ضعف شبکه محلی مشخص شود.</string>
+    <string name="ai_advice_connected">شبکه در دسترس به نظر می‌رسد. برای اندازه‌گیری سرعت واقعی و تأخیر، تست سرعت اجرا کن.</string>
+    <string name="ai_speed_title">تست سرعت</string>
+    <string name="ai_speed_note">تست داخلی با مقصدهای آزمایش سرعت Cloudflare حداکثر حدود ۱٫۲۵ مگابایت داده جابه‌جا می‌کند. فقط با زدن دکمه اجرا می‌شود؛ هزینه اینترنت همراه ممکن است اعمال شود. نتیجه تقریبی است و VPN و بار سرور روی آن اثر دارند.</string>
+    <string name="ai_speed_run">اندازه‌گیری سرعت دانلود و آپلود</string>
+    <string name="ai_speed_running">در حال آزمایش دانلود و آپلود…</string>
+    <string name="ai_speed_result">دانلود: %1$s مگابیت‌برثانیه\nآپلود: %2$s مگابیت‌برثانیه</string>
+    <string name="ai_speed_failed">تست سرعت انجام نشد. ممکن است مقصد آزمایش مسدود یا در دسترس نباشد؛ دوباره تلاش کن یا از تست‌های خارجی زیر استفاده کن.</string>
+    <string name="ai_speed_librespeed">اجرای تست LibreSpeed</string>
+    <string name="ai_speed_openspeedtest">اجرای OpenSpeedTest</string>
+    <string name="ai_network_checker">باز کردن پروژه Network Checker</string>
+    <string name="ai_open_link_failed">باز کردن پیوند خارجی ناموفق بود.</string>
+
+    <string name="ai_diagnosis_internet_unvalidated">اندروید دسترسی اینترنت را تأیید نکرده است؛ ممکن است صفحه ورود شبکه، محدودیت اتصال یا مشکل داده موبایل وجود داشته باشد.</string>
+    <string name="ai_diagnosis_dns_slow">پاسخ‌گویی DNS برابر %1$d میلی‌ثانیه بود که برای یک جست‌وجوی ساده کند است. شبکه دیگری را امتحان کن یا VPN را روشن و خاموش مقایسه کن.</string>
+    <string name="ai_diagnosis_latency_high">تأخیر پاسخ HTTPS زیاد است (%1$d میلی‌ثانیه) و می‌تواند وب‌گردی و برنامه‌های تعاملی را کند کند.</string>
+    <string name="ai_diagnosis_latency_medium">تأخیر پاسخ HTTPS بالاتر از حد مطلوب است (%1$d میلی‌ثانیه). دوباره آزمایش کن تا ماندگاری آن مشخص شود.</string>
+    <string name="ai_diagnosis_signal_weak">اندروید آنتن‌دهی موبایل را ضعیف گزارش می‌کند. مکان دیگری را امتحان کن؛ این مقدار تخمینی دستگاه است.</string>
+    <string name="ai_diagnosis_download_low">سرعت دانلود اندازه‌گیری‌شده پایین است (%1$.1f مگابیت‌برثانیه). دوباره تست کن و وای‌فای/داده موبایل و وضعیت VPN را مقایسه کن.</string>
+    <string name="ai_diagnosis_upload_low">سرعت آپلود اندازه‌گیری‌شده پایین است (%1$.1f مگابیت‌برثانیه). آپلودهای پس‌زمینه، آنتن‌دهی ضعیف یا بار سرور می‌توانند اثرگذار باشند.</string>
+    <string name="ai_diagnosis_vpn_note">VPN فعال است. اگر مشکل فقط در بعضی برنامه‌ها رخ می‌دهد، نتیجه را با VPN روشن و خاموش مقایسه کن.</string>
+    <string name="ai_diagnosis_healthy">در اندازه‌گیری‌های انجام‌شده مشکل عمده‌ای دیده نشد. نتایج تخمینی‌اند و با مقصد، دستگاه و بار سرور تغییر می‌کنند.</string>
+    <string name="ai_local_model_note">این نسخه از تحلیل قانون‌محور محلی استفاده می‌کند؛ اطلاعاتت به سرویس هوش مصنوعی ارسال نمی‌شود.</string>
+    <string name="radar_channel_command">هشدارهای فرماندهی</string>
+    <string name="radar_status_connected">Radar VPN · تونل VPN فعال</string>
+    <string name="radar_status_detail_profile_ping">%1$s · پینگ %2$d میلی‌ثانیه</string>
+    <string name="radar_status_detail_profile">%1$s · تونل فعال</string>
+    <string name="radar_status_detail_ping">پینگ %1$d میلی‌ثانیه · تونل فعال</string>
+    <string name="radar_status_detail_idle">سرویس VPN فعال است</string>
+    <string name="radar_title_command">فرماندهی</string>
+    <string name="radar_cmd_established">فرمانده، تونل فعال شد.</string>
+    <string name="radar_cmd_restored">فرمانده، ارتباط بازیابی شد.</string>
+    <string name="radar_cmd_lost">فرمانده، سیگنال از دست رفت؛ در حال بررسی بازیابی.</string>
+    <string name="radar_cmd_manual_stop">فرمانده، عملیات متوقف شد.</string>
+    <string name="radar_status_connecting">Radar VPN · در حال راه‌اندازی VPN…</string>
+    <string name="radar_status_detail_starting">در حال آماده‌سازی تونل</string>
+    <string name="theme_ui_default_title">رابط پیش‌فرض</string>
+    <string name="theme_ui_default_summary">ظاهر کلاسیک و سادهٔ برنامه بدون داشبورد ویژه</string>
+    <string name="theme_ui_radar_title">رادار</string>
+    <string name="theme_ui_radar_summary">داشبورد راداری با وضعیت سیگنال و تونل</string>
+    <string name="theme_ui_survival_title">لست آف آس</string>
+    <string name="theme_ui_survival_summary">رابط میدانی با الهام از فضای بقا</string>
+    <string name="theme_ui_aurora_title">آرورا سنتینل</string>
+    <string name="theme_ui_aurora_summary">داشبورد شیشه‌ای آینده‌نگر با جزئیات نورانی</string>
+    <string name="theme_ui_style_title">سبک رابط اصلی برنامه</string>
+    <string name="menu_dpi_diagnostics">آزمایش تشخیصی DPI</string>
 </resources>

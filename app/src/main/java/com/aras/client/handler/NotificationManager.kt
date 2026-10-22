@@ -92,8 +92,9 @@ object NotificationManager {
             }
 
         mBuilder = NotificationCompat.Builder(service, channelId)
-            .setSmallIcon(R.drawable.ic_stat_name)
-            .setContentTitle(currentConfig?.remarks ?: service.getString(R.string.app_name))
+            .setSmallIcon(R.drawable.ic_radar)
+            .setContentTitle(service.getString(R.string.radar_status_connecting))
+            .setContentText(service.getString(R.string.radar_status_detail_starting))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setShowWhen(false)
@@ -113,6 +114,30 @@ object NotificationManager {
         //mBuilder?.setDefaults(NotificationCompat.FLAG_ONLY_ALERT_ONCE)
 
         service.startForeground(NOTIFICATION_ID, mBuilder?.build())
+    }
+
+    private fun buildRadarDetails(service: Service, profileName: String?): String {
+        val guid = MmkvManager.getSelectServer().orEmpty()
+        val ping = guid?.takeIf { it.isNotBlank() }
+            ?.let { MmkvManager.decodeServerAffiliationInfo(it)?.testDelayMillis }
+            ?.takeIf { it >= 0L }
+        val profile = profileName?.takeIf { it.isNotBlank() }
+            ?: guid.takeIf { it.isNotBlank() }?.let { MmkvManager.decodeServerConfig(it)?.remarks }?.takeIf { it.isNotBlank() }
+        return when {
+            profile != null && ping != null -> service.getString(R.string.radar_status_detail_profile_ping, profile, ping)
+            profile != null -> service.getString(R.string.radar_status_detail_profile, profile)
+            ping != null -> service.getString(R.string.radar_status_detail_ping, ping)
+            else -> service.getString(R.string.radar_status_detail_idle)
+        }
+    }
+
+    /** Update the existing foreground notification after the core loop starts. */
+    fun updateRadarConnected() {
+        val service = getService() ?: return
+        val builder = mBuilder ?: return
+        builder.setContentTitle(service.getString(R.string.radar_status_connected))
+        builder.setContentText(buildRadarDetails(service, null))
+        getNotificationManager()?.notify(NOTIFICATION_ID, builder.build())
     }
 
     /**
@@ -174,15 +199,13 @@ object NotificationManager {
      */
     private fun updateNotification(contentText: String?, proxyTraffic: Long, directTraffic: Long) {
         if (mBuilder != null) {
-            if (proxyTraffic < NOTIFICATION_ICON_THRESHOLD && directTraffic < NOTIFICATION_ICON_THRESHOLD) {
-                mBuilder?.setSmallIcon(R.drawable.ic_stat_name)
-            } else if (proxyTraffic > directTraffic) {
-                mBuilder?.setSmallIcon(R.drawable.ic_stat_proxy)
-            } else {
-                mBuilder?.setSmallIcon(R.drawable.ic_stat_direct)
-            }
+            val service = getService() ?: return
+            // Keep the monochrome R mark stable; retain profile/ping in the collapsed line
+            // and put the live traffic breakdown in the expandable detail.
+            mBuilder?.setSmallIcon(R.drawable.ic_radar)
             mBuilder?.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
-            mBuilder?.setContentText(contentText)
+            mBuilder?.setContentText(buildRadarDetails(service, null))
+            mBuilder?.setSubText(contentText)
             getNotificationManager()?.notify(NOTIFICATION_ID, mBuilder?.build())
         }
     }

@@ -269,7 +269,7 @@ object ArasExportImportManager {
                     )
             } else {
                 MmkvManager.encodeSubscription(
-                    "", SubscriptionItem(remarks = "ArasClient")
+                    "", SubscriptionItem(remarks = "RADAR VPN")
                 )
             }
             group.configs.forEach { cfg ->

@@ -45,6 +45,8 @@ import com.aras.client.ui.compose.SettingsListItem
 import com.aras.client.ui.compose.SettingsMenuItem
 import com.aras.client.ui.compose.SettingsSwitchItem
 import com.aras.client.ui.compose.ThemeManager
+import com.aras.client.ui.calculator.LauncherIconManager
+import com.aras.client.ui.compose.ThemePicker
 import com.aras.client.ui.compose.verticalScrollbar
 import com.aras.client.util.Utils
 
@@ -141,6 +143,11 @@ fun SettingsScreen(
     }
     var uiModeNight by rememberMmkvString(AppConfig.PREF_UI_MODE_NIGHT, "0")
     var dynamicColor by rememberMmkvBool(AppConfig.PREF_DYNAMIC_COLOR, true)
+
+    var uiIconMode by remember {
+        mutableStateOf(LauncherIconManager.selectedMode(context))
+    }
+    var calculatorAccessCodeInput by remember { mutableStateOf("") }
 
     var ipv6Enabled by rememberMmkvBool(AppConfig.PREF_IPV6_ENABLED, false)
     var preferIpv6 by rememberMmkvBool(AppConfig.PREF_PREFER_IPV6, false)
@@ -257,6 +264,36 @@ fun SettingsScreen(
                         ThemeManager.setDynamicColorEnabled(it)
                     }
                 )
+
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_app_icon),
+                    entries = listOf(
+                        stringResource(R.string.app_icon_default),
+                        stringResource(R.string.app_icon_calculator)
+                    ),
+                    values = listOf(
+                        LauncherIconManager.MODE_DEFAULT,
+                        LauncherIconManager.MODE_CALCULATOR
+                    ),
+                    selectedValue = uiIconMode,
+                    onSelected = {
+                        uiIconMode = it
+                        LauncherIconManager.apply(context, it)
+                    }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.calculator_access_code),
+                    value = calculatorAccessCodeInput,
+                    keyboardNumber = true,
+                    isPassword = true,
+                    onValueChanged = {
+                        calculatorAccessCodeInput = it.filter { character -> character.isDigit() }.take(12)
+                        if (calculatorAccessCodeInput.length in 4..12) {
+                            LauncherIconManager.setAccessCode(context, calculatorAccessCodeInput)
+                        }
+                    }
+                )
+
                 SettingsListItem(
                     title = stringResource(R.string.title_language),
                     entries = languageEntries,
@@ -267,10 +304,7 @@ fun SettingsScreen(
                         AppLocaleManager.setApplicationLanguage(it)
                     }
                 )
-                SettingsListItem(
-                    title = stringResource(R.string.title_pref_ui_mode_night),
-                    entries = uiModeNightEntries,
-                    values = uiModeNightValues,
+                ThemePicker(
                     selectedValue = uiModeNight,
                     onSelected = {
                         uiModeNight = it

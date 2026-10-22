@@ -151,7 +151,7 @@ class ExportViewModel : ViewModel() {
         _state.update { it.copy(note = note) }
     }
 
-    fun suggestedFileName(): String = "ArasClient-Configs.${ArascMime.EXT}"
+    fun suggestedFileName(): String = "RadarVPN-Configs.${ArascMime.EXT}"
 
     /** Validates the form; returns false (with inline state) when invalid. */
     fun startExport(): Boolean {
