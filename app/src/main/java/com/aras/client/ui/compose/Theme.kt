@@ -191,22 +191,35 @@ object ThemeManager {
         MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME, "default") ?: "default"
     )
     val uiTheme: StateFlow<String> = _uiTheme.asStateFlow()
-    val radarTheme: StateFlow<Boolean> = MutableStateFlow(_uiTheme.value == "radar")
+    private val _radarTheme = MutableStateFlow(_uiTheme.value == "radar")
+    val radarTheme: StateFlow<Boolean> = _radarTheme.asStateFlow()
 
     init {
-        // Migrate legacy special-theme values out of the light/dark-mode preference.
-        if (_themeMode.value == PERSEPOLIS_THEME_MODE) {
-            MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, "persepolis")
+        // Older builds stored special themes in the day/night mode preference:
+        // 3 = Radar, 4 = Persepolis, 5 = The Last of Us. Migrate them into the
+        // independent UI-theme preference and restore a valid day/night mode.
+        val legacyTheme = when (_themeMode.value) {
+            "3" -> "radar"
+            PERSEPOLIS_THEME_MODE -> "persepolis"
+            SURVIVAL_THEME_MODE -> "survival"
+            else -> null
+        }
+        if (legacyTheme != null) {
+            if (_uiTheme.value == "default") {
+                MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, legacyTheme)
+                _uiTheme.value = legacyTheme
+            }
             MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, "0")
-            _uiTheme.value = "persepolis"
             _themeMode.value = "0"
         }
+        _radarTheme.value = _uiTheme.value == "radar"
     }
 
     fun setUiTheme(theme: String) {
         val safeTheme = theme.takeIf { it in setOf("default", "radar", "survival", "persepolis") } ?: "default"
         MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, safeTheme)
         _uiTheme.value = safeTheme
+        _radarTheme.value = safeTheme == "radar"
     }
 
     fun setRadarTheme(enabled: Boolean) = setUiTheme(if (enabled) "radar" else "default")
@@ -227,6 +240,7 @@ object ThemeManager {
         _dynamicColorEnabled.value =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
         _uiTheme.value = MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME, "default") ?: "default"
+        _radarTheme.value = _uiTheme.value == "radar"
     }
 }
 
