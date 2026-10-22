@@ -172,7 +172,7 @@ class MainActivity : HelperBaseComponentActivity() {
         if (intent.action != android.content.Intent.ACTION_VIEW) return
         val type = intent.type ?: ""
         val name = uri.lastPathSegment ?: ""
-        val looksArasc = type == "application/x-arasc" || name.endsWith(".arasc", true)
+        val looksArasc = type == "application/x-rdr" || name.endsWith(".rdr", true)
         if (!looksArasc) return
         // Guard against re-handling the same intent after rotation.
         val key = "arasc_opened_$uri"
@@ -324,11 +324,11 @@ class MainActivity : HelperBaseComponentActivity() {
                 val remarks = MmkvManager.decodeServerConfig(guid)?.remarks ?: "config"
                 val safeName = remarks.replace(Regex("[^A-Za-z0-9._-]+"), "_").take(40)
                 val dir = File(cacheDir, "share").apply { mkdirs() }
-                val file = File(dir, "$safeName.arasc")
+                val file = File(dir, "$safeName.RDR")
                 file.writeBytes(bytes)
                 val uri = FileProvider.getUriForFile(this@MainActivity, "$packageName.cache", file)
                 val intent = Intent(Intent.ACTION_SEND).apply {
-                    type = "application/x-arasc"
+                    type = "application/x-rdr"
                     putExtra(Intent.EXTRA_STREAM, uri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
