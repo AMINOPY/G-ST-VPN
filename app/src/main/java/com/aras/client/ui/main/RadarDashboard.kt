@@ -283,9 +283,11 @@ fun RadarDashboard(
                             )
                         }
                     } else when (verification) {
-                        RadarVerification.VERIFIED -> listOf(RadarNode(45f, 0.52f, 75))
+                        RadarVerification.VERIFIED -> listOf(
+                            RadarNode(45f, 0.52f, if (hasPing) 75 else null, tunnelWorking = true, checked = hasPing)
+                        )
                         RadarVerification.TUNNEL_IP_UNVERIFIED, RadarVerification.TUNNEL_LOST ->
-                            listOf(RadarNode(45f, 0.52f, 500))
+                            listOf(RadarNode(45f, 0.52f, null, tunnelWorking = false, checked = false))
                         else -> emptyList()
                     }
                 },
