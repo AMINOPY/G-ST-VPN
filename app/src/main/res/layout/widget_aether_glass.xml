@@ -99,7 +99,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="LATENCY"
+                android:text="LAST PING"
                 android:textColor="#99FFFFFF"
                 android:textSize="9sp"
                 android:letterSpacing="0.08" />
