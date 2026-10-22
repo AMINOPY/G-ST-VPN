@@ -68,13 +68,19 @@ android {
             // produces an APK that installs over a debug-signed one and refuses to
             // install over a release-signed one — the "Package invalid" people report.
             // Fail the build rather than ship an APK nobody can upgrade.
-            signingConfig = signingConfigs.findByName("release")
-                ?: throw GradleException(
-                    "No release signing key. Copy keystore-example.properties to " +
-                        "keystore.properties and point it at a keystore; CI takes the same " +
-                        "key from the KEYSTORE_B64, KEYSTORE_PASSWORD, KEY_ALIAS and " +
-                        "KEY_PASSWORD secrets."
+            val releaseSigning = signingConfigs.findByName("release")
+            if (releaseSigning != null) {
+                signingConfig = releaseSigning
+            } else if (gradle.startParameter.taskNames.any {
+                    it.contains("assembleRelease", ignoreCase = true) ||
+                        it.contains("bundleRelease", ignoreCase = true) ||
+                        it.contains("publishRelease", ignoreCase = true)
+                }) {
+                throw GradleException(
+                    "No release signing key. Configure keystore.properties or the CI " +
+                        "KEYSTORE_B64, KEYSTORE_PASSWORD, KEY_ALIAS and KEY_PASSWORD secrets."
                 )
+            }
         }
     }
 

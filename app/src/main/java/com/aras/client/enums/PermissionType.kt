@@ -23,8 +23,8 @@ enum class PermissionType {
 
     /** Local network access permission (Android 17+) */
     ACCESS_LOCAL_NETWORK {
-        @RequiresApi(Build.VERSION_CODES.CINNAMON_BUN)
-        override fun getPermission(): String = Manifest.permission.ACCESS_LOCAL_NETWORK
+        @RequiresApi(37)
+        override fun getPermission(): String = "android.permission.ACCESS_LOCAL_NETWORK"
     };
 
     /** Return the actual Android permission string */

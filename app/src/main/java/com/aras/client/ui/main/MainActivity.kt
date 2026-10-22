@@ -127,6 +127,7 @@ class MainActivity : HelperBaseComponentActivity() {
         checkAndRequestPermission(PermissionType.POST_NOTIFICATIONS) {}
         maybeImportOpenedArasc(intent)
         handleSubscriptionNavigation(intent)
+        maybeImportRadarConfig(intent)
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
@@ -134,6 +135,18 @@ class MainActivity : HelperBaseComponentActivity() {
         setIntent(intent)
         maybeImportOpenedArasc(intent)
         handleSubscriptionNavigation(intent)
+        maybeImportRadarConfig(intent)
+    }
+
+    private fun maybeImportRadarConfig(intent: Intent?) {
+        if (intent?.action != "com.aras.client.action.IMPORT_RADAR_CONFIG") return
+        val rawConfig = intent.getStringExtra("radar_config").orEmpty()
+        intent.removeExtra("radar_config")
+        intent.action = null
+        if (rawConfig.isNotBlank()) {
+            mainViewModel.onAction(MainAction.ImportBatchConfig(rawConfig))
+            mainViewModel.onAction(MainAction.RefreshGroups)
+        }
     }
 
     private fun handleSubscriptionNavigation(intent: Intent?) {
@@ -426,7 +439,7 @@ class MainActivity : HelperBaseComponentActivity() {
             toast(R.string.title_file_chooser)
             return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN &&
+        if (Build.VERSION.SDK_INT >= 37 &&
             MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING)
         ) {
             checkAndRequestPermission(PermissionType.ACCESS_LOCAL_NETWORK) {}
