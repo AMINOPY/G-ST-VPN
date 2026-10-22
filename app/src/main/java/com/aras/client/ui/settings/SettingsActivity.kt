@@ -48,6 +48,7 @@ import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.RADAR_THEME_MODE
 import com.aras.client.ui.compose.PERSEPOLIS_THEME_MODE
 import com.aras.client.ui.compose.verticalScrollbar
+import com.aras.client.ui.calculator.LauncherIconManager
 import com.aras.client.util.Utils
 
 class SettingsActivity : BaseComponentActivity() {
@@ -143,6 +144,12 @@ fun SettingsScreen(
     }
     var uiModeNight by rememberMmkvString(AppConfig.PREF_UI_MODE_NIGHT, "0")
     var uiTheme by rememberMmkvString(AppConfig.PREF_UI_THEME, "default")
+    var uiIconMode by remember {
+        mutableStateOf(
+            context.getSharedPreferences("radar_launcher", android.content.Context.MODE_PRIVATE)
+                .getString("icon_mode", LauncherIconManager.MODE_DEFAULT) ?: LauncherIconManager.MODE_DEFAULT
+        )
+    }
     var dynamicColor by rememberMmkvBool(AppConfig.PREF_DYNAMIC_COLOR, true)
 
     var ipv6Enabled by rememberMmkvBool(AppConfig.PREF_IPV6_ENABLED, false)
@@ -274,6 +281,22 @@ fun SettingsScreen(
                     onSelected = {
                         uiTheme = it
                         ThemeManager.setRadarTheme(it == "radar")
+                    }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_app_icon),
+                    entries = listOf(
+                        stringResource(R.string.app_icon_default),
+                        stringResource(R.string.app_icon_calculator)
+                    ),
+                    values = listOf(
+                        LauncherIconManager.MODE_DEFAULT,
+                        LauncherIconManager.MODE_CALCULATOR
+                    ),
+                    selectedValue = uiIconMode,
+                    onSelected = {
+                        uiIconMode = it
+                        LauncherIconManager.apply(context, it)
                     }
                 )
                 SettingsListItem(
