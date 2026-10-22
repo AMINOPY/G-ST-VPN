@@ -110,25 +110,25 @@ fun RadarDashboard(
 
     val panel = when (verification) {
         RadarVerification.VERIFIED -> Color(0xFF00170A)
-        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFF210307)
+        RadarVerification.TUNNEL_IP_UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFF210307)
         RadarVerification.DISCONNECTED -> Color(0xFF191C20)
         RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFF111821) else Color(0xFFFFFFFF)
     }
     val outline = when (verification) {
         RadarVerification.VERIFIED -> Color(0xFF07552C)
-        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFF74121C)
+        RadarVerification.TUNNEL_IP_UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFF74121C)
         RadarVerification.DISCONNECTED -> Color(0xFF414852)
         RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFF273442) else Color(0xFFD2D9E1)
     }
     val primaryText = when (verification) {
         RadarVerification.VERIFIED -> Color(0xFFB8FFD0)
-        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFFFFD9DC)
+        RadarVerification.TUNNEL_IP_UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFFFFD9DC)
         RadarVerification.DISCONNECTED -> Color(0xFFE2E5E9)
         RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFFEAF1F7) else Color(0xFF17212E)
     }
     val secondaryText = when (verification) {
         RadarVerification.VERIFIED -> Color(0xFF64B982)
-        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFFFF737D)
+        RadarVerification.TUNNEL_IP_UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFFFF737D)
         RadarVerification.DISCONNECTED -> Color(0xFFFF525C)
         RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFF8997A7) else Color(0xFF5D6978)
     }
@@ -136,21 +136,21 @@ fun RadarDashboard(
     val statusColor = when (verification) {
         RadarVerification.DISCONNECTED -> Color(0xFFFF525C)
         RadarVerification.CHECKING -> Color(0xFFC18A32)
-        RadarVerification.UNVERIFIED -> Color(0xFFFF2938)
+        RadarVerification.TUNNEL_IP_UNVERIFIED -> Color(0xFFFF2938)
         RadarVerification.TUNNEL_LOST -> Color(0xFFFF2938)
         RadarVerification.VERIFIED -> Color(0xFF20FF79)
     }
     val statusLabel = when (verification) {
         RadarVerification.DISCONNECTED -> "NO SIGNAL"
         RadarVerification.CHECKING -> "VERIFYING TUNNEL"
-        RadarVerification.UNVERIFIED -> "DANGER"
+        RadarVerification.TUNNEL_IP_UNVERIFIED -> "TUNNEL ACTIVE · IP UNVERIFIED"
         RadarVerification.TUNNEL_LOST -> "DANGER"
         RadarVerification.VERIFIED -> "SIGNAL ACTIVE"
     }
     val statusDetail = when (verification) {
         RadarVerification.DISCONNECTED -> "VPN tunnel inactive"
         RadarVerification.CHECKING -> "Checking VPN tunnel, exit IP and selected-config ping"
-        RadarVerification.UNVERIFIED -> if (!hasPing) "Selected configuration has no successful ping" else "Tunnel is active, but traffic could not be verified"
+        RadarVerification.TUNNEL_IP_UNVERIFIED -> if (!hasPing) "Tunnel is active; selected configuration has no successful ping" else "Tunnel is active, but VPN-routed IP verification failed"
         RadarVerification.TUNNEL_LOST -> "VPN is enabled but the VPN network is not active"
         RadarVerification.VERIFIED -> "SECURE TUNNEL ESTABLISHED"
     }
@@ -197,11 +197,12 @@ fun RadarDashboard(
                     text = when (verification) {
                         RadarVerification.VERIFIED -> "ONLINE"
                         RadarVerification.DISCONNECTED -> "OFFLINE"
-                        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> "DANGER"
+                        RadarVerification.TUNNEL_IP_UNVERIFIED -> "UNVERIFIED"
+                        RadarVerification.TUNNEL_LOST -> "DANGER"
                         RadarVerification.CHECKING -> "CHECKING"
                     },
                     color = statusColor.copy(
-                        alpha = if (verification == RadarVerification.UNVERIFIED ||
+                        alpha = if (verification == RadarVerification.TUNNEL_IP_UNVERIFIED ||
                             verification == RadarVerification.TUNNEL_LOST) dangerAlpha else 1f
                     ),
                     fontSize = 10.sp,
@@ -229,7 +230,7 @@ fun RadarDashboard(
                     RadarVerification.DISCONNECTED -> RadarState.DISCONNECTED
                     RadarVerification.CHECKING -> RadarState.CONNECTING
                     RadarVerification.VERIFIED -> RadarState.CONNECTED_VERIFIED
-                    RadarVerification.UNVERIFIED -> RadarState.ERROR
+                    RadarVerification.TUNNEL_IP_UNVERIFIED -> RadarState.ERROR
                     RadarVerification.TUNNEL_LOST -> RadarState.ERROR
                 },
                 modifier = Modifier
@@ -259,7 +260,7 @@ fun RadarDashboard(
                         }
                     } else when (verification) {
                         RadarVerification.VERIFIED -> listOf(RadarNode(45f, 0.52f, 75))
-                        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST ->
+                        RadarVerification.TUNNEL_IP_UNVERIFIED, RadarVerification.TUNNEL_LOST ->
                             listOf(RadarNode(45f, 0.52f, 500))
                         else -> emptyList()
                     }
@@ -275,7 +276,7 @@ fun RadarDashboard(
                     .clip(RoundedCornerShape(10.dp))
                     .background(when (verification) {
                         RadarVerification.VERIFIED -> Color(0xFF00230F)
-                        RadarVerification.UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFF33060C)
+                        RadarVerification.TUNNEL_IP_UNVERIFIED, RadarVerification.TUNNEL_LOST -> Color(0xFF33060C)
                         RadarVerification.DISCONNECTED -> Color(0xFF252A30)
                         RadarVerification.CHECKING -> if (isDarkTheme) Color(0xFF171F29) else Color(0xFFF1F4F7)
                     })
