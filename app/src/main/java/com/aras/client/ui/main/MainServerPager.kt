@@ -415,7 +415,8 @@ private fun ServerItemRow(
         onRemove = { onRemoveServer(serverCache.guid) },
         onMore = { onMoreServer(serverCache.guid, profile) },
         onTest = { onTestServer(serverCache.guid) },
-        isProtected = isProtected
+        isProtected = isProtected,
+        dogTagLabel = serverCache.guid.takeLast(4).uppercase()
     )
 }
 
@@ -483,7 +484,8 @@ private fun ServerItemColumn(
         onRemove = { onRemoveServer(serverCache.guid) },
         onMore = { onMoreServer(serverCache.guid, profile) },
         onTest = { onTestServer(serverCache.guid) },
-        isProtected = isProtected
+        isProtected = isProtected,
+        dogTagLabel = serverCache.guid.takeLast(4).uppercase()
     )
 }
 
@@ -506,7 +508,8 @@ fun ServerListItem(
     modifier: Modifier = Modifier,
     dragModifier: Modifier = Modifier,
     isProtected: Boolean = false,
-    country: String = ""
+    country: String = "",
+    dogTagLabel: String = "FIELD"
 ) {
     val showDelayChips = remember {
         MmkvManager.decodeSettingsBool(AppConfig.PREF_SHOW_DELAY_CHIPS, true)
@@ -525,8 +528,8 @@ fun ServerListItem(
     val isSurvival = uiTheme == "survival"
     val cardShape = RoundedCornerShape(if (isSurvival) 5.dp else 16.dp)
     val cardColor = when {
-        isSurvival && isSelected -> Color(0xFF273A27)
-        isSurvival -> Color(0xFF111811)
+        isSurvival && isSelected -> Color(0xFFE8DFC0)
+        isSurvival -> Color(0xFFD8D0B8)
         isSelected -> MaterialTheme.colorScheme.primaryContainer
         else -> MaterialTheme.colorScheme.surfaceContainerLow
     }
@@ -546,7 +549,7 @@ fun ServerListItem(
                 if (isSelected || isSurvival) Modifier.border(
                     if (isSelected) 1.5.dp else 0.7.dp,
                     if (isSurvival) {
-                        if (isSelected) Color(0xFF9BCB72) else Color(0xFF3D5039)
+                        if (isSelected) Color(0xFF354531) else Color(0xFF9B9278)
                     } else MaterialTheme.colorScheme.primary,
                     cardShape
                 ) else Modifier
@@ -557,6 +560,26 @@ fun ServerListItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
 
+        // Last of Us field-issued dog tag: unique to this saved configuration.
+        if (isSurvival) {
+            Column(
+                modifier = Modifier
+                    .padding(end = 9.dp)
+                    .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 8.dp, bottomEnd = 8.dp))
+                    .background(Color(0xFFB8AE91))
+                    .border(1.dp, Color(0xFF6D6A56), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 7.dp, vertical = 5.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    Modifier.size(5.dp).clip(CircleShape).background(Color(0xFF6D6A56))
+                )
+                Spacer(Modifier.height(3.dp))
+                Text("FIELD", color = Color(0xFF3B4032), fontSize = 7.sp, fontWeight = FontWeight.Black, letterSpacing = 0.5.sp)
+                Text(dogTagLabel, color = Color(0xFF20271E), fontSize = 10.sp, fontWeight = FontWeight.Black)
+            }
+        }
+
         // Title, address, chips
         Column(
             Modifier
@@ -564,6 +587,7 @@ fun ServerListItem(
         ) {
             Text(
                 remarks,
+                color = if (isSurvival) Color(0xFF20271E) else MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.SemiBold,
                     lineBreak = LineBreak.Paragraph
@@ -584,7 +608,7 @@ fun ServerListItem(
                 Text(
                     statistics,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isSurvival) Color(0xFF4C5144) else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
