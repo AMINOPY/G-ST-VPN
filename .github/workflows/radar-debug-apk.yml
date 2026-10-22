@@ -39,7 +39,7 @@ jobs:
       - name: Install required Android SDK packages
         run: |
           set -euo pipefail
-          sdkmanager --install "platforms;android-37" "build-tools;36.0.0"
+          sdkmanager --install "platforms;android-37" "build-tools;37.0.0"
           sdkmanager --list_installed
 
       - name: Set up Gradle
