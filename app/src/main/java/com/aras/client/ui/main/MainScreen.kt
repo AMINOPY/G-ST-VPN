@@ -255,18 +255,17 @@ fun MainScreen(
                                 ?: mainViewModel.connectedServerTitle()
                         )
                     }
-                    // The live radar is a core VPN status feature, not a UI theme.
-                    // Keep it visible with every theme; only its appearance may follow the theme.
-                    // The live radar is independent of the UI-theme selector:
-                    // its state always comes from the real VPN tunnel and egress check.
-                    // Only its visual palette follows the selected theme.
-                    RadarDashboard(
-                        isRunning = isRunning,
-                        hasPing = hasPing,
-                        isDarkTheme = isDarkTheme,
-                        serverTitle = mainViewModel.connectedServerTitle(),
-                        isSurvivalTheme = isSurvivalTheme == "survival"
-                    )
+                    // RADAR is a dedicated full UI theme. Its live monitor is shown
+                    // only in that theme; The Last of Us has its own field interface.
+                    if (isSurvivalTheme == "radar") {
+                        RadarDashboard(
+                            isRunning = isRunning,
+                            hasPing = hasPing,
+                            selectedGuid = selectedGuid,
+                            isDarkTheme = isDarkTheme,
+                            serverTitle = mainViewModel.connectedServerTitle()
+                        )
+                    }
                     updateAnnouncement?.let { announcement ->
                         UpdateAnnouncementBanner(
                             result = announcement,
