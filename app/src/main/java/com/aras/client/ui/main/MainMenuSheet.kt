@@ -215,24 +215,6 @@ fun MainMenuSheet(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(10.dp))
 
-            // Contact & support
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                ContactChip(
-                    iconRes = R.drawable.ic_source_code_24dp,
-                    label = "GitHub · ArasTey",
-                    modifier = Modifier.weight(1f),
-                    onClick = { Utils.openUri(context, AppConfig.APP_URL) }
-                )
-                ContactChip(
-                    iconRes = R.drawable.ic_telegram_24dp,
-                    label = "@imArasTey",
-                    modifier = Modifier.weight(1f),
-                    onClick = { Utils.openUri(context, AppConfig.TG_CHANNEL_URL) }
-                )
-            }
         }
     }
 }
@@ -335,18 +317,6 @@ private fun SurvivalMenuSheet(
             Spacer(Modifier.height(12.dp))
             HorizontalDivider(color = signal.copy(alpha = 0.22f))
             Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                ContactChip(
-                    iconRes = R.drawable.ic_source_code_24dp, label = "SOURCE / GITHUB",
-                    modifier = Modifier.weight(1f),
-                    onClick = { Utils.openUri(context, AppConfig.APP_URL) }
-                )
-                ContactChip(
-                    iconRes = R.drawable.ic_telegram_24dp, label = "RADIO / TELEGRAM",
-                    modifier = Modifier.weight(1f),
-                    onClick = { Utils.openUri(context, AppConfig.TG_CHANNEL_URL) }
-                )
-            }
             Spacer(Modifier.height(8.dp))
             Text("STAY ALERT  •  TRUST THE TUNNEL STATUS", color = muted,
                 style = MaterialTheme.typography.labelSmall, modifier = Modifier.align(Alignment.CenterHorizontally))
