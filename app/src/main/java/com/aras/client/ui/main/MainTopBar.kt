@@ -34,7 +34,6 @@ fun MainTopBar(
     onSearchToggle: (Boolean) -> Unit,
     onMenuClick: () -> Unit,
     onAction: (MainAction) -> Unit,
-    onRadarConfig: () -> Unit,
     onMoreMenuAction: (MainMoreMenuAction) -> Unit
 ) {
     val uiTheme by ThemeManager.uiTheme.collectAsState()
@@ -50,10 +49,6 @@ fun MainTopBar(
             onAction = { action ->
                 showImportMenu = false
                 onAction(action)
-            },
-            onRadarConfig = {
-                showImportMenu = false
-                onRadarConfig()
             }
         )
     }
