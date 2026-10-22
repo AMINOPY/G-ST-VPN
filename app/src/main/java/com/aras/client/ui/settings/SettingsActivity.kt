@@ -306,7 +306,7 @@ fun SettingsScreen(
                     keyboardNumber = true,
                     isPassword = true,
                     onValueChanged = {
-                        calculatorAccessCodeInput = it.filter(Char::isDigit).take(12)
+                        calculatorAccessCodeInput = it.filter { character -> character.isDigit() }.take(12)
                         if (calculatorAccessCodeInput.length in 4..12) {
                             LauncherIconManager.setAccessCode(context, calculatorAccessCodeInput)
                         }
