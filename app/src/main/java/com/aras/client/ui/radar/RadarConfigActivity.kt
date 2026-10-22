@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.aras.client.radar.ui.RadarScanView
+import com.aras.client.ui.compose.AppTheme
 import android.content.Intent
 import com.aras.client.ui.main.MainActivity
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +35,7 @@ class RadarConfigActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
+            AppTheme {
                 var scanning by remember { mutableStateOf(false) }
                 var message by remember { mutableStateOf("برای شروع، اسکن را اجرا کن.") }
                 val results = remember { mutableStateListOf<RadarCandidate>() }
