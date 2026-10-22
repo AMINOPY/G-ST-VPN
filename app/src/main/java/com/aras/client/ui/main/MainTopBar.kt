@@ -6,6 +6,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,6 +20,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import com.aras.client.R
 import com.aras.client.ui.compose.AppTopBar
+import com.aras.client.ui.compose.ThemeManager
 
 @Composable
 fun MainTopBar(
@@ -35,6 +37,8 @@ fun MainTopBar(
     onRadarConfig: () -> Unit,
     onMoreMenuAction: (MainMoreMenuAction) -> Unit
 ) {
+    val uiTheme by ThemeManager.uiTheme.collectAsState()
+    val isSurvival = uiTheme == "survival"
     var showImportMenu by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
 
@@ -66,19 +70,32 @@ fun MainTopBar(
     AppTopBar(
         title = stringResource(R.string.app_name),
         titleContent = {
-            // The wordmark is two Texts in a Row. In a Persian layout that Row lays out
-            // right to left, so the two halves swapped and the title read
-            // "ClientAras". A brand reads the same in every language, so this one Row
-            // is pinned left to right.
-            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Aras", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            if (isSurvival) {
+                androidx.compose.foundation.layout.Column {
                     Text(
-                        "Client",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                        "FIELD TERMINAL",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.primary
                     )
+                    Text(
+                        "AFTER THE FALL  //  RADAR",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                // Keep the existing brand unchanged for every other theme.
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Aras", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(
+                            "Client",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         },
@@ -96,7 +113,7 @@ fun MainTopBar(
                 }
             } else {
                 IconButton(onClick = onMenuClick) {
-                    Icon(painterResource(R.drawable.ic_menu_24dp), contentDescription = stringResource(R.string.acc_open_menu))
+                    Icon(painterResource(R.drawable.ic_menu_24dp), contentDescription = stringResource(R.string.acc_open_menu), tint = if (isSurvival) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
                 }
             }
         },
