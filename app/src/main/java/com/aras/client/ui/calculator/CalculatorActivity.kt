@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.aras.client.ui.base.BaseComponentActivity
@@ -58,6 +59,7 @@ class CalculatorActivity : BaseComponentActivity() {
 
 @Composable
 private fun CalculatorScreen(onSecretEntered: () -> Unit) {
+    val context = LocalContext.current
     var display by remember { mutableStateOf("0") }
     var storedValue by remember { mutableStateOf<Double?>(null) }
     var pendingOperator by remember { mutableStateOf<String?>(null) }
@@ -147,28 +149,32 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
                                         "%" -> display = formatNumber((display.toDoubleOrNull() ?: 0.0) / 100.0)
                                         "." -> if (startNewNumber) { display = "0."; startNewNumber = false } else if (!display.contains(".")) display += "."
                                         "+", "−", "×", "÷" -> {
-                                            storedValue = display.toDoubleOrNull()
+                                            val current = display.toDoubleOrNull()
+                                            val previous = storedValue
+                                            val operator = pendingOperator
+                                            val chainedResult = if (previous != null && current != null &&
+                                                operator != null && !startNewNumber
+                                            ) calculate(previous, current, operator) else null
+
+                                            if (chainedResult != null) {
+                                                display = formatNumber(chainedResult)
+                                                storedValue = chainedResult
+                                            } else {
+                                                storedValue = current
+                                            }
                                             pendingOperator = key
                                             startNewNumber = true
                                         }
                                         "=" -> {
-                                            if (pendingOperator == null && display == "2580") {
-                                                showWelcome = true
-                                            } else {
-                                                val left = storedValue
-                                                val right = display.toDoubleOrNull()
-                                                val result = if (left != null && right != null) when (pendingOperator) {
-                                                    "+" -> left + right
-                                                    "−" -> left - right
-                                                    "×" -> left * right
-                                                    "÷" -> if (right == 0.0) null else left / right
-                                                    else -> right
-                                                } else right
-                                                display = result?.let(::formatNumber) ?: "Error"
-                                                storedValue = null
-                                                pendingOperator = null
-                                                startNewNumber = true
-                                            }
+                                            val left = storedValue
+                                            val right = display.toDoubleOrNull()
+                                            val result = if (left != null && right != null && pendingOperator != null) {
+                                                calculate(left, right, pendingOperator!!)
+                                            } else right
+                                            display = result?.let(::formatNumber) ?: "Error"
+                                            storedValue = null
+                                            pendingOperator = null
+                                            startNewNumber = true
                                         }
                                         else -> {
                                             val nextDisplay = when {
@@ -178,7 +184,9 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
                                             }
                                             display = nextDisplay
                                             startNewNumber = false
-                                            if (pendingOperator == null && nextDisplay == "2580") {
+                                            if (pendingOperator == null &&
+                                                LauncherIconManager.verifyAccessCode(context, nextDisplay)
+                                            ) {
                                                 showWelcome = true
                                             }
                                         }
@@ -194,6 +202,14 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
             Spacer(Modifier.height(6.dp))
         }
     }
+}
+
+private fun calculate(left: Double, right: Double, operator: String): Double? = when (operator) {
+    "+" -> left + right
+    "−" -> left - right
+    "×" -> left * right
+    "÷" -> if (right == 0.0) null else left / right
+    else -> right
 }
 
 private fun formatNumber(value: Double): String {
