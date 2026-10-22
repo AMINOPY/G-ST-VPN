@@ -26,6 +26,7 @@ import java.util.Base64
 private data class RadarCandidate(val uri: String, val latency: Long?, val note: String)
 
 /** Public-source discovery. TCP reachability is not treated as proof of a working proxy tunnel. */
+@OptIn(ExperimentalMaterial3Api::class)
 class RadarConfigActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -94,12 +95,14 @@ class RadarConfigActivity : ComponentActivity() {
         val repos = listOf("barry-far/V2ray-Config", "0xRadikal/Free-v2ray-Configs", "ircfspace/tconfig", "Argh94/V2RayAutoConfig")
         val found = linkedSetOf<String>()
         for (repo in repos) try {
-            val tree = get("https://api.github.com/repos/" + repo + "/git/trees/HEAD?recursive=1", 10000)
+            val metadata = get("https://api.github.com/repos/" + repo, 10000)
+            val branch = Regex("\\"default_branch\\"\\s*:\\s*\\"([^\\"]+)\\"").find(metadata)?.groupValues?.get(1) ?: "main"
+            val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
             val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"").findAll(tree).map { it.groupValues[1] }
                 .filter { p -> val q = p.lowercase(); (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) && (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country")) }
                 .take(10)
             for (path in paths) {
-                val raw = get("https://raw.githubusercontent.com/" + repo + "/HEAD/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
+                val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
                 extract(raw).forEach { found.add(it) }
                 if (found.size >= 250) return found.toList()
             }
