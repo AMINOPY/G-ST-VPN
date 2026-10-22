@@ -139,10 +139,14 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set -euo pipefail
+          if [[ -z "$KEYSTORE_B64" || -z "$KEYSTORE_PASSWORD" || -z "$KEY_ALIAS" || -z "$KEY_PASSWORD" ]]; then
+            echo "::error::Release signing secrets are missing. Configure KEYSTORE_B64, KEYSTORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD in repository Actions secrets."
+            exit 1
+          fi
           mkdir -p keystore
-          printf '%s' "$KEYSTORE_B64" | base64 -d > keystore/RADAR VPN-release.jks
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "keystore/radarvpn-release.jks"
           cat > keystore.properties <<EOF
-          storeFile=keystore/RADAR VPN-release.jks
+          storeFile=keystore/radarvpn-release.jks
           storePassword=$KEYSTORE_PASSWORD
           keyAlias=$KEY_ALIAS
           keyPassword=$KEY_PASSWORD
