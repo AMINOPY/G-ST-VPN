@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">RADAR VPN</string>
+    <string name="app_name" translatable="false">Radar VPN</string>
     <string name="app_widget_name">اتصال / قطع</string>
-    <string name="app_tile_name">RADAR VPN: اتصال / قطع</string>
+    <string name="app_tile_name">Radar VPN: اتصال / قطع</string>
     <string name="app_tile_first_use">برای اولین استفاده از این قابلیت، لطفاً ابتدا از داخل برنامه یک سرور اضافه کنید</string>
     <string name="navigation_drawer_open">باز کردن منو کشویی</string>
     <string name="navigation_drawer_close">بستن منو کشویی</string>
@@ -585,7 +585,7 @@
     <string name="toast_connect_first_to_test">اول وصل شو، بعد برای تست سرور اینجا لمس کن</string>
     <string name="bar_test">تست</string>
     <string name="title_test_single">تست این سرور</string>
-    <string name="setup_title">به ArasClient خوش آمدید</string>
+    <string name="setup_title">به Radar VPN خوش آمدید</string>
     <string name="setup_subtitle">چند تنظیم سریع را انتخاب کنید. بعداً در تنظیمات قابل تغییر است.</string>
     <string name="setup_auto_sort">مرتب‌سازی خودکار سرورها بر اساس پینگ</string>
     <string name="setup_auto_connect">اتصال خودکار به سریع‌ترین سرور هنگام اجرا</string>
@@ -605,7 +605,7 @@
     <string name="quick_connect_success">اشتراک به‌روز شد و متصل شد</string>
     <string name="quick_connect_failure">به‌روزرسانی و اتصال ناموفق بود</string>
     <string name="quick_connect_no_server">هیچ سرور در دسترسی یافت نشد</string>
-    <string name="quick_connect_vpn_permission">ابتدا اجازه دسترسی VPN را به ArasClient بدهید</string>
+    <string name="quick_connect_vpn_permission">ابتدا اجازه دسترسی VPN را به Radar VPN بدهید</string>
     <string name="quick_connect_already_running">یک به‌روزرسانی از قبل در حال اجراست</string>
     <string name="protected_config_hidden">کانفیگ محافظت‌شده</string>
     <string name="acc_auto_scroll">پیمایش خودکار به بهترین سرور (کلید)</string>
@@ -726,7 +726,7 @@
     <string name="menu_sub_check_update">بررسی نسخه جدید</string>
     <string name="menu_sub_backup">پشتیبان‌گیری</string>
     <string name="menu_sub_logcat">مشاهده گزارش‌ها</string>
-    <string name="menu_sub_about">درباره ArasClient</string>
+    <string name="menu_sub_about">درباره Radar VPN</string>
     <string name="title_connection_stats">آمار اتصال</string>
     <string name="stats_connections">اتصال‌ها</string>
     <string name="stats_total_time">مجموع زمان اتصال</string>
