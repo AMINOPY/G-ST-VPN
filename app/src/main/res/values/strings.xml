@@ -736,4 +736,8 @@
     <string name="title_export_sub_txt">Export subscription (TXT)</string>
     <string name="title_reset_settings">Reset settings to default</string>
     <string name="summary_reset_settings">All preferences return to factory defaults. The app restarts this screen.</string>
+    <string name="title_pref_app_icon">App icon</string>
+    <string name="app_icon_default">Default</string>
+    <string name="app_icon_calculator">Calculator</string>
+    <string name="calculator_launcher_label">Calculator</string>
 </resources>
