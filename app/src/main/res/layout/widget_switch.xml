@@ -57,6 +57,7 @@
                 android:background="#476F55" />
 
             <View
+                android:id="@+id/widget_radar_center_dot"
                 android:layout_width="7dp"
                 android:layout_height="7dp"
                 android:layout_gravity="center"
