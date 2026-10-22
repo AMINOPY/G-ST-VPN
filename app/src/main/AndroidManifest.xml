@@ -351,6 +351,20 @@
             </intent-filter>
         </receiver>
         <receiver
+            android:name=".receiver.AetherGlassWidgetProvider"
+            android:exported="true">
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/aether_glass_widget_info" />
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.aras.client.action.AETHER_WIDGET_TOGGLE" />
+                <action android:name="com.aras.client.action.AETHER_WIDGET_REFRESH" />
+                <action android:name="${applicationId}.action.activity" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
             android:name=".receiver.BootReceiver"
             android:exported="true"
             android:label="BootReceiver">
