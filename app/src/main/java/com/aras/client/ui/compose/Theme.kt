@@ -350,8 +350,8 @@ fun resolveDarkTheme(): Boolean {
     val uiTheme by ThemeManager.uiTheme.collectAsState()
     return when {
         uiTheme == "radar" || uiTheme == "survival" -> true
-        mode == "1" -> false
-        mode in setOf("2", "3", "4") -> true
+        mode == "1" || mode == "4" -> false
+        mode in setOf("2", "3") -> true
         else -> isSystemInDarkTheme()
     }
 }
@@ -371,8 +371,12 @@ fun AppTheme(
     val isSurvivalTheme = uiTheme == "survival"
     val isAuroraTheme = uiTheme == "aurora"
     val isPersepolisTheme = themeMode == "4"
-    val effectiveDarkTheme = isRadarTheme || isSurvivalTheme || isPersepolisTheme ||
-        (isAuroraTheme && darkTheme) || themeMode == "3" || darkTheme
+    // Persepolis uses a light parchment palette; keep system-bar icons dark there.
+    val effectiveDarkTheme = when {
+        isPersepolisTheme -> false
+        isRadarTheme || isSurvivalTheme || themeMode == "3" -> true
+        else -> darkTheme
+    }
     // Ordinary system appearance is the default; special themes are opt-in.
     val colorScheme = when {
         isRadarTheme -> RadarColorScheme
