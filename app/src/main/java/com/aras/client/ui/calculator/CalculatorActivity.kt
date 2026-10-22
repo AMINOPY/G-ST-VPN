@@ -39,9 +39,6 @@ import androidx.compose.ui.unit.sp
 import com.aras.client.ui.base.BaseComponentActivity
 import com.aras.client.ui.main.MainActivity
 import kotlinx.coroutines.delay
-import java.math.BigDecimal
-import java.math.RoundingMode
-import java.util.Locale
 
 class CalculatorActivity : BaseComponentActivity() {
     @Composable
@@ -146,7 +143,7 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
                                         "AC" -> { display = "0"; storedValue = null; pendingOperator = null; startNewNumber = false }
                                         "⌫" -> { if (!startNewNumber) display = if (display.length <= 1 || (display.length == 2 && display.startsWith("-"))) "0" else display.dropLast(1) }
                                         "+/-" -> if (display != "0") display = if (display.startsWith("-")) display.drop(1) else "-$display"
-                                        "%" -> display = formatNumber((display.toDoubleOrNull() ?: 0.0) / 100.0)
+                                        "%" -> display = CalculatorMath.format((display.toDoubleOrNull() ?: 0.0) / 100.0)
                                         "." -> if (startNewNumber) { display = "0."; startNewNumber = false } else if (!display.contains(".")) display += "."
                                         "+", "−", "×", "÷" -> {
                                             val current = display.toDoubleOrNull()
@@ -154,10 +151,10 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
                                             val operator = pendingOperator
                                             val chainedResult = if (previous != null && current != null &&
                                                 operator != null && !startNewNumber
-                                            ) calculate(previous, current, operator) else null
+                                            ) CalculatorMath.calculate(previous, current, operator) else null
 
                                             if (chainedResult != null) {
-                                                display = formatNumber(chainedResult)
+                                                display = CalculatorMath.format(chainedResult)
                                                 storedValue = chainedResult
                                             } else {
                                                 storedValue = current
@@ -169,7 +166,7 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
                                             val left = storedValue
                                             val right = display.toDoubleOrNull()
                                             val result = if (left != null && right != null && pendingOperator != null) {
-                                                calculate(left, right, pendingOperator!!)
+                                                CalculatorMath.calculate(left, right, pendingOperator!!)
                                             } else right
                                             display = result?.let(::formatNumber) ?: "Error"
                                             storedValue = null
@@ -204,20 +201,3 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
     }
 }
 
-private fun calculate(left: Double, right: Double, operator: String): Double? = when (operator) {
-    "+" -> left + right
-    "−" -> left - right
-    "×" -> left * right
-    "÷" -> if (right == 0.0) null else left / right
-    else -> right
-}
-
-private fun formatNumber(value: Double): String {
-    if (!value.isFinite()) return "Error"
-    return try {
-        BigDecimal.valueOf(value).setScale(8, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
-            .take(18).ifEmpty { "0" }
-    } catch (_: Exception) {
-        String.format(Locale.US, "%.6f", value).trimEnd('0').trimEnd('.')
-    }
-}
