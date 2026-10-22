@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalContext
@@ -86,7 +87,7 @@ fun MainTopBar(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Black,
                     color = if (isRdrX) Color(0xFF39FF88) else MaterialTheme.colorScheme.onSurface,
-                    letterSpacing = if (isRdrX) androidx.compose.ui.unit.TextUnit(0.8f, androidx.compose.ui.unit.TextUnitType.Sp) else androidx.compose.ui.unit.TextUnit.Unspecified
+                    letterSpacing = if (isRdrX) 0.8.sp else 0.sp
                 )
                 if (isRdrX) {
                     Spacer(Modifier.height(1.dp))
