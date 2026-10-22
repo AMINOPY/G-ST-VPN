@@ -149,18 +149,27 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
                                             val current = display.toDoubleOrNull()
                                             val previous = storedValue
                                             val operator = pendingOperator
-                                            val chainedResult = if (previous != null && current != null &&
+                                            val shouldChain = previous != null && current != null &&
                                                 operator != null && !startNewNumber
-                                            ) CalculatorMath.calculate(previous, current, operator) else null
+                                            val chainedResult = if (shouldChain) {
+                                                CalculatorMath.calculate(previous!!, current!!, operator!!)
+                                            } else current
 
-                                            if (chainedResult != null) {
-                                                display = CalculatorMath.format(chainedResult)
-                                                storedValue = chainedResult
+                                            if (shouldChain && chainedResult == null) {
+                                                display = "Error"
+                                                storedValue = null
+                                                pendingOperator = null
+                                                startNewNumber = true
                                             } else {
-                                                storedValue = current
+                                                if (chainedResult != null) {
+                                                    display = CalculatorMath.format(chainedResult)
+                                                    storedValue = chainedResult
+                                                } else {
+                                                    storedValue = current
+                                                }
+                                                pendingOperator = key
+                                                startNewNumber = true
                                             }
-                                            pendingOperator = key
-                                            startNewNumber = true
                                         }
                                         "=" -> {
                                             val left = storedValue
@@ -168,7 +177,7 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
                                             val result = if (left != null && right != null && pendingOperator != null) {
                                                 CalculatorMath.calculate(left, right, pendingOperator!!)
                                             } else right
-                                            display = result?.let(::formatNumber) ?: "Error"
+                                            display = result?.let { CalculatorMath.format(it) } ?: "Error"
                                             storedValue = null
                                             pendingOperator = null
                                             startNewNumber = true
