@@ -50,7 +50,7 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 
-private enum class RadarVerification { DISCONNECTED, CHECKING, VERIFIED, UNVERIFIED, TUNNEL_LOST }
+private enum class RadarVerification { DISCONNECTED, CHECKING, VERIFIED, TUNNEL_IP_UNVERIFIED, TUNNEL_LOST }
 
 private data class RadarIpResult(val tunnelActive: Boolean, val verified: Boolean, val ip: String? = null)
 
@@ -100,8 +100,9 @@ fun RadarDashboard(
             verification = when {
                 !result.tunnelActive -> RadarVerification.TUNNEL_LOST
                 tunnelVerified -> RadarVerification.VERIFIED
-                // The tunnel exists, but egress verification failed: never show green.
-                else -> RadarVerification.UNVERIFIED
+                // A live VPN interface with failed egress verification is unverified,
+                // not proof that the tunnel itself is down. Never call it verified/green.
+                else -> RadarVerification.TUNNEL_IP_UNVERIFIED
             }
             delay(5_000)
         }
