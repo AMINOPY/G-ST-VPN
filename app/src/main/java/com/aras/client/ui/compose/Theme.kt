@@ -250,6 +250,7 @@ fun resolveDarkTheme(): Boolean {
     return when (mode) {
         "1" -> false
         "2" -> true
+        RADAR_THEME_MODE -> true
         else -> isSystemInDarkTheme()
     }
 }
@@ -262,13 +263,13 @@ fun AppTheme(
     content: @Composable () -> Unit
 ) {
     val dynamicColor by ThemeManager.dynamicColorEnabled.collectAsState()
-    val radarTheme by ThemeManager.radarTheme.collectAsState()
+    val themeMode by ThemeManager.themeMode.collectAsState()
+    val isRadar = themeMode == RADAR_THEME_MODE
     val context = LocalContext.current
-    // Radar is a fully separate visual mode, not just a different radar widget.
-    // Keep its high-contrast command-console palette even when Android is in light mode.
-    val effectiveDarkTheme = radarTheme || darkTheme
+    // Keep the radar palette consistent regardless of the system light/dark setting.
+    val effectiveDarkTheme = isRadar || darkTheme
     val colorScheme = when {
-        radarTheme -> RadarDarkColor
+        isRadar -> RadarColorScheme
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
@@ -301,6 +302,7 @@ fun AppTheme(
             Box(modifier = Modifier.fillMaxSize()) {
                 AppSnackbarBridge(controller = snackbarController)
                 content()
+                if (isRadar) RadarOverlay()
                 AppSnackbarHost(hostState = snackbarController.hostState)
             }
         }
