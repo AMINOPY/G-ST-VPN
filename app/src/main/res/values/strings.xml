@@ -740,8 +740,8 @@
     <string name="theme_system_summary">Follow phone day/night</string>
     <string name="theme_cultural_night_title">Cultural night</string>
     <string name="theme_cultural_night_summary">Desert navy and Persian gold</string>
-    <string name="theme_ancient_paper_title">Ancient paper</string>
-    <string name="theme_ancient_paper_summary">Warm paper and ink blue</string>
+    <string name="theme_ancient_paper_title">Persepolis / Ancient paper</string>
+    <string name="theme_ancient_paper_summary">Warm parchment and ink blue inspired by ancient Persia</string>
 
     <string name="radar_no_signal">No signal</string>
     <string name="radar_no_signal_fa">بدون سیگنال</string>
