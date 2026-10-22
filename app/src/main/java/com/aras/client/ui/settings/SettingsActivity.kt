@@ -46,6 +46,7 @@ import com.aras.client.ui.compose.SettingsMenuItem
 import com.aras.client.ui.compose.SettingsSwitchItem
 import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.RADAR_THEME_MODE
+import com.aras.client.ui.compose.PERSEPOLIS_THEME_MODE
 import com.aras.client.ui.compose.verticalScrollbar
 import com.aras.client.util.Utils
 
@@ -176,9 +177,11 @@ fun SettingsScreen(
     val languageEntries = stringArrayResource(R.array.language_select).toList()
     val languageValues = stringArrayResource(R.array.language_select_value).toList()
     val uiModeNightEntries = stringArrayResource(R.array.ui_mode_night).toList() +
-        stringResource(R.string.ui_mode_radar)
+        stringResource(R.string.ui_mode_radar) +
+        stringResource(R.string.ui_mode_persepolis)
     val uiModeNightValues = stringArrayResource(R.array.ui_mode_night_value).toList() +
-        RADAR_THEME_MODE
+        RADAR_THEME_MODE +
+        PERSEPOLIS_THEME_MODE
     val uiThemeEntries = stringArrayResource(R.array.ui_theme_entries).toList()
     val uiThemeValues = stringArrayResource(R.array.ui_theme_values).toList()
     val bypassLanEntries = stringArrayResource(R.array.vpn_bypass_lan).toList()
