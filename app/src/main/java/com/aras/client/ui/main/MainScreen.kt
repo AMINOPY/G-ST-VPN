@@ -35,7 +35,6 @@ import com.aras.client.AppConfig
 import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.handler.MmkvManager
 import com.aras.client.ui.compose.LocalDarkTheme
-import com.aras.client.ui.compose.SurvivalFieldPanel
 import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.QRCodeDialog
 import kotlinx.coroutines.flow.distinctUntilChanged
