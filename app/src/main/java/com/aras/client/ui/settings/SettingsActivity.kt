@@ -150,6 +150,7 @@ fun SettingsScreen(
                 .getString("icon_mode", LauncherIconManager.MODE_DEFAULT) ?: LauncherIconManager.MODE_DEFAULT
         )
     }
+    var calculatorAccessCodeInput by remember { mutableStateOf("") }
     var dynamicColor by rememberMmkvBool(AppConfig.PREF_DYNAMIC_COLOR, true)
 
     var ipv6Enabled by rememberMmkvBool(AppConfig.PREF_IPV6_ENABLED, false)
@@ -297,6 +298,18 @@ fun SettingsScreen(
                     onSelected = {
                         uiIconMode = it
                         LauncherIconManager.apply(context, it)
+                    }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.calculator_access_code),
+                    value = calculatorAccessCodeInput,
+                    keyboardNumber = true,
+                    isPassword = true,
+                    onValueChanged = {
+                        calculatorAccessCodeInput = it.filter(Char::isDigit).take(12)
+                        if (calculatorAccessCodeInput.length in 4..12) {
+                            LauncherIconManager.setAccessCode(context, calculatorAccessCodeInput)
+                        }
                     }
                 )
                 SettingsListItem(
