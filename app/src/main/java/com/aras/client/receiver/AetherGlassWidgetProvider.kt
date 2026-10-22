@@ -95,7 +95,7 @@ class AetherGlassWidgetProvider : AppWidgetProvider() {
 
         val views = RemoteViews(context.packageName, R.layout.widget_aether_glass)
 
-        views.setTextViewText(R.id.aether_brand, "RADAR VPN  /  GLASS")
+        views.setTextViewText(R.id.aether_brand, "Radar VPN · Glass")
         views.setTextViewText(
             R.id.aether_status,
             when {
@@ -129,7 +129,7 @@ class AetherGlassWidgetProvider : AppWidgetProvider() {
             when {
                 running -> "DISCONNECT VPN"
                 hasProfile -> "CONNECT VPN"
-                else -> "OPEN RADAR VPN"
+                else -> "Open Radar VPN"
             },
         )
 
