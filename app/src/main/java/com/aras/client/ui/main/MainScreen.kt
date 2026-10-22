@@ -407,7 +407,7 @@ private fun AuroraSentinelHero(
             } else {
                 emptyList()
             },
-            centerLabel = if (state == AuroraLinkState.OFF) "NO SIGNAL" else {
+            centerLabel = if (state == AuroraLinkState.OFF) "no signal" else {
                 pingMs?.let { "$it MS" } ?: "SCANNING"
             },
             centerSubtitle = statusSubtitle,
