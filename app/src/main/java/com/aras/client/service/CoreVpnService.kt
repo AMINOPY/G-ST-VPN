@@ -125,6 +125,7 @@ class CoreVpnService : VpnService(), ServiceControl {
             return
         }
         radarNotifier.onTunnelConnected()
+        NotificationManager.updateRadarConnected()
 
         // Start LAN sharing if enabled in settings
         RootLanSharing.startClientSharing(this)
