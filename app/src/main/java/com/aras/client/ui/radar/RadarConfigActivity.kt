@@ -21,7 +21,10 @@ import java.net.HttpURLConnection
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
-import java.util.Base64
+import android.util.Base64
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 private data class RadarCandidate(val uri: String, val latency: Long?, val note: String)
 
@@ -75,17 +78,28 @@ class RadarConfigActivity : ComponentActivity() {
                     try {
                         val uris = withContext(Dispatchers.IO) { discover() }
                         var reachable = 0
-                        for ((index, uri) in uris.take(120).withIndex()) {
+                        val bounded = uris.take(120)
+                        var checked = 0
+                        for (batch in bounded.chunked(8)) {
                             if (!scanning) break
-                            val result = withContext(Dispatchers.IO) { testTcp(uri) }
-                            if (result.latency != null) { reachable++; radar?.addTestedCandidate(result.latency) }
-                            results.add(result)
-                            message = "بررسی " + (index + 1) + "/" + uris.size + " · پاسخ TCP: " + reachable
+                            val batchResults = coroutineScope {
+                                batch.map { uri -> async(Dispatchers.IO) { testTcp(uri) } }.map { it.await() }
+                            }
+                            for (result in batchResults) {
+                                if (result.latency != null) { reachable++; radar?.addTestedCandidate(result.latency) }
+                                results.add(result)
+                                checked++
+                            }
+                            message = "بررسی " + checked + "/" + bounded.size + " · پاسخ TCP: " + reachable
                         }
                         if (scanning) message += " · پیش‌آزمایش تمام شد"
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
                     } catch (e: Exception) { message = "خطا در اسکن: " + (e.message ?: "شبکه") }
-                    scanning = false
-                    radar?.stopScan()
+                    finally {
+                        scanning = false
+                        radar?.stopScan()
+                    }
                 }
             }
         }
@@ -116,7 +130,10 @@ class RadarConfigActivity : ComponentActivity() {
         if (direct.isNotEmpty()) return direct
         val compact = text.filterNot { it.isWhitespace() }
         if (compact.length !in 24..2_000_000) return emptyList()
-        val decoded = runCatching { Base64.getMimeDecoder().decode(compact.replace('-', '+').replace('_', '/')).toString(Charsets.UTF_8) }.getOrNull() ?: return emptyList()
+        val bytes = runCatching { Base64.decode(compact, Base64.DEFAULT) }
+            .recoverCatching { Base64.decode(compact, Base64.URL_SAFE or Base64.NO_WRAP) }
+            .getOrNull() ?: return emptyList()
+        val decoded = bytes.toString(Charsets.UTF_8)
         return pattern.findAll(decoded).map { it.value.trimEnd(',', ';', ')') }.toList()
     }
 
@@ -131,7 +148,8 @@ class RadarConfigActivity : ComponentActivity() {
 
     private fun parseEndpoint(uri: String): Pair<String, Int>? = runCatching {
         if (uri.startsWith("vmess://", true)) {
-            val raw = Base64.getDecoder().decode(uri.substringAfter("://").substringBefore('#')).toString(Charsets.UTF_8)
+            val encoded = uri.substringAfter("://").substringBefore('#')
+            val raw = Base64.decode(encoded, Base64.DEFAULT).toString(Charsets.UTF_8)
             val host = Regex("\"add\"\\s*:\\s*\"([^\"]+)\"").find(raw)?.groupValues?.get(1) ?: return null
             val port = Regex("\"port\"\\s*:\\s*\"?(\\d+)").find(raw)?.groupValues?.get(1)?.toIntOrNull() ?: return null
             return host to port
