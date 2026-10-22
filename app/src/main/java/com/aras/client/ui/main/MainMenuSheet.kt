@@ -96,12 +96,6 @@ private fun menuSections(): List<MenuSection> {
             prominent = true
         ),
         MenuSection(
-            R.string.menu_section_hybrid,
-            listOf(
-                item(MainDestination.Hybrid, green, R.string.hybrid_title),
-            )
-        ),
-        MenuSection(
             R.string.menu_section_files_tools,
             listOf(
                 item(MainDestination.UserAssets, amber, R.string.menu_sub_assets),
