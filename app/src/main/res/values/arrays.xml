@@ -267,7 +267,7 @@
 
     <!-- Radar and The Last of Us are appearance themes. Persepolis remains a UI mode. -->
     <string-array name="ui_theme_entries">
-        <item>Default</item>
+        <item>PARSE / PERSEPOLIS</item>
         <item>@string/ui_mode_radar</item>
         <item>@string/ui_mode_survival</item>
     </string-array>
