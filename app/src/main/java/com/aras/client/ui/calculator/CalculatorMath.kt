@@ -16,12 +16,12 @@ internal object CalculatorMath {
     fun format(value: Double): String {
         if (!value.isFinite()) return "Error"
         return try {
-            BigDecimal.valueOf(value)
-                .setScale(8, RoundingMode.HALF_UP)
+            val plain = BigDecimal.valueOf(value)
+                .setScale(10, RoundingMode.HALF_UP)
                 .stripTrailingZeros()
                 .toPlainString()
-                .take(18)
                 .ifEmpty { "0" }
+            if (plain.length <= 18) plain else String.format(Locale.US, "%.8g", value)
         } catch (_: Exception) {
             String.format(Locale.US, "%.6f", value).trimEnd('0').trimEnd('.')
         }
