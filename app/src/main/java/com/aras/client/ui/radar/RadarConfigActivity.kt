@@ -43,8 +43,11 @@ class RadarConfigActivity : ComponentActivity() {
                     Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("جست‌وجو در منابع عمومی و پیش‌آزمایش دسترسی شبکه", style = MaterialTheme.typography.titleMedium)
                         Text("پاسخ TCP به‌تنهایی سلامت تونل را ثابت نمی‌کند. هیچ کانفیگی خودکار نصب یا متصل نمی‌شود.", style = MaterialTheme.typography.bodySmall)
-                        AndroidView(Modifier.fillMaxWidth().height(230.dp), factory = { ctx -> RadarScanView(ctx).also { radar = it; it.startScan() } },
-                            update = { if (scanning) it.startScan() else it.stopScan() })
+                        AndroidView(
+                            factory = { ctx -> RadarScanView(ctx).also { radar = it; it.startScan() } },
+                            modifier = Modifier.fillMaxWidth().height(230.dp),
+                            update = { if (scanning) it.startScan() else it.stopScan() }
+                        )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(enabled = !scanning, onClick = { results.clear(); radar?.clearBlips(); scanning = true; message = "در حال دریافت و بررسی منابع…" }) { Text("شروع اسکن") }
                             OutlinedButton(enabled = scanning, onClick = { scanning = false }) { Text("توقف") }
