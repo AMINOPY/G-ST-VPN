@@ -40,6 +40,14 @@ class RadarConfigActivity : ComponentActivity() {
                 var message by remember { mutableStateOf("برای شروع، اسکن را اجرا کن.") }
                 val results = remember { mutableStateListOf<RadarCandidate>() }
                 var radar by remember { mutableStateOf<RadarScanView?>(null) }
+                var resultFilter by remember { mutableStateOf("all") }
+                val visibleResults = results.filter { candidate ->
+                    when (resultFilter) {
+                        "reachable" -> candidate.latency != null
+                        "failed" -> candidate.latency == null
+                        else -> true
+                    }
+                }
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("جست‌وجو در منابع عمومی و پیش‌آزمایش دسترسی شبکه", style = MaterialTheme.typography.titleMedium)
@@ -55,8 +63,25 @@ class RadarConfigActivity : ComponentActivity() {
                         }
                         if (scanning) LinearProgressIndicator(Modifier.fillMaxWidth())
                         Text(message, style = MaterialTheme.typography.bodyMedium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = resultFilter == "all",
+                                onClick = { resultFilter = "all" },
+                                label = { Text("همه (" + results.size + ")") }
+                            )
+                            FilterChip(
+                                selected = resultFilter == "reachable",
+                                onClick = { resultFilter = "reachable" },
+                                label = { Text("پاسخ‌گو (" + results.count { it.latency != null } + ")") }
+                            )
+                            FilterChip(
+                                selected = resultFilter == "failed",
+                                onClick = { resultFilter = "failed" },
+                                label = { Text("بدون پاسخ (" + results.count { it.latency == null } + ")") }
+                            )
+                        }
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(results, key = { it.uri }) { item ->
+                            items(visibleResults, key = { it.uri }) { item ->
                                 Card(Modifier.fillMaxWidth()) {
                                     Column(Modifier.padding(12.dp)) {
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
