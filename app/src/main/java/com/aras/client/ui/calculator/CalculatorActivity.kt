@@ -63,10 +63,15 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
     var pendingOperator by remember { mutableStateOf<String?>(null) }
     var startNewNumber by remember { mutableStateOf(false) }
     var showWelcome by remember { mutableStateOf(false) }
+    var welcomeText by remember { mutableStateOf("") }
 
     LaunchedEffect(showWelcome) {
         if (showWelcome) {
-            delay(900)
+            "WELCOME TO RADAR".forEach { character ->
+                welcomeText += character
+                delay(48)
+            }
+            delay(350)
             onSecretEntered()
         }
     }
@@ -79,7 +84,7 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit) {
         if (showWelcome) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    text = "WELCOME TO RADAR",
+                    text = welcomeText,
                     color = Color(0xFF39FF78),
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
