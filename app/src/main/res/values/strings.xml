@@ -735,4 +735,21 @@
     <string name="title_export_sub_txt">Export subscription (TXT)</string>
     <string name="title_reset_settings">Reset settings to default</string>
     <string name="summary_reset_settings">All preferences return to factory defaults. The app restarts this screen.</string>
+
+    <!-- AURORA SENTINEL notifications -->
+    <string name="radar_channel_command">Command alerts</string>
+    <string name="radar_status_connected">RADAR · VPN active</string>
+    <string name="radar_status_detail_profile_ping">%1$s · Ping %2$d ms</string>
+    <string name="radar_status_detail_profile">%1$s · Tunnel active</string>
+    <string name="radar_status_detail_ping">Ping %1$d ms · Tunnel active</string>
+    <string name="radar_status_detail_idle">VPN service is active</string>
+    <string name="radar_title_command">Command</string>
+    <string name="radar_cmd_established">Commander, the tunnel is active.</string>
+    <string name="radar_cmd_restored">Commander, connection restored.</string>
+    <string name="radar_cmd_lost">Commander, signal lost. Checking recovery.</string>
+    <string name="radar_cmd_manual_stop">Commander, operation stopped.</string>
+
+    <string name="radar_status_connecting">RADAR · Starting VPN…</string>
+    <string name="radar_status_detail_starting">Preparing the tunnel</string>
+
 </resources>
