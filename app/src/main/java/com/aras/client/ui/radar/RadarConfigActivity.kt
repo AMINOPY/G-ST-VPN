@@ -6,8 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -136,8 +134,11 @@ class RadarConfigActivity : ComponentActivity() {
                                 FilterChip(selected = protocolFilter == "hysteria2", onClick = { protocolFilter = "hysteria2" }, label = { Text("Hysteria") })
                             }
                         }
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(visibleResults, key = { it.uri }) { item ->
+                        // The screen already owns the vertical scroll container. Use a regular
+                        // Column here rather than nesting a LazyColumn inside verticalScroll;
+                        // the nested lazy list received unbounded height and hid lower configs.
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            visibleResults.forEach { item ->
                                 Card(Modifier.fillMaxWidth()) {
                                     Column(Modifier.padding(12.dp)) {
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
