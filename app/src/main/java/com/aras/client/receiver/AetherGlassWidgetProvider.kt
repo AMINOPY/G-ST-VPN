@@ -67,10 +67,23 @@ class AetherGlassWidgetProvider : AppWidgetProvider() {
         } catch (_: Exception) {
             false
         }
-        val hasProfile = try {
-            !MmkvManager.getSelectServer().isNullOrBlank()
+        val selectedGuid = try {
+            MmkvManager.getSelectServer()
         } catch (_: Exception) {
-            false
+            null
+        }
+        val selectedProfile = try {
+            selectedGuid?.let { MmkvManager.decodeServerConfig(it) }
+        } catch (_: Exception) {
+            null
+        }
+        val hasProfile = !selectedGuid.isNullOrBlank()
+        val profileName = selectedProfile?.remarks?.takeIf { it.isNotBlank() }
+            ?: if (hasProfile) "SELECTED PROFILE" else "NO ACTIVE PROFILE"
+        val lastPing = try {
+            selectedGuid?.let { MmkvManager.decodeServerAffiliationInfo(it)?.testDelayMillis }
+        } catch (_: Exception) {
+            null
         }
 
         val views = RemoteViews(context.packageName, R.layout.widget_aether_glass)
@@ -94,11 +107,15 @@ class AetherGlassWidgetProvider : AppWidgetProvider() {
         )
         views.setTextViewText(
             R.id.aether_ping,
-            "— ms",
+            when {
+                lastPing == null || lastPing == 0L -> "— ms"
+                lastPing < 0L -> "TIMEOUT"
+                else -> "${lastPing} ms"
+            },
         )
         views.setTextViewText(
             R.id.aether_node,
-            if (hasProfile) "SELECTED PROFILE" else "NO ACTIVE PROFILE",
+            profileName,
         )
         views.setTextViewText(
             R.id.aether_action,
