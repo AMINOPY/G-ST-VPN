@@ -88,6 +88,9 @@
                 <data android:scheme="content" />
                 <data android:scheme="file" />
                 <data android:mimeType="application/octet-stream" />
+                <data android:pathPattern=".*\\.RDR" />
+                <data android:pathPattern=".*\\.rdr" />
+                <!-- Keep opening older Aras share files for backward compatibility. -->
                 <data android:pathPattern=".*\\.arasc" />
             </intent-filter>
 
