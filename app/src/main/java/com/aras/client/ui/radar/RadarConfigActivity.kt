@@ -96,7 +96,7 @@ class RadarConfigActivity : ComponentActivity() {
         val found = linkedSetOf<String>()
         for (repo in repos) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
-            val branch = Regex("\\"default_branch\\"\\s*:\\s*\\"([^\\"]+)\\"").find(metadata)?.groupValues?.get(1) ?: "main"
+            val branch = Regex("""default_branch"\s*:\s*"([^"]+)""").find(metadata)?.groupValues?.get(1) ?: "main"
             val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
             val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"").findAll(tree).map { it.groupValues[1] }
                 .filter { p -> val q = p.lowercase(); (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) && (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country")) }
