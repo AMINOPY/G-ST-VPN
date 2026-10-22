@@ -190,7 +190,8 @@ fun RadarDisplay(
     val ringColor by animateColorAsState(ringTarget, tween(600), label = "radarRing")
     val headColor by animateColorAsState(
         when (state) {
-            RadarState.CONNECTED_VERIFIED, RadarState.TUNNEL_IP_UNVERIFIED -> displayPalette.active
+            RadarState.CONNECTED_VERIFIED -> displayPalette.active
+            RadarState.TUNNEL_IP_UNVERIFIED -> displayPalette.warning
             RadarState.CONNECTING -> displayPalette.connecting
             else -> displayPalette.inactiveRing
         }, tween(500), label = "radarHead"
@@ -398,6 +399,6 @@ fun defaultSubtitle(state: RadarState): String = when (state) {
     RadarState.DISCONNECTED -> "VPN tunnel inactive"
     RadarState.CONNECTING -> "Negotiating secure tunnel"
     RadarState.CONNECTED_VERIFIED -> "SECURE TUNNEL ESTABLISHED"
-    RadarState.TUNNEL_IP_UNVERIFIED -> "Tunnel active, exit IP not confirmed"
+    RadarState.TUNNEL_IP_UNVERIFIED -> "Tunnel active, but VPN-routed traffic is not verified"
     RadarState.ERROR -> "Connection error. Tunnel is not active"
 }
