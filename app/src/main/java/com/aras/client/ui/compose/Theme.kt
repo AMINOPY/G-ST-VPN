@@ -195,6 +195,17 @@ object ThemeManager {
     val radarTheme: StateFlow<Boolean> = _radarTheme.asStateFlow()
 
     init {
+        // Recover users from builds that incorrectly moved Persepolis into the theme
+        // selector: restore it to the original UI-mode preference and clear that theme value.
+        if (_uiTheme.value == "persepolis") {
+            if (_themeMode.value == "0") {
+                MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, PERSEPOLIS_THEME_MODE)
+                _themeMode.value = PERSEPOLIS_THEME_MODE
+            }
+            MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME, "default")
+            _uiTheme.value = "default"
+        }
+
         // Older builds stored Radar and The Last of Us in the mode preference.
         // Migrate only those into appearance themes. Persepolis (value 4) intentionally
         // remains a selectable UI mode, as it was in the original settings.
