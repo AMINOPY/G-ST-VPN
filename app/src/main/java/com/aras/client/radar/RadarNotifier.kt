@@ -54,7 +54,7 @@ class RadarNotifier(context: Context) {
         }
         connected = true
         hasConnectedBefore = true
-        event?.let { showCommand(it, if (it == R.string.radar_cmd_restored) GREEN else GREEN) }
+        event?.let { showCommand(it, GREEN) }
     }
 
     @Synchronized
