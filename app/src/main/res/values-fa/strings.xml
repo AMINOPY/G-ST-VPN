@@ -740,4 +740,21 @@
     <string name="title_pref_show_sub_announcement">نمایش اطلاعیه‌های اشتراک</string>
     <string name="summary_pref_show_sub_announcement">نمایش اطلاعیه و پیام سازنده که اشتراک ارائه می‌دهد، زیر اطلاعات اشتراک. اگر اشتراک نداشته باشد پنهان می‌شود</string>
     <string name="update_no_notes">برای این نسخه یادداشت انتشاری وجود ندارد</string>
+
+    <!-- اعلان‌های AURORA SENTINEL -->
+    <string name="radar_channel_command">هشدارهای فرماندهی</string>
+    <string name="radar_status_connected">رادار · تونل VPN فعال</string>
+    <string name="radar_status_detail_profile_ping">%1$s · پینگ %2$d میلی‌ثانیه</string>
+    <string name="radar_status_detail_profile">%1$s · تونل فعال</string>
+    <string name="radar_status_detail_ping">پینگ %1$d میلی‌ثانیه · تونل فعال</string>
+    <string name="radar_status_detail_idle">سرویس VPN فعال است</string>
+    <string name="radar_title_command">فرماندهی</string>
+    <string name="radar_cmd_established">فرمانده، تونل فعال شد.</string>
+    <string name="radar_cmd_restored">فرمانده، ارتباط بازیابی شد.</string>
+    <string name="radar_cmd_lost">فرمانده، سیگنال از دست رفت؛ در حال بررسی بازیابی.</string>
+    <string name="radar_cmd_manual_stop">فرمانده، عملیات متوقف شد.</string>
+
+    <string name="radar_status_connecting">رادار · در حال راه‌اندازی VPN…</string>
+    <string name="radar_status_detail_starting">در حال آماده‌سازی تونل</string>
+
 </resources>
