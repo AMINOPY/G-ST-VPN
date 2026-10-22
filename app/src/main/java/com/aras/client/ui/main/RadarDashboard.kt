@@ -245,9 +245,9 @@ fun RadarDashboard(
                     verification == RadarVerification.CHECKING) emptyList() else
                     recentHealthChecks.mapIndexed { index, healthy ->
                         RadarNode(
-                            angleDeg = (28f + index * 57f) % 360f,
-                            distance = 0.32f + (index % 3) * 0.16f,
-                            delayMs = if (healthy) 75L else 500L
+                            bearingDeg = (28f + index * 57f) % 360f,
+                            distance01 = 0.32f + (index % 3) * 0.16f,
+                            pingMs = if (healthy) 75 else 500
                         )
                     },
             )
