@@ -1,6 +1,10 @@
 package com.aras.client.ui.main
 
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -12,12 +16,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
 import androidx.compose.material3.TextButton
 import com.aras.client.ui.radar.RadarConfigActivity
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -26,6 +33,7 @@ import com.aras.client.ui.compose.AppTopBar
 
 @Composable
 fun MainTopBar(
+    isRdrX: Boolean = false,
     isLoading: Boolean,
     showSearch: Boolean,
     searchQuery: String,
@@ -72,12 +80,25 @@ fun MainTopBar(
     AppTopBar(
         title = stringResource(R.string.app_name),
         titleContent = {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Column {
+                Text(
+                    text = if (isRdrX) "RDR X" else stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = if (isRdrX) Color(0xFF39FF88) else MaterialTheme.colorScheme.onSurface,
+                    letterSpacing = if (isRdrX) androidx.compose.ui.unit.TextUnit(0.8f, androidx.compose.ui.unit.TextUnitType.Sp) else androidx.compose.ui.unit.TextUnit.Unspecified
+                )
+                if (isRdrX) {
+                    Spacer(Modifier.height(1.dp))
+                    Text(
+                        text = "INTELLIGENT TUNNEL CONTROL",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF8AA0B5),
+                        letterSpacing = 1.1.sp
+                    )
+                }
+            }
         },
         onBackClick = {},
         isLoading = isLoading,
@@ -89,11 +110,11 @@ fun MainTopBar(
         navigationIcon = {
             if (showSearch) {
                 IconButton(onClick = onSearchClose) {
-                    Icon(painterResource(R.drawable.ic_arrow_back_24dp), contentDescription = stringResource(R.string.acc_back))
+                    Icon(painterResource(R.drawable.ic_arrow_back_24dp), contentDescription = stringResource(R.string.acc_back), tint = if (isRdrX) Color(0xFF39FF88) else MaterialTheme.colorScheme.onSurface)
                 }
             } else {
                 IconButton(onClick = onMenuClick) {
-                    Icon(painterResource(R.drawable.ic_menu_24dp), contentDescription = stringResource(R.string.acc_open_menu))
+                    Icon(painterResource(R.drawable.ic_menu_24dp), contentDescription = stringResource(R.string.acc_open_menu), tint = if (isRdrX) Color(0xFF39FF88) else MaterialTheme.colorScheme.onSurface)
                 }
             }
         },
@@ -108,14 +129,14 @@ fun MainTopBar(
                     )
                 }
                 IconButton(onClick = { onSearchToggle(true) }) {
-                    Icon(painterResource(R.drawable.ic_search_24dp), contentDescription = stringResource(R.string.acc_search))
+                    Icon(painterResource(R.drawable.ic_search_24dp), contentDescription = stringResource(R.string.acc_search), tint = if (isRdrX) Color(0xFF39FF88) else MaterialTheme.colorScheme.onSurface)
                 }
             }
             IconButton(onClick = { showImportMenu = true }) {
-                Icon(painterResource(R.drawable.ic_add_24dp), contentDescription = stringResource(R.string.acc_add))
+                Icon(painterResource(R.drawable.ic_add_24dp), contentDescription = stringResource(R.string.acc_add), tint = if (isRdrX) Color(0xFF39FF88) else MaterialTheme.colorScheme.onSurface)
             }
             IconButton(onClick = { showMenu = true }) {
-                Icon(painterResource(R.drawable.ic_more_vert_24dp), contentDescription = stringResource(R.string.acc_more))
+                Icon(painterResource(R.drawable.ic_more_vert_24dp), contentDescription = stringResource(R.string.acc_more), tint = if (isRdrX) Color(0xFF39FF88) else MaterialTheme.colorScheme.onSurface)
             }
         }
     )
