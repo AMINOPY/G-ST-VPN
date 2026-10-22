@@ -257,11 +257,15 @@ fun MainScreen(
                     }
                     // The live radar is a core VPN status feature, not a UI theme.
                     // Keep it visible with every theme; only its appearance may follow the theme.
+                    // The live radar is independent of the UI-theme selector:
+                    // its state always comes from the real VPN tunnel and egress check.
+                    // Only its visual palette follows the selected theme.
                     RadarDashboard(
                         isRunning = isRunning,
                         hasPing = hasPing,
                         isDarkTheme = isDarkTheme,
-                        serverTitle = mainViewModel.connectedServerTitle()
+                        serverTitle = mainViewModel.connectedServerTitle(),
+                        isSurvivalTheme = isSurvivalTheme == "survival"
                     )
                     updateAnnouncement?.let { announcement ->
                         UpdateAnnouncementBanner(
