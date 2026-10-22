@@ -4,6 +4,8 @@ import android.content.Intent
 import androidx.compose.ui.platform.LocalContext
 import com.aras.client.ui.subscription.SubEditActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +35,7 @@ import com.aras.client.AppConfig
 import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.handler.MmkvManager
 import com.aras.client.ui.compose.LocalDarkTheme
+import com.aras.client.ui.compose.SurvivalFieldPanel
 import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.QRCodeDialog
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -246,6 +249,14 @@ fun MainScreen(
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
                 ) {
+                    val isSurvivalTheme by ThemeManager.uiTheme.collectAsStateWithLifecycle()
+                    if (isSurvivalTheme == "survival") {
+                        SurvivalFieldPanel(
+                            isConnected = isRunning,
+                            serverTitle = mainViewModel.connectedServerTitle().takeIf { isRunning }
+                                ?: mainViewModel.connectedServerTitle()
+                        )
+                    }
                     if (isRadarTheme) {
                         RadarDashboard(
                             isRunning = isRunning,
