@@ -32,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -203,9 +204,9 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit, onBiometricRequested: 
             }
         }
         when (page) {
-            "Tools" -> ToolsPanel()
-            "Notes" -> NotesPanel(degreeMode)
-            "History" -> HistoryPanel(history, onSelect = { expression = it; page = "Basic" }, onClear = { history.clear() })
+            "Tools" -> ToolsPanel(modifier = Modifier.weight(1f))
+            "Notes" -> NotesPanel(degreeMode, modifier = Modifier.weight(1f))
+            "History" -> HistoryPanel(history, onSelect = { expression = it; page = "Basic" }, onClear = { history.clear() }, modifier = Modifier.weight(1f))
             else -> {
                 Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.Bottom, horizontalAlignment = Alignment.End) {
                     Text(expression, color = CalcWhite, fontSize = if (expression.length > 18) 27.sp else if (expression.length > 12) 36.sp else 52.sp,
@@ -242,7 +243,7 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit, onBiometricRequested: 
                                 key in listOf("AC", "+/−", "%", "⌫") -> CalcUtility
                                 else -> CalcDigit
                             }
-                            CalculatorKey(key, Modifier.weight(1f), color, onClick = { pressKey(key) },
+                            CalculatorKey(key, Modifier.weight(1f), color, compact = page == "Scientific", onClick = { pressKey(key) },
                                 onPressStart = {
                                     if (key == "0" || key == "1") {
                                         if (!heldKeys.contains(key)) heldKeys.add(key)
@@ -293,19 +294,19 @@ private fun CalculatorKey(
 }
 
 @Composable
-private fun ToolsPanel() {
-    var selected by remember { mutableStateOf("Data") }
-    var distance by remember { mutableStateOf("120") }
-    var hours by remember { mutableStateOf("2") }
-    var totalGb by remember { mutableStateOf("50") }
-    var usedGb by remember { mutableStateOf("18") }
-    var dailyGb by remember { mutableStateOf("2") }
-    var speedMbps by remember { mutableStateOf("25") }
-    var amount by remember { mutableStateOf("100") }
-    var discount by remember { mutableStateOf("15") }
-    var unitAmount by remember { mutableStateOf("1") }
-    var unit by remember { mutableStateOf("km → mi") }
-    Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+private fun ToolsPanel(modifier: Modifier = Modifier) {
+    var selected by rememberSaveable { mutableStateOf("Data") }
+    var distance by rememberSaveable { mutableStateOf("120") }
+    var hours by rememberSaveable { mutableStateOf("2") }
+    var totalGb by rememberSaveable { mutableStateOf("50") }
+    var usedGb by rememberSaveable { mutableStateOf("18") }
+    var dailyGb by rememberSaveable { mutableStateOf("2") }
+    var speedMbps by rememberSaveable { mutableStateOf("25") }
+    var amount by rememberSaveable { mutableStateOf("100") }
+    var discount by rememberSaveable { mutableStateOf("15") }
+    var unitAmount by rememberSaveable { mutableStateOf("1") }
+    var unit by rememberSaveable { mutableStateOf("km → mi") }
+    Column(modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("Data", "Speed", "Units", "Finance").forEach {
                 Text(it, color = if (selected == it) CalcBlack else CalcWhite, fontSize = 12.sp,
@@ -381,11 +382,11 @@ private fun ToolsPanel() {
 }
 
 @Composable
-private fun NotesPanel(degrees: Boolean) {
-    var formula by remember { mutableStateOf("sin(30)+sqrt(16)") }
-    var note by remember { mutableStateOf("") }
-    var slope by remember { mutableStateOf("1") }
-    var intercept by remember { mutableStateOf("0") }
+private fun NotesPanel(degrees: Boolean, modifier: Modifier = Modifier) {
+    var formula by rememberSaveable { mutableStateOf("sin(30)+sqrt(16)") }
+    var note by rememberSaveable { mutableStateOf("") }
+    var slope by rememberSaveable { mutableStateOf("1") }
+    var intercept by rememberSaveable { mutableStateOf("0") }
     val evaluated = CalculatorMath.evaluate(formula, degrees)
     Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Math Notes", color = CalcWhite, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
@@ -422,8 +423,8 @@ private fun LinearGraph(slope: Double, intercept: Double) {
 }
 
 @Composable
-private fun HistoryPanel(history: List<Pair<String, String>>, onSelect: (String) -> Unit, onClear: () -> Unit) {
-    Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun HistoryPanel(history: List<Pair<String, String>>, onSelect: (String) -> Unit, onClear: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Text("History", color = CalcWhite, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
             Text("Clear", color = CalcOrange, modifier = Modifier.pointerInput(Unit) { detectTapGestures(onTap = { onClear() }) })
