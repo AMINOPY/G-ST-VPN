@@ -309,6 +309,14 @@ private fun ToolsPanel(modifier: Modifier = Modifier) {
     var speedMbps by rememberSaveable { mutableStateOf("25") }
     var amount by rememberSaveable { mutableStateOf("100") }
     var discount by rememberSaveable { mutableStateOf("15") }
+    var financeMode by rememberSaveable { mutableStateOf("Discount") }
+    var loanPrincipal by rememberSaveable { mutableStateOf("10000") }
+    var loanRate by rememberSaveable { mutableStateOf("5") }
+    var loanMonths by rememberSaveable { mutableStateOf("36") }
+    var interestYears by rememberSaveable { mutableStateOf("3") }
+    var tipPercent by rememberSaveable { mutableStateOf("10") }
+    var taxPercent by rememberSaveable { mutableStateOf("0") }
+    var peopleCount by rememberSaveable { mutableStateOf("2") }
     var unitAmount by rememberSaveable { mutableStateOf("1") }
     var unit by rememberSaveable { mutableStateOf("km → mi") }
     var currencyAmount by rememberSaveable { mutableStateOf("100") }
@@ -453,14 +461,64 @@ private fun ToolsPanel(modifier: Modifier = Modifier) {
                 Text("Rates are retrieved from Frankfurter; an internet connection is required.", color = Color.Gray, fontSize = 11.sp)
             }
             else -> {
-                Text("Discount & Finance", color = CalcWhite, fontSize = 21.sp, fontWeight = FontWeight.SemiBold)
-                NumberField("Original price", amount, onValue = { amount = it })
-                NumberField("Discount (%)", discount, onValue = { discount = it })
-                val original = amount.toDoubleOrNull() ?: 0.0
-                val pct = discount.toDoubleOrNull() ?: 0.0
-                ResultCard("Discount amount", CalculatorMath.format(original * pct / 100.0))
-                ResultCard("Price after discount", CalculatorMath.format(original * (1.0 - pct / 100.0)))
-                Text("More tools can include compound interest, loan payments, tax, tips and currency conversion with a timestamped rate source.", color = Color.Gray, fontSize = 11.sp)
+                Text("Finance & Everyday", color = CalcWhite, fontSize = 21.sp, fontWeight = FontWeight.SemiBold)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    listOf("Discount", "Loan", "Interest", "Tip/Tax").forEach { mode ->
+                        Text(mode, color = if (financeMode == mode) CalcBlack else CalcWhite, fontSize = 10.sp,
+                            modifier = Modifier.weight(1f).background(if (financeMode == mode) CalcOrange else CalcPanel, RoundedCornerShape(12.dp))
+                                .padding(vertical = 9.dp).pointerInput(mode) { detectTapGestures(onTap = { financeMode = mode }) }, textAlign = TextAlign.Center)
+                    }
+                }
+                when (financeMode) {
+                    "Discount" -> {
+                        NumberField("Original price", amount, onValue = { amount = it })
+                        NumberField("Discount (%)", discount, onValue = { discount = it })
+                        val original = amount.toDoubleOrNull() ?: 0.0
+                        val pct = discount.toDoubleOrNull() ?: 0.0
+                        ResultCard("Discount amount", CalculatorMath.format(original * pct / 100.0))
+                        ResultCard("Price after discount", CalculatorMath.format(original * (1.0 - pct / 100.0)))
+                    }
+                    "Loan" -> {
+                        NumberField("Loan principal", loanPrincipal, onValue = { loanPrincipal = it })
+                        NumberField("Annual interest (%)", loanRate, onValue = { loanRate = it })
+                        NumberField("Repayment months", loanMonths, onValue = { loanMonths = it })
+                        val principal = (loanPrincipal.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0)
+                        val monthlyRate = ((loanRate.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0)) / 1200.0
+                        val months = (loanMonths.toIntOrNull() ?: 0).coerceAtLeast(0)
+                        val payment = if (months == 0) 0.0 else if (monthlyRate == 0.0) principal / months else {
+                            val factor = Math.pow(1.0 + monthlyRate, -months.toDouble())
+                            principal * monthlyRate / (1.0 - factor)
+                        }
+                        ResultCard("Estimated monthly payment", if (months > 0) CalculatorMath.format(payment) else "Enter months")
+                        ResultCard("Total interest", if (months > 0) CalculatorMath.format(payment * months - principal) else "—")
+                        Text("Estimate excludes fees, variable rates and lender-specific rounding.", color = Color.Gray, fontSize = 11.sp)
+                    }
+                    "Interest" -> {
+                        NumberField("Principal", loanPrincipal, onValue = { loanPrincipal = it })
+                        NumberField("Annual rate (%)", loanRate, onValue = { loanRate = it })
+                        NumberField("Years", interestYears, onValue = { interestYears = it })
+                        val principal = (loanPrincipal.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0)
+                        val rate = (loanRate.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0) / 100.0
+                        val years = (interestYears.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0)
+                        val total = principal * Math.pow(1.0 + rate, years)
+                        ResultCard("Amount with annual compounding", CalculatorMath.format(total))
+                        ResultCard("Interest earned", CalculatorMath.format(total - principal))
+                    }
+                    else -> {
+                        NumberField("Bill amount", amount, onValue = { amount = it })
+                        NumberField("Tip (%)", tipPercent, onValue = { tipPercent = it })
+                        NumberField("Tax (%)", taxPercent, onValue = { taxPercent = it })
+                        NumberField("People sharing", peopleCount, onValue = { peopleCount = it })
+                        val bill = (amount.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0)
+                        val tip = (tipPercent.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0)
+                        val tax = (taxPercent.toDoubleOrNull() ?: 0.0).coerceAtLeast(0.0)
+                        val total = bill * (1.0 + (tip + tax) / 100.0)
+                        val people = (peopleCount.toIntOrNull() ?: 0).coerceAtLeast(0)
+                        ResultCard("Tip amount", CalculatorMath.format(bill * tip / 100.0))
+                        ResultCard("Total including tip and tax", CalculatorMath.format(total))
+                        ResultCard("Per person", if (people > 0) CalculatorMath.format(total / people) else "Enter people count")
+                    }
+                }
             }
         }
     }
