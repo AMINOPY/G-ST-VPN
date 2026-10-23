@@ -141,6 +141,7 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit, onBiometricRequested: 
             "AC" -> { expression = "0"; answer = ""; resetCodeCandidate() }
             "⌫" -> { expression = if (expression.length <= 1) "0" else expression.dropLast(1); answer = ""; resetCodeCandidate() }
             "+/−" -> { expression = if (expression.startsWith("-")) expression.drop(1) else if (expression == "0") "-0" else "-(" + expression + ")"; answer = ""; resetCodeCandidate() }
+            "%" -> { expression = CalculatorMath.applyPercent(expression, degreeMode); answer = ""; resetCodeCandidate() }
             "=" -> {
                 val value = CalculatorMath.evaluate(expression, degreeMode)
                 if (value == null) { expression = "Error"; answer = "" }
@@ -266,7 +267,7 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit, onBiometricRequested: 
                                 },
                                 onTapOverride = {
                                     if (chordKeys.contains(key)) chordKeys.remove(key)
-                                    else if (key == "1" && gestureArmed) { gestureArmed = false; onBiometricRequested() }
+                                    else if (gestureArmed) { gestureArmed = false; if (key == "1") onBiometricRequested() else pressKey(key) }
                                     else pressKey(key)
                                 })
                         }
