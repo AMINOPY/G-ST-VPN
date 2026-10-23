@@ -15,8 +15,8 @@ internal object CalculatorMath {
         else -> right
     }
 
-    fun evaluate(source: String, degrees: Boolean = true): Double? = runCatching {
-        Parser(source, degrees).parse().also { require(it.isFinite()) }
+    fun evaluate(source: String, degrees: Boolean = true, variables: Map<String, Double> = emptyMap()): Double? = runCatching {
+        Parser(source, degrees, variables).parse().also { require(it.isFinite()) }
     }.getOrNull()
 
     fun format(value: Double): String {
@@ -30,7 +30,7 @@ internal object CalculatorMath {
         }
     }
 
-    private class Parser(private val input: String, private val degrees: Boolean) {
+    private class Parser(private val input: String, private val degrees: Boolean, private val variables: Map<String, Double>) {
         private var pos = 0
         fun parse(): Double {
             val result = expression()
@@ -84,7 +84,9 @@ internal object CalculatorMath {
             }
             if (pos < input.length && (input[pos].isDigit() || input[pos] == '.')) return number()
             val name = identifier()
-            return when (name.lowercase(Locale.US)) {
+            val normalizedName = name.lowercase(Locale.US)
+            variables[normalizedName]?.let { return it }
+            return when (normalizedName) {
                 "pi", "π" -> Math.PI
                 "e" -> Math.E
                 "sin", "cos", "tan", "asin", "acos", "atan", "sqrt", "cbrt", "abs",
