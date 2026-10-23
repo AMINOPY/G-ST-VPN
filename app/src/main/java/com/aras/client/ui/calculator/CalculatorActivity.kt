@@ -384,7 +384,7 @@ private fun CalculatorScreen(
                                         response.fold(
                                             onSuccess = { (rate, date) ->
                                                 val amount = currencyAmount.toBigDecimalOrNull()
-                                                currencyResult = amount?.multiply(rate.toBigDecimal()).stripTrailingZeros().toPlainString()
+                                                currencyResult = amount?.multiply(rate.toBigDecimal())?.stripTrailingZeros()?.toPlainString()
                                                     ?: "Invalid amount"
                                                 currencyDate = date
                                                 context.getSharedPreferences("calculator_currency_cache", 0).edit()
