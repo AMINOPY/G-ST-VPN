@@ -6,6 +6,8 @@ import com.aras.client.ui.subscription.SubEditActivity
 import com.aras.client.ui.radar.DpiTestActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.Image
 import com.aras.client.ui.compose.AuroraStatusPill
 import com.aras.client.ui.compose.AuroraSentinelRadar
 import com.aras.client.ui.compose.AuroraRadarContact
@@ -40,11 +42,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.aras.client.AppConfig
+import com.aras.client.R
 import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.handler.MmkvManager
 import com.aras.client.ui.compose.CulturalRadar
@@ -251,6 +256,30 @@ fun MainScreen(
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
                 ) {
+                    // RADAR brand mark is shown on the main screen; this is visual-only
+                    // and does not affect VPN state, configuration, or theme selection.
+                    androidx.compose.foundation.layout.Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp, bottom = 8.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        androidx.compose.foundation.Image(
+                            painter = androidx.compose.ui.res.painterResource(id = com.aras.client.R.drawable.ic_radar_brand),
+                            contentDescription = "RADAR",
+                            modifier = Modifier.size(48.dp),
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "RADAR",
+                            color = Color(0xFF8BFF2E),
+                            fontSize = 23.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 3.sp,
+                        )
+                    }
+
                     // Keep the ordinary app layout as the default. Special dashboards
                     // appear only when the user explicitly selects that UI theme.
                     when (uiTheme) {
