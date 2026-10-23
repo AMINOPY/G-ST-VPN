@@ -14,6 +14,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -54,6 +55,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -73,7 +76,7 @@ import kotlin.math.roundToLong
 
 private enum class CalcPage(val label: String) {
     BASIC("Calculator"), SCIENTIFIC("Scientific"), TOOLS("Tools"), CURRENCY("Currency"),
-    UNITS("Unit converter"), SPEED("Speed"), DATA("Internet & data"), FINANCE("Finance"), HISTORY("History"), EVERYDAY("Everyday tools"), PROGRAMMER("Programmer"), STATISTICS("Statistics"), DATE("Date calculator")
+    UNITS("Unit converter"), SPEED("Speed"), DATA("Internet & data"), FINANCE("Finance"), HISTORY("History"), EVERYDAY("Everyday tools"), PROGRAMMER("Programmer"), STATISTICS("Statistics"), DATE("Date calculator"), GRAPH("Function graph"), EQUATION("Equation solver")
 }
 
 class CalculatorActivity : BaseComponentActivity() {
@@ -174,6 +177,13 @@ private fun CalculatorScreen(
     var dateStart by remember { mutableStateOf("2026-01-01") }
     var dateEnd by remember { mutableStateOf("2026-12-31") }
     var dateResult by remember { mutableStateOf("") }
+    var graphExpression by remember { mutableStateOf("sin(x)") }
+    var graphMin by remember { mutableStateOf("-10") }
+    var graphMax by remember { mutableStateOf("10") }
+    var equationExpression by remember { mutableStateOf("x^2-4") }
+    var equationMin by remember { mutableStateOf("-10") }
+    var equationMax by remember { mutableStateOf("10") }
+    var equationResult by remember { mutableStateOf("") }
     val history = remember { mutableStateListOf<String>() }
     val pressedKeys = remember { mutableStateListOf<String>() }
     var simultaneous01Seen by remember { mutableStateOf(false) }
@@ -567,10 +577,108 @@ private fun CalculatorScreen(
                                 Text(dateResult, color = orange, fontSize = 18.sp)
                             }
                         }
+                        CalcPage.GRAPH -> {
+                            ToolPage("Function graph", onBack = { page = CalcPage.TOOLS }) {
+                                Field("Function of x (e.g. sin(x), x^2-3)", graphExpression, { graphExpression = it })
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Field("X minimum", graphMin, { graphMin = it }, true, Modifier.weight(1f))
+                                    Field("X maximum", graphMax, { graphMax = it }, true, Modifier.weight(1f))
+                                }
+                                FunctionGraph(graphExpression, graphMin.toDoubleOrNull() ?: -10.0, graphMax.toDoubleOrNull() ?: 10.0)
+                                Text("Graph uses the current DEG/RAD setting for trigonometric functions.", color = Color.LightGray, fontSize = 12.sp)
+                            }
+                        }
+                        CalcPage.EQUATION -> {
+                            ToolPage("Equation solver", onBack = { page = CalcPage.TOOLS }) {
+                                Field("Expression equal to zero (e.g. x^2-4)", equationExpression, { equationExpression = it })
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Field("X minimum", equationMin, { equationMin = it }, true, Modifier.weight(1f))
+                                    Field("X maximum", equationMax, { equationMax = it }, true, Modifier.weight(1f))
+                                }
+                                Button(onClick = {
+                                    val low = equationMin.toDoubleOrNull()
+                                    val high = equationMax.toDoubleOrNull()
+                                    equationResult = if (low != null && high != null && low < high) {
+                                        val roots = findRoots(equationExpression, low, high, degrees)
+                                        if (roots.isEmpty()) "No root found in this range. Try a wider range." else roots.joinToString("\\n") { "x ≈ ${CalculatorMath.format(it)}" }
+                                    } else "Minimum must be less than maximum"
+                                }) { Text("Find roots") }
+                                Text(equationResult, color = orange, fontSize = 18.sp)
+                                Text("Numerical search finds sign-changing roots in the selected range; it may miss repeated roots or roots outside that range.", color = Color.LightGray, fontSize = 12.sp)
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FunctionGraph(expression: String, xMin: Double, xMax: Double) {
+    Canvas(
+        Modifier.fillMaxWidth().height(250.dp).background(Color(0xFF111111), RoundedCornerShape(16.dp)).padding(8.dp)
+    ) {
+        if (!xMin.isFinite() || !xMax.isFinite() || xMin >= xMax) return@Canvas
+        val samples = (0..240).map { index ->
+            val x = xMin + (xMax - xMin) * index / 240.0
+            x to CalculatorMath.evaluate(expression, true, mapOf("x" to x))
+        }.filter { it.second != null && it.second!!.isFinite() }
+        if (samples.size < 2) return@Canvas
+        val yMin = minOf(samples.minOf { it.second!! }, 0.0)
+        val yMax = maxOf(samples.maxOf { it.second!! }, 0.0)
+        val span = (yMax - yMin).takeIf { it > 1e-9 } ?: 1.0
+        val widthPx = size.width
+        val heightPx = size.height
+        val zeroY = heightPx - ((0.0 - yMin) / span * heightPx).toFloat()
+        drawLine(Color(0xFF555555), androidx.compose.ui.geometry.Offset(0f, zeroY.coerceIn(0f, heightPx)), androidx.compose.ui.geometry.Offset(widthPx, zeroY.coerceIn(0f, heightPx)), 1.dp.toPx())
+        if (xMin <= 0 && xMax >= 0) {
+            val zeroX = ((0.0 - xMin) / (xMax - xMin) * widthPx).toFloat()
+            drawLine(Color(0xFF555555), androidx.compose.ui.geometry.Offset(zeroX, 0f), androidx.compose.ui.geometry.Offset(zeroX, heightPx), 1.dp.toPx())
+        }
+        val path = Path()
+        var started = false
+        var previousY: Float? = null
+        samples.forEach { (x, yValue) ->
+            val y = yValue!!
+            val px = ((x - xMin) / (xMax - xMin) * widthPx).toFloat()
+            val py = (heightPx - ((y - yMin) / span * heightPx)).toFloat()
+            if (previousY != null && kotlin.math.abs(py - previousY!!) > heightPx * 1.5f) started = false
+            if (!started) { path.moveTo(px, py); started = true } else path.lineTo(px, py)
+            previousY = py
+        }
+        drawPath(path, Color(0xFFFF9F0A), style = Stroke(width = 2.5.dp.toPx()))
+    }
+}
+
+private fun findRoots(expression: String, min: Double, max: Double, degrees: Boolean): List<Double> {
+    val roots = mutableListOf<Double>()
+    val steps = 1200
+    var left = min
+    var leftValue = CalculatorMath.evaluate(expression, degrees, mapOf("x" to left))
+    for (i in 1..steps) {
+        val right = min + (max - min) * i / steps
+        val rightValue = CalculatorMath.evaluate(expression, degrees, mapOf("x" to right))
+        if (leftValue != null && rightValue != null && leftValue.isFinite() && rightValue.isFinite()) {
+            if (kotlin.math.abs(leftValue) < 1e-7) roots.add(left)
+            if (leftValue * rightValue < 0) {
+                var lo = left
+                var hi = right
+                var flo = leftValue
+                repeat(55) {
+                    val mid = (lo + hi) / 2
+                    val fm = CalculatorMath.evaluate(expression, degrees, mapOf("x" to mid)) ?: return@repeat
+                    if (flo * fm <= 0) hi = mid else { lo = mid; flo = fm }
+                }
+                roots.add((lo + hi) / 2)
+            }
+        }
+        left = right
+        leftValue = rightValue
+    }
+    return roots.filter { it.isFinite() }.sorted().fold(mutableListOf()) { acc, value ->
+        if (acc.isEmpty() || kotlin.math.abs(acc.last() - value) > 1e-4) acc.add(value)
+        acc
     }
 }
 
