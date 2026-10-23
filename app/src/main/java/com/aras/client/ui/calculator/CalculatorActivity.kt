@@ -285,7 +285,7 @@ private fun CalculatorScreen(
                                             var pressed by remember { mutableStateOf(false) }
                                             val scale by animateFloatAsState(if (pressed) .93f else 1f, tween(100, easing = FastOutSlowInEasing), label = "key-scale")
                                             Box(
-                                                Modifier.weight(1f).padding(vertical = 3.dp).aspectRatio(1f).scale(scale)
+                                                Modifier.weight(1f).padding(vertical = 3.dp).aspectRatio(if (page == CalcPage.SCIENTIFIC) 1.3f else 1f).scale(scale)
                                                     .background(keyColor, CircleShape)
                                                     .pointerInput(key) {
                                                         awaitEachGesture {
@@ -377,8 +377,24 @@ private fun CalculatorScreen(
                                                 currencyResult = amount?.multiply(rate.toBigDecimal()).stripTrailingZeros().toPlainString()
                                                     ?: "Invalid amount"
                                                 currencyDate = date
+                                                context.getSharedPreferences("calculator_currency_cache", 0).edit()
+                                                    .putString("${currencyFrom}_${currencyTo}_rate", rate.toString())
+                                                    .putString("${currencyFrom}_${currencyTo}_date", date)
+                                                    .apply()
                                             },
-                                            onFailure = { currencyError = it.message ?: "Rates unavailable" }
+                                            onFailure = {
+                                                val prefs = context.getSharedPreferences("calculator_currency_cache", 0)
+                                                val cachedRate = prefs.getString("${currencyFrom}_${currencyTo}_rate", null)?.toBigDecimalOrNull()
+                                                val cachedDate = prefs.getString("${currencyFrom}_${currencyTo}_date", null)
+                                                val amount = currencyAmount.toBigDecimalOrNull()
+                                                if (cachedRate != null && amount != null) {
+                                                    currencyResult = amount.multiply(cachedRate).stripTrailingZeros().toPlainString()
+                                                    currencyDate = cachedDate ?: "unknown"
+                                                    currencyError = "Network unavailable; showing cached reference rate."
+                                                } else {
+                                                    currencyError = it.message ?: "Rates unavailable"
+                                                }
+                                            }
                                         )
                                     }
                                 }, enabled = !currencyLoading && currencyFrom.length == 3 && currencyTo.length == 3) {
@@ -587,7 +603,7 @@ private fun appendToken(current: String, token: String): String {
 private fun SmallCalcKey(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (pressed) .94f else 1f, tween(100), label = "scientific-key")
-    Box(modifier.padding(vertical = 2.dp).aspectRatio(1.35f).scale(scale).background(Color(0xFF242424), RoundedCornerShape(14.dp))
+    Box(modifier.padding(vertical = 2.dp).aspectRatio(2f).scale(scale).background(Color(0xFF242424), RoundedCornerShape(14.dp))
         .combinedClickable(onClick = { pressed = true; onClick(); pressed = false }), contentAlignment = Alignment.Center) {
         Text(label, color = Color.White, fontSize = 14.sp)
     }
