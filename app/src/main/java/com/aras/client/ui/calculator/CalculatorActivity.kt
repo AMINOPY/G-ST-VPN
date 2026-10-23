@@ -470,6 +470,7 @@ private fun appendToken(current: String, token: String): String {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SmallCalcKey(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     var pressed by remember { mutableStateOf(false) }
