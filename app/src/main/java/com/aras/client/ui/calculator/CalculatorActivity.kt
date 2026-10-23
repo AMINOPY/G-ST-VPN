@@ -465,7 +465,7 @@ private fun appendToken(current: String, token: String): String {
         "sin(", "cos(", "tan(", "asin(", "acos(", "atan(", "sqrt(", "ln(", "log(", "abs(" ->
             if (current == "0") token else "$current$token"
         "π", "e" -> if (current == "0") token else "$current$token"
-        "." -> if (!current.split(Regex("[+−×÷()^]")).lastOrNull()?.contains(".") != true) current + "." else current
+        "." -> if (current.split(Regex("[+−×÷()^]")).lastOrNull()?.contains(".") != true) current + "." else current
         else -> current + token
     }
 }
