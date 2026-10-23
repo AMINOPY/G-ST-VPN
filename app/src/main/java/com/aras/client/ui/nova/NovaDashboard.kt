@@ -73,7 +73,7 @@ fun NovaDashboard(
     onMenu: () -> Unit,
     onImport: () -> Unit,
     onScanQr: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier.fillMaxWidth()
 ) {
     val accent = when (status) {
         NovaStatus.CONNECTED -> Mint
@@ -91,7 +91,7 @@ fun NovaDashboard(
 
     Column(
         modifier = modifier
-            .fillMaxSize()
+            .fillMaxWidth()
             .background(Brush.verticalGradient(listOf(Color(0xFF0A1723), Void, Color(0xFF030609))))
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 18.dp, vertical = 12.dp),
