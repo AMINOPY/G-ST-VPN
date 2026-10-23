@@ -67,7 +67,7 @@ class RadarConfigDetailActivity : ComponentActivity() {
                             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("RDY · Real Delay", style = MaterialTheme.typography.titleSmall)
                                 Text(
-                                    "تأخیر واقعی تونل فقط پس از اجرای کانفیگ با هسته VPN قابل اندازه‌گیری است. زمان TCP یا TLS به‌تنهایی RDY یا پینگ تونل نیست؛ اینجا عدد ساختگی نمایش داده نمی‌شود.",
+                                    "RDY با هستهٔ VPN در مرحلهٔ بعد از افزودن کانفیگ اندازه‌گیری می‌شود. زمان TCP یا TLS به‌تنهایی پینگ واقعی تونل نیست؛ عددی به‌جای RDY جعل نمی‌شود.",
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 Text(
@@ -83,11 +83,12 @@ class RadarConfigDetailActivity : ComponentActivity() {
                                 startActivity(Intent(this@RadarConfigDetailActivity, MainActivity::class.java).apply {
                                     action = "com.aras.client.action.IMPORT_RADAR_CONFIG"
                                     putExtra("radar_config", uri)
+                                    putExtra("test_real_delay_after_import", true)
                                     addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                                 })
                                 finish()
                             }
-                        ) { Text("اتصال / افزودن به سرورها") }
+                        ) { Text("افزودن به سرورها و تست RDY با هسته") }
                         OutlinedButton(onClick = { finish() }, modifier = Modifier.fillMaxWidth()) { Text("بازگشت به رادار کانفیگ") }
                     }
                 }
