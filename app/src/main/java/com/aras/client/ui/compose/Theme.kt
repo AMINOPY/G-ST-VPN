@@ -322,7 +322,7 @@ object ThemeManager {
     val uiTheme: StateFlow<String> = _uiTheme.asStateFlow()
 
     fun setUiTheme(value: String) {
-        val safeValue = value.takeIf { it in setOf("default", "radar", "survival", "aurora", "rdrx") } ?: "default"
+        val safeValue = value.takeIf { it in setOf("default", "radar", "survival", "aurora", "rdrx", "nova") } ?: "default"
         MmkvManager.encodeSettings(PREF_UI_THEME, safeValue)
         _uiTheme.value = safeValue
     }
@@ -345,7 +345,7 @@ object ThemeManager {
     fun refresh() {
         _themeMode.value = readThemeMode()
         _uiTheme.value = MmkvManager.decodeSettingsString(PREF_UI_THEME, "default")?.takeIf {
-            it in setOf("default", "radar", "survival", "aurora", "rdrx")
+            it in setOf("default", "radar", "survival", "aurora", "rdrx", "nova")
         } ?: "default"
         _dynamicColorEnabled.value =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
