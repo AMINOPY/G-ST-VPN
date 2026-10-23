@@ -58,14 +58,11 @@ class RadarConfigActivity : ComponentActivity() {
                     val protocolMatches = protocolFilter == "all" ||
                         protocolOf(candidate.uri) == protocolFilter
                     reachabilityMatches && protocolMatches
-                }.sortedWith(
-                    compareBy<RadarCandidate> { it.latency == null }
-                        .thenBy { it.latency ?: Long.MAX_VALUE }
-                )
+                }
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("جست‌وجو در منابع عمومی و پیش‌آزمایش دسترسی شبکه", style = MaterialTheme.typography.titleMedium)
-                        Text("پاسخ TCP به‌تنهایی سلامت تونل را ثابت نمی‌کند. هیچ کانفیگی خودکار نصب یا متصل نمی‌شود.", style = MaterialTheme.typography.bodySmall)
+                        Text("جست‌وجو در منابع عمومی و سنجش RDY با هستهٔ VPN", style = MaterialTheme.typography.titleMedium)
+                        Text("TCP فقط پیش‌آزمایش دسترسی است و دیگر معیار رتبه‌بندی یا پینگ کانفیگ محسوب نمی‌شود. برای سنجش RDY واقعی، کانفیگ را باز کن و «افزودن به سرورها و تست RDY با هسته» را بزن.", style = MaterialTheme.typography.bodySmall)
                         AndroidView(
                             factory = { ctx -> RadarScanView(ctx).also { radar = it; it.startScan() } },
                             modifier = Modifier.fillMaxWidth().height(230.dp),
@@ -87,12 +84,12 @@ class RadarConfigActivity : ComponentActivity() {
                                     Text(results.size.toString(), style = MaterialTheme.typography.titleLarge)
                                 }
                                 Column {
-                                    Text("TCP پاسخ‌گو", style = MaterialTheme.typography.labelSmall)
+                                    Text("پیش‌آزمایش TCP", style = MaterialTheme.typography.labelSmall)
                                     Text(results.count { it.latency != null }.toString(), style = MaterialTheme.typography.titleLarge, color = Color(0xFF00A86B))
                                 }
                                 Column {
-                                    Text("سریع ≤۱۵۰ms", style = MaterialTheme.typography.labelSmall)
-                                    Text(results.count { (it.latency ?: Long.MAX_VALUE) <= 150 }.toString(), style = MaterialTheme.typography.titleLarge)
+                                    Text("RDY تأییدشده", style = MaterialTheme.typography.labelSmall)
+                                    Text("0", style = MaterialTheme.typography.titleLarge)
                                 }
                             }
                         }
@@ -154,7 +151,7 @@ class RadarConfigActivity : ComponentActivity() {
                                             if (item.latency == null) {
                                                 (item.dnsLatency?.let { "DNS " + it + " ms · " } ?: "") + item.note
                                             } else {
-                                                "DNS " + (item.dnsLatency?.toString() ?: "—") + " ms · TCP " + item.latency + " ms · " + item.note
+                                                "RDY: هنوز تست نشده · DNS " + (item.dnsLatency?.toString() ?: "—") + " ms · TCP پیش‌آزمایش " + item.latency + " ms"
                                             },
                                             color = when { item.latency == null -> MaterialTheme.colorScheme.error; item.latency <= 150 -> Color(0xFF00A86B); item.latency <= 300 -> Color(0xFFB8860B); else -> Color(0xFFC62828) })
                                         if (item.latency != null) {
@@ -203,8 +200,8 @@ class RadarConfigActivity : ComponentActivity() {
                             message = if (checked == 0) {
                                 "اسکن پایان یافت، اما نتیجه‌ای برای آزمایش پیدا نشد."
                             } else {
-                                "آزمایش تمام شد: " + checked + " کانفیگ · TCP پاسخ‌گو: " + reachable +
-                                    " · تکراری‌ها حذف شدند؛ اتصال واقعی هنوز باید داخل برنامه تست شود."
+                                "آزمایش تمام شد: " + checked + " کانفیگ · پیش‌آزمایش TCP موفق: " + reachable +
+                                    " · RDY تا اجرای کانفیگ با هستهٔ VPN اندازه‌گیری نشده است."
                             }
                         }
                     } catch (cancelled: CancellationException) {
