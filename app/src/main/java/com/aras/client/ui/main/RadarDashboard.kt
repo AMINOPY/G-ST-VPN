@@ -56,7 +56,7 @@ import java.net.URL
 
 private enum class RadarVerification { DISCONNECTED, CHECKING, VERIFIED, TUNNEL_IP_UNVERIFIED, TUNNEL_LOST }
 
-private data class RadarIpResult(val tunnelActive: Boolean, val verified: Boolean, val ip: String? = null)
+internal data class RadarIpResult(val tunnelActive: Boolean, val verified: Boolean, val ip: String? = null)
 
 /** Last measured ping for one saved profile. Non-positive values mean unverified. */
 data class RadarConfigSignal(val guid: String, val name: String, val pingMs: Long)
@@ -342,7 +342,7 @@ fun RadarDashboard(
     }
 }
 
-private fun verifyVpnEgress(context: Context): RadarIpResult {
+internal fun verifyVpnEgress(context: Context): RadarIpResult {
     val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
         ?: return RadarIpResult(tunnelActive = false, verified = false)
 
