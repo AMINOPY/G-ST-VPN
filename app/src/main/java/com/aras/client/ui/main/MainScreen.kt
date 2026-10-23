@@ -6,6 +6,8 @@ import com.aras.client.ui.subscription.SubEditActivity
 import com.aras.client.ui.radar.DpiTestActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.Image
 import com.aras.client.ui.compose.AuroraStatusPill
 import com.aras.client.ui.compose.AuroraSentinelRadar
 import com.aras.client.ui.compose.AuroraRadarContact
@@ -23,6 +25,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
@@ -40,11 +44,14 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.aras.client.AppConfig
+import com.aras.client.R
 import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.handler.MmkvManager
 import com.aras.client.ui.compose.CulturalRadar
@@ -254,6 +261,29 @@ fun MainScreen(
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
                 ) {
+                    // RADAR brand mark: presentation-only; VPN behavior and selected themes are unchanged.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_radar_brand),
+                            contentDescription = "RADAR",
+                            modifier = Modifier.size(48.dp),
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "RADAR",
+                            color = Color(0xFF8BFF2E),
+                            fontSize = 23.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 3.sp,
+                        )
+                    }
+
                     // Keep the ordinary app layout as the default. Special dashboards
                     // appear only when the user explicitly selects that UI theme.
                     when (uiTheme) {
