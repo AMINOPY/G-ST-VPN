@@ -104,7 +104,7 @@ fun RdrXHomeScreen(
                 Text("G-ST-VPN", color = p.text, fontSize = 20.sp, fontWeight = FontWeight.Black, letterSpacing = 1.5.sp)
                 Text("RADAR X  •  ORBITAL GLASS", color = p.accent, fontSize = 9.sp, letterSpacing = 1.2.sp)
             }
-            RdrXArcMenu(items = menuItems, onSelect = onMenuSelect)
+            RdrXArcMenu(items = menuItems, onSelect = { id -> if (id == "configs") showConfigs = true else onMenuSelect(id) })
         }
         Text(
             "TACTICAL NETWORK RADAR", color = p.textDim, fontSize = 10.sp,
@@ -235,7 +235,9 @@ private fun RdrXArcMenu(items: List<RdrXMenuItem>, onSelect: (String) -> Unit) {
         items.take(5).forEachIndexed { i, item ->
             val t = if (items.size <= 1) 0.5 else i.toDouble() / (items.size - 1)
             val a = Math.toRadians(180.0 + 180.0*t)
-            Box(Modifier.offset((cos(a)*100*progress).dp, (sin(a)*100*progress).dp)
+            val dx = (cos(a) * 100.0 * progress).toFloat()
+            val dy = (sin(a) * 100.0 * progress).toFloat()
+            Box(Modifier.offset(dx.dp, dy.dp)
                 .size(40.dp).graphicsLayer { alpha = progress; scaleX = progress; scaleY = progress }
                 .clip(CircleShape).background(p.surface).border(1.dp,p.border,CircleShape)
                 .clickable { open = false; onSelect(item.id) }, contentAlignment = Alignment.Center) {
