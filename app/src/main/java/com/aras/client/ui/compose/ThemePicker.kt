@@ -120,6 +120,15 @@ fun ThemePicker(
             accent = Color(0xFF54FFC0),
             foreground = Color(0xFFF1F8F4)
         )
+        ThemeChoice(
+            value = "rdrx",
+            title = "RDR X",
+            description = "Orbital Glass Radar Interface",
+            background = Color(0xFF0A0E1A),
+            surface = Color(0xFF111A2B),
+            accent = Color(0xFF3DA9FF),
+            foreground = Color(0xFFEAF3FF)
+        ),
     )
 
     Column(
