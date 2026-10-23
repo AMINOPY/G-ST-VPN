@@ -407,16 +407,30 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
     private fun startIpScan() {
         if (ipScanRunning) return
         ipScanRunning = true
-        ipScanResult = "در حال بررسی دسترسی TCP/443 به IPهای عمومی منتخب…"
+        ipScanResult = "در حال بررسی ۱۸ IP عمومی منتخب از طریق TCP/443…"
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
+                // Bounded public-IP sweep: test well-known anycast services on TCP/443.
+                // This is reachability/handshake timing, not ICMP ping or VPN-core RDY.
                 val targets = listOf(
                     "1.1.1.1" to "Cloudflare DNS",
                     "1.0.0.1" to "Cloudflare DNS backup",
                     "8.8.8.8" to "Google DNS",
                     "8.8.4.4" to "Google DNS backup",
                     "9.9.9.9" to "Quad9 DNS",
-                    "149.112.112.112" to "Quad9 DNS backup"
+                    "149.112.112.112" to "Quad9 DNS backup",
+                    "208.67.222.222" to "OpenDNS",
+                    "208.67.220.220" to "OpenDNS backup",
+                    "76.76.2.0" to "Control D",
+                    "76.76.10.0" to "Control D backup",
+                    "94.140.14.14" to "AdGuard DNS",
+                    "94.140.15.15" to "AdGuard DNS backup",
+                    "8.26.56.26" to "Comodo Secure DNS",
+                    "8.20.247.20" to "Comodo Secure DNS backup",
+                    "185.228.168.9" to "CleanBrowsing",
+                    "185.228.169.9" to "CleanBrowsing backup",
+                    "45.90.28.0" to "NextDNS",
+                    "45.90.30.0" to "NextDNS backup"
                 )
                 val lines = mutableListOf<String>()
                 var reachable = 0
