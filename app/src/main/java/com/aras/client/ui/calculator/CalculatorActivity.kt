@@ -676,7 +676,7 @@ private fun findRoots(expression: String, min: Double, max: Double, degrees: Boo
         left = right
         leftValue = rightValue
     }
-    return roots.filter { it.isFinite() }.sorted().fold(mutableListOf()) { acc, value ->
+    return roots.filter { it.isFinite() }.sorted().fold(mutableListOf<Double>()) { acc, value ->
         if (acc.isEmpty() || kotlin.math.abs(acc.last() - value) > 1e-4) acc.add(value)
         acc
     }
