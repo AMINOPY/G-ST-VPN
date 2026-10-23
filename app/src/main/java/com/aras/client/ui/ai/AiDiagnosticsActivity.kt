@@ -411,7 +411,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
                 repeat(6) { index ->
                     var connection: HttpURLConnection? = null
                     try {
-                        connection = (URL(endpoints[index % endpoints.size]).openConnection() as HttpURLConnection).apply {
+                        val probe = (URL(endpoints[index % endpoints.size]).openConnection() as HttpURLConnection).apply {
                             requestMethod = "GET"
                             connectTimeout = 3500
                             readTimeout = 3500
@@ -420,10 +420,11 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
                             setRequestProperty("Cache-Control", "no-cache")
                             setRequestProperty("User-Agent", "RADAR-VPN-Network-Diagnostics/1.0")
                         }
+                        connection = probe
                         val started = System.nanoTime()
-                        val code = connection.responseCode
+                        val code = probe.responseCode
                         if (code in 200..399) {
-                            runCatching { connection.inputStream.use { it.read() } }
+                            runCatching { probe.inputStream.use { it.read() } }
                             samples += ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(0L)
                         } else failures++
                     } catch (_: Exception) {
