@@ -159,6 +159,7 @@ class RadarConfigActivity : ComponentActivity() {
                                                 startActivity(Intent(this@RadarConfigActivity, MainActivity::class.java).apply {
                                                     action = "com.aras.client.action.IMPORT_RADAR_CONFIG"
                                                     putExtra("radar_config", item.uri)
+                                                    putExtra("test_real_delay_after_import", true)
                                                 })
                                                 finish()
                                             }) { Text("افزودن برای تست واقعی") }
