@@ -19,6 +19,6 @@ class CalculatorMathTest {
     @Test fun evaluatesCosineInDegrees() = assertEquals(0.5, CalculatorMath.evaluate("cos(60)", true)!!, 0.000001)
     @Test fun evaluatesSquareRoot() = assertEquals(4.0, CalculatorMath.evaluate("sqrt(16)")!!, 0.000001)
     @Test fun evaluatesPercentAndFactorial() = assertEquals(1.8, CalculatorMath.evaluate("120%+3! * 0.1")!!, 0.000001)
-    @Test fun appliesPercentRelativeToLeftOperandForAddition() = assertEquals(22.0, CalculatorMath.evaluate(CalculatorMath.applyPercent("200+10"))!!, 0.000001)
+    @Test fun appliesPercentRelativeToLeftOperandForAddition() = assertEquals(220.0, CalculatorMath.evaluate(CalculatorMath.applyPercent("200+10"))!!, 0.000001)
     @Test fun rejectsDivisionByZeroExpression() = assertNull(CalculatorMath.evaluate("4/0"))
 }
