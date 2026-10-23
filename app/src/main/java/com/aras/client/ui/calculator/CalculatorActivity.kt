@@ -388,7 +388,7 @@ private fun NotesPanel(degrees: Boolean, modifier: Modifier = Modifier) {
     var slope by rememberSaveable { mutableStateOf("1") }
     var intercept by rememberSaveable { mutableStateOf("0") }
     val evaluated = CalculatorMath.evaluate(formula, degrees)
-    Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Math Notes", color = CalcWhite, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
         Text("Evaluate a formula and keep a local note.", color = Color.Gray, fontSize = 12.sp)
         NumberField("Formula", formula, onValue = { formula = it })
