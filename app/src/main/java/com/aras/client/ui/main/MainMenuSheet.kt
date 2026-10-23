@@ -148,7 +148,7 @@ fun MainMenuSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Image(
-                    painter = painterResource(R.drawable.ic_aras_logo),
+                    painter = painterResource(R.drawable.ic_radar_brand),
                     contentDescription = null,
                     modifier = Modifier.size(44.dp)
                 )
