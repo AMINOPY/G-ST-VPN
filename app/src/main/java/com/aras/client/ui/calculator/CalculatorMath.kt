@@ -90,9 +90,19 @@ internal object CalculatorMath {
             if (consume('+')) return unary()
             if (consume('-')) return -unary()
             var value = primary()
-            skipSpaces()
-            while (consume('%')) value /= 100.0
-            return value
+            while (true) {
+                skipSpaces()
+                when {
+                    consume('%') -> value /= 100.0
+                    consume('!') -> {
+                        require(value >= 0.0 && value <= 170.0 && floor(value) == value) { "Invalid factorial" }
+                        var product = 1.0
+                        for (factor in 2..value.toInt()) product *= factor
+                        value = product
+                    }
+                    else -> return value
+                }
+            }
         }
 
         private fun primary(): Double {
