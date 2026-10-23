@@ -43,7 +43,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -444,7 +443,7 @@ private fun HistoryPanel(history: List<Pair<String, String>>, onSelect: (String)
 private fun NumberField(label: String, value: String, modifier: Modifier = Modifier, onValue: (String) -> Unit) {
     Column(modifier.fillMaxWidth().background(CalcPanel, RoundedCornerShape(14.dp)).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, color = Color.Gray, fontSize = 11.sp)
-        BasicTextField(value, onValueChange = { onValue(it.filter { c -> c.isDigit() || c in ".-+*/()πe% " }.take(100)) },
+        BasicTextField(value, onValueChange = { onValue(it.filter { c -> c.isLetterOrDigit() || c in ".-+*/()π% !→°" }.take(100)) },
             textStyle = TextStyle(color = CalcWhite, fontSize = 17.sp), singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
     }
