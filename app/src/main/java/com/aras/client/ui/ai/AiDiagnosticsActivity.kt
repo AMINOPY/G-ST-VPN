@@ -407,7 +407,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
     private fun startIpScan() {
         if (ipScanRunning) return
         ipScanRunning = true
-        ipScanResult = "در حال بررسی ۱۸ IP عمومی منتخب از طریق TCP/443…"
+        ipScanResult = "در حال بررسی IPهای منتخب سرویس‌های عمومی از طریق TCP/443…"
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
                 // Bounded public-IP sweep: test well-known anycast services on TCP/443.
@@ -694,9 +694,9 @@ private fun AiDiagnosticsScreen(
                 )
             }
 
-            Text("اسکن IPهای عمومی", style = MaterialTheme.typography.titleMedium,
+            Text("اسکن دسترسی IP", style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold)
-            Text("بررسی کنترل‌شدهٔ دسترسی TCP/443 به IPهای منتخب سرویس‌های عمومی؛ این تست اسکن گستردهٔ رنج‌ها یا تست RDY تونل نیست.",
+            Text("بررسی کنترل‌شدهٔ IPهای منتخب سرویس‌های عمومی روی TCP/443؛ این پینگ ICMP، تست ضد DPI یا RDY هستهٔ VPN نیست. اسکن رنج‌های تصادفی و بسیار بزرگ اجرا نمی‌شود.",
                 style = MaterialTheme.typography.bodySmall)
             Button(onClick = onIpScan, enabled = !ipScanRunning, modifier = Modifier.fillMaxWidth()) {
                 Text(if (ipScanRunning) "در حال اسکن IPها…" else "شروع اسکن IP")
