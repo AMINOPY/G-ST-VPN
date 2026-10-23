@@ -311,6 +311,46 @@ private fun ToolsPanel(modifier: Modifier = Modifier) {
     var discount by rememberSaveable { mutableStateOf("15") }
     var unitAmount by rememberSaveable { mutableStateOf("1") }
     var unit by rememberSaveable { mutableStateOf("km → mi") }
+    var currencyAmount by rememberSaveable { mutableStateOf("100") }
+    var fromCurrency by rememberSaveable { mutableStateOf("EUR") }
+    var toCurrency by rememberSaveable { mutableStateOf("USD") }
+    var currencyRate by rememberSaveable { mutableStateOf<Double?>(null) }
+    var currencyDate by rememberSaveable { mutableStateOf("") }
+    var currencyError by rememberSaveable { mutableStateOf("") }
+    var loadingRate by rememberSaveable { mutableStateOf(false) }
+    val currencies = listOf("EUR", "USD", "GBP", "JPY", "CHF", "CAD", "AUD", "TRY", "INR")
+    val httpClient = remember { OkHttpClient() }
+    LaunchedEffect(selected, fromCurrency, toCurrency) {
+        if (selected == "Currency") {
+            if (fromCurrency == toCurrency) {
+                currencyRate = 1.0
+                currencyDate = "Same currency"
+                currencyError = ""
+            } else {
+                loadingRate = true
+                val fetched = withContext(Dispatchers.IO) {
+                    runCatching {
+                        val url = "https://api.frankfurter.dev/v2/rate/" + fromCurrency.lowercase() + "/" + toCurrency.lowercase()
+                        httpClient.newCall(Request.Builder().url(url).build()).execute().use { response ->
+                            if (!response.isSuccessful) error("Rate service returned " + response.code)
+                            val body = response.body?.string() ?: error("Empty response")
+                            val json = JSONObject(body)
+                            json.getDouble("rate") to json.getString("date")
+                        }
+                    }
+                }
+                fetched.onSuccess {
+                    currencyRate = it.first
+                    currencyDate = it.second
+                    currencyError = ""
+                }.onFailure {
+                    currencyRate = null
+                    currencyError = "Rate unavailable. Check connection or choose another pair."
+                }
+                loadingRate = false
+            }
+        }
+    }
     Column(modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf("Data", "Speed", "Units", "Finance").forEach {
