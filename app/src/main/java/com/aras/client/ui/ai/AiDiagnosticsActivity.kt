@@ -423,7 +423,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
                         val started = System.nanoTime()
                         val code = connection.responseCode
                         if (code in 200..399) {
-                            runCatching { connection.inputStream.use { it.readNBytes(64) } }
+                            runCatching { connection.inputStream.use { it.read() } }
                             samples += ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(0L)
                         } else failures++
                     } catch (_: Exception) {
