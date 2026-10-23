@@ -18,6 +18,6 @@ class CalculatorMathTest {
     @Test fun evaluatesSineInDegrees() = assertEquals(0.5, CalculatorMath.evaluate("sin(30)", true)!!, 0.000001)
     @Test fun evaluatesCosineInDegrees() = assertEquals(0.5, CalculatorMath.evaluate("cos(60)", true)!!, 0.000001)
     @Test fun evaluatesSquareRoot() = assertEquals(4.0, CalculatorMath.evaluate("sqrt(16)")!!, 0.000001)
-    @Test fun evaluatesPercentAndFactorial() = assertEquals(1.2, CalculatorMath.evaluate("120%+3! * 0.1")!!, 0.000001)
+    @Test fun evaluatesPercentAndFactorial() = assertEquals(1.8, CalculatorMath.evaluate("120%+3! * 0.1")!!, 0.000001)
     @Test fun rejectsDivisionByZeroExpression() = assertNull(CalculatorMath.evaluate("4/0"))
 }
