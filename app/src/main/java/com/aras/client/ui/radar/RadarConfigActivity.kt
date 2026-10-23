@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -139,7 +140,14 @@ class RadarConfigActivity : ComponentActivity() {
                         // the nested lazy list received unbounded height and hid lower configs.
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             visibleResults.forEach { item ->
-                                Card(Modifier.fillMaxWidth()) {
+                                Card(
+                                    Modifier.fillMaxWidth().clickable {
+                                        startActivity(
+                                            Intent(this@RadarConfigActivity, RadarConfigDetailActivity::class.java)
+                                                .putExtra(RadarConfigDetailActivity.EXTRA_CONFIG, item.uri)
+                                        )
+                                    }
+                                ) {
                                     Column(Modifier.padding(12.dp)) {
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
                                         Text(
