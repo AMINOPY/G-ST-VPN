@@ -30,6 +30,7 @@ private data class CandidateDiagnostics(
     val error: String? = null
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 class RadarConfigDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
