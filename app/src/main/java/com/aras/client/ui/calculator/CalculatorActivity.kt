@@ -353,7 +353,7 @@ private fun ToolsPanel(modifier: Modifier = Modifier) {
     }
     Column(modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            listOf("Data", "Speed", "Units", "Finance").forEach {
+            listOf("Data", "Speed", "Units", "Finance", "Currency").forEach {
                 Text(it, color = if (selected == it) CalcBlack else CalcWhite, fontSize = 12.sp,
                     modifier = Modifier.weight(1f).background(if (selected == it) CalcOrange else CalcPanel, RoundedCornerShape(18.dp))
                         .padding(vertical = 10.dp).pointerInput(it) { detectTapGestures(onTap = { selected = it }) }, textAlign = TextAlign.Center)
