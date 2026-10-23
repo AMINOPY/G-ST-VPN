@@ -16,7 +16,7 @@ class CalculatorMathTest {
 
     @Test fun respectsOperatorPrecedence() = assertEquals(14.0, CalculatorMath.evaluate("2+3*4")!!, 1e-9)
     @Test fun supportsParentheses() = assertEquals(20.0, CalculatorMath.evaluate("(2+3)*4")!!, 1e-9)
-    @Test fun supportsPowersAndSquareRoot() = assertEquals(16.0, CalculatorMath.evaluate("sqrt(64)+2^2")!!, 1e-9)
+    @Test fun supportsPowersAndSquareRoot() = assertEquals(12.0, CalculatorMath.evaluate("sqrt(64)+2^2")!!, 1e-9)
     @Test fun supportsSineInDegrees() = assertEquals(0.5, CalculatorMath.evaluate("sin(30)", true)!!, 1e-9)
     @Test fun supportsCosineInRadians() = assertEquals(1.0, CalculatorMath.evaluate("cos(0)", false)!!, 1e-9)
     @Test fun supportsConstants() = assertEquals(Math.PI, CalculatorMath.evaluate("pi")!!, 1e-9)
