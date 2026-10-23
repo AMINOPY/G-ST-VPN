@@ -51,6 +51,11 @@ import com.aras.client.ui.compose.CulturalRadar
 import com.aras.client.ui.compose.LocalDarkTheme
 import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.QRCodeDialog
+import com.aras.client.ui.rdrx.RdrXHomeScreen
+import com.aras.client.ui.rdrx.RdrXMenuItem
+import com.aras.client.ui.rdrx.RdrXNode
+import com.aras.client.ui.rdrx.RdrXStatus
+import com.aras.client.ui.rdrx.RdrXTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -245,7 +250,67 @@ fun MainScreen(
         ) { innerPadding ->
             val layoutDirection = LocalLayoutDirection.current
 
-            if (groups.isNotEmpty()) {
+            if (uiTheme == "rdrx") {
+                val rdrxNodes = remember(uiState) {
+                    MmkvManager.decodeAllServerList().mapNotNull { guid ->
+                        val profile = MmkvManager.decodeServerConfig(guid) ?: return@mapNotNull null
+                        val ping = MmkvManager.decodeServerAffiliationInfo(guid)
+                            ?.testDelayMillis
+                            ?.takeIf { it > 0L }
+                            ?.coerceAtMost(Int.MAX_VALUE.toLong())
+                            ?.toInt()
+                        RdrXNode(
+                            id = guid,
+                            name = profile.remarks.ifBlank { profile.server ?: "Server" },
+                            country = "—",
+                            protocol = profile.configType.name,
+                            pingMs = ping
+                        )
+                    }
+                }
+                val rdrxStatus = when {
+                    !isRunning -> RdrXStatus.OFFLINE
+                    else -> RdrXStatus.VERIFYING
+                }
+                RdrXTheme(dark = isDarkTheme) {
+                    RdrXHomeScreen(
+                        status = rdrxStatus,
+                        statusLabel = when (rdrxStatus) {
+                            RdrXStatus.OFFLINE -> "NO SIGNAL"
+                            RdrXStatus.CONNECTING -> "ESTABLISHING TUNNEL"
+                            RdrXStatus.VERIFYING -> "VERIFYING TUNNEL"
+                            RdrXStatus.CONNECTED -> "TUNNEL CONNECTED"
+                            RdrXStatus.ERROR -> "CONNECTION ERROR"
+                        },
+                        detailLabel = when {
+                            !isRunning -> "VPN DISCONNECTED"
+                            hasPing -> "پینگ پروفایل موفق است؛ عبور ترافیک هنوز تأیید نشده"
+                            else -> "در انتظار نتیجه تست کانفیگ"
+                        },
+                        activeNode = rdrxNodes.firstOrNull { it.id == selectedGuid },
+                        nodes = rdrxNodes,
+                        menuItems = listOf(
+                            RdrXMenuItem("configs", "کانفیگ"),
+                            RdrXMenuItem("stats", "تست"),
+                            RdrXMenuItem("add", "+ افزودن"),
+                            RdrXMenuItem("themes", "تم"),
+                            RdrXMenuItem("settings", "تنظیمات")
+                        ),
+                        onRadarTap = { onAction(MainAction.ToggleService) },
+                        onMenuSelect = { id ->
+                            when (id) {
+                                "stats" -> onAction(MainAction.TestAllServers)
+                                "add" -> onAction(MainAction.ImportManualMenu)
+                                "themes", "settings" -> showMenu = true
+                            }
+                        },
+                        onConfigSelect = { guid -> onAction(MainAction.SelectServer(guid)) },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    )
+                }
+            } else if (groups.isNotEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
