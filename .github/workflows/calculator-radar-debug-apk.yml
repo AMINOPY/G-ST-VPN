@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - feature/calculator-on-radar-restoration
+      - feature/omnicalc-hidden-calculator
   pull_request:
     branches:
       - fix/radar-vpn-full-restoration
+      - main
   workflow_dispatch:
 
 permissions:
