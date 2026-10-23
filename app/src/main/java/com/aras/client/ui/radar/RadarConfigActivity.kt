@@ -62,7 +62,7 @@ class RadarConfigActivity : ComponentActivity() {
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("جست‌وجو در منابع عمومی و سنجش RDY با هستهٔ VPN", style = MaterialTheme.typography.titleMedium)
-                        Text("TCP فقط پیش‌آزمایش دسترسی است و دیگر معیار رتبه‌بندی یا پینگ کانفیگ محسوب نمی‌شود. برای سنجش RDY واقعی، کانفیگ را باز کن و «افزودن به سرورها و تست RDY با هسته» را بزن.", style = MaterialTheme.typography.bodySmall)
+                        Text("عدد TCP به‌عنوان پینگ نمایش داده نمی‌شود. RDY فقط پس از افزودن کانفیگ و اجرای تست با هستهٔ VPN از خود هسته خوانده می‌شود؛ نتیجهٔ این اسکن صرفاً پیدا شدن و دسترسی اولیه است.", style = MaterialTheme.typography.bodySmall)
                         AndroidView(
                             factory = { ctx -> RadarScanView(ctx).also { radar = it; it.startScan() } },
                             modifier = Modifier.fillMaxWidth().height(230.dp),
@@ -84,11 +84,11 @@ class RadarConfigActivity : ComponentActivity() {
                                     Text(results.size.toString(), style = MaterialTheme.typography.titleLarge)
                                 }
                                 Column {
-                                    Text("پیش‌آزمایش TCP", style = MaterialTheme.typography.labelSmall)
+                                    Text("آمادهٔ تست RDY", style = MaterialTheme.typography.labelSmall)
                                     Text(results.count { it.latency != null }.toString(), style = MaterialTheme.typography.titleLarge, color = Color(0xFF00A86B))
                                 }
                                 Column {
-                                    Text("RDY تأییدشده", style = MaterialTheme.typography.labelSmall)
+                                    Text("RDY هسته تأییدشده", style = MaterialTheme.typography.labelSmall)
                                     Text("0", style = MaterialTheme.typography.titleLarge)
                                 }
                             }
@@ -102,7 +102,7 @@ class RadarConfigActivity : ComponentActivity() {
                             FilterChip(
                                 selected = resultFilter == "reachable",
                                 onClick = { resultFilter = "reachable" },
-                                label = { Text("پاسخ‌گو (" + results.count { it.latency != null } + ")") }
+                                label = { Text("دسترسی اولیه (" + results.count { it.latency != null } + ")") }
                             )
                             FilterChip(
                                 selected = resultFilter == "failed",
@@ -151,7 +151,7 @@ class RadarConfigActivity : ComponentActivity() {
                                             if (item.latency == null) {
                                                 (item.dnsLatency?.let { "DNS " + it + " ms · " } ?: "") + item.note
                                             } else {
-                                                "RDY: هنوز تست نشده · DNS " + (item.dnsLatency?.toString() ?: "—") + " ms · TCP پیش‌آزمایش " + item.latency + " ms"
+                                                "RDY هسته: هنوز اندازه‌گیری نشده · DNS " + (item.dnsLatency?.toString() ?: "—") + " ms · دسترسی اولیه برقرار است"
                                             },
                                             color = when { item.latency == null -> MaterialTheme.colorScheme.error; item.latency <= 150 -> Color(0xFF00A86B); item.latency <= 300 -> Color(0xFFB8860B); else -> Color(0xFFC62828) })
                                         if (item.latency != null) {
