@@ -68,6 +68,7 @@ import com.aras.client.ui.base.BaseComponentActivity
 import com.aras.client.ui.main.MainActivity
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.pow
 import kotlinx.coroutines.Dispatchers
 import java.net.URL
 import java.util.Locale
@@ -306,9 +307,11 @@ private fun CalculatorScreen(
                                                             try { waitForUpOrCancellation() } finally {
                                                                 if (tracksSecretGesture) pressedKeys.remove(key)
                                                                 if (pressedKeys.isEmpty() && simultaneous01Seen) {
-                                                                    kotlinx.coroutines.delay(180)
-                                                                    biometricArmed = true
                                                                     simultaneous01Seen = false
+                                                                    scope.launch {
+                                                                        kotlinx.coroutines.delay(180)
+                                                                        biometricArmed = true
+                                                                    }
                                                                 }
                                                             }
                                                         }
@@ -659,12 +662,14 @@ private fun findRoots(expression: String, min: Double, max: Double, degrees: Boo
     for (i in 1..steps) {
         val right = min + (max - min) * i / steps
         val rightValue = CalculatorMath.evaluate(expression, degrees, mapOf("x" to right))
-        if (leftValue != null && rightValue != null && leftValue.isFinite() && rightValue.isFinite()) {
-            if (kotlin.math.abs(leftValue) < 1e-7) roots.add(left)
-            if (leftValue * rightValue < 0) {
+        val lv = leftValue
+        val rv = rightValue
+        if (lv != null && rv != null && lv.isFinite() && rv.isFinite()) {
+            if (kotlin.math.abs(lv) < 1e-7) roots.add(left)
+            if (lv * rv < 0) {
                 var lo = left
                 var hi = right
-                var flo = leftValue
+                var flo = lv
                 repeat(55) {
                     val mid = (lo + hi) / 2
                     val fm = CalculatorMath.evaluate(expression, degrees, mapOf("x" to mid)) ?: return@repeat
