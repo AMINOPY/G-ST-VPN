@@ -261,29 +261,6 @@ fun MainScreen(
                         .fillMaxSize()
                         .padding(top = innerPadding.calculateTopPadding())
                 ) {
-                    // RADAR brand mark: presentation-only; VPN behavior and selected themes are unchanged.
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 6.dp, bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_radar_brand),
-                            contentDescription = "RADAR",
-                            modifier = Modifier.size(48.dp),
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "RADAR",
-                            color = Color(0xFF8BFF2E),
-                            fontSize = 23.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 3.sp,
-                        )
-                    }
-
                     // Keep the ordinary app layout as the default. Special dashboards
                     // appear only when the user explicitly selects that UI theme.
                     when (uiTheme) {
