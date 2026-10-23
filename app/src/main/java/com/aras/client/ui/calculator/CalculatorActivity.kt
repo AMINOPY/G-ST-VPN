@@ -669,11 +669,17 @@ private fun findRoots(expression: String, min: Double, max: Double, degrees: Boo
             if (lv * rv < 0) {
                 var lo = left
                 var hi = right
-                var flo = lv
+                var flo: Double = lv
                 repeat(55) {
-                    val mid = (lo + hi) / 2
-                    val fm = CalculatorMath.evaluate(expression, degrees, mapOf("x" to mid)) ?: return@repeat
-                    if (flo * fm <= 0) hi = mid else { lo = mid; flo = fm }
+                    val mid = (lo + hi) / 2.0
+                    val fm: Double = CalculatorMath.evaluate(expression, degrees, mapOf("x" to mid))
+                        ?: return@repeat
+                    if (flo * fm <= 0.0) {
+                        hi = mid
+                    } else {
+                        lo = mid
+                        flo = fm
+                    }
                 }
                 roots.add((lo + hi) / 2)
             }
