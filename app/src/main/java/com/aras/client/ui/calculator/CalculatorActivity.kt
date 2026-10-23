@@ -547,10 +547,16 @@ private fun ToolsPanel(modifier: Modifier = Modifier) {
 
 @Composable
 private fun NotesPanel(degrees: Boolean, modifier: Modifier = Modifier) {
-    var formula by rememberSaveable { mutableStateOf("sin(30)+sqrt(16)") }
-    var note by rememberSaveable { mutableStateOf("") }
-    var slope by rememberSaveable { mutableStateOf("1") }
-    var intercept by rememberSaveable { mutableStateOf("0") }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { context.getSharedPreferences("radar_calculator", 0) }
+    var formula by rememberSaveable { mutableStateOf(prefs.getString("notes_formula", "sin(30)+sqrt(16)") ?: "sin(30)+sqrt(16)") }
+    var note by rememberSaveable { mutableStateOf(prefs.getString("notes_text", "") ?: "") }
+    var slope by rememberSaveable { mutableStateOf(prefs.getString("graph_slope", "1") ?: "1") }
+    var intercept by rememberSaveable { mutableStateOf(prefs.getString("graph_intercept", "0") ?: "0") }
+    LaunchedEffect(formula, note, slope, intercept) {
+        prefs.edit().putString("notes_formula", formula).putString("notes_text", note)
+            .putString("graph_slope", slope).putString("graph_intercept", intercept).apply()
+    }
     val evaluated = CalculatorMath.evaluate(formula, degrees)
     Column(modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Math Notes", color = CalcWhite, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
