@@ -398,6 +398,23 @@ fun MainScreen(
                         )
                     }
                 }
+            } else if (uiTheme == "nova") {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(innerPadding)
+                ) {
+                    NovaDashboard(
+                        status = NovaStatus.OFFLINE,
+                        isRunning = isRunning,
+                        hasPing = hasPing,
+                        serverTitle = mainViewModel.connectedServerTitle(),
+                        pingMs = null,
+                        onConnect = { onAction(MainAction.ToggleService) },
+                        onTest = { onAction(MainAction.TestCurrentServer) },
+                        onMenu = { showMenu = true },
+                        onImport = { onAction(MainAction.ImportManualMenu) },
+                        onScanQr = { onAction(MainAction.ImportQRcode) }
+                    )
+                }
             } else if (themeMode == "3" && !isLoading) {
                 Box(
                     modifier = Modifier
