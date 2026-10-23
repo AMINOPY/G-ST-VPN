@@ -56,13 +56,14 @@ internal object CalculatorMath {
                 value = when {
                     take('*') || take('×') -> value * power()
                     take('/') || take('÷') -> value / power().also { require(it != 0.0) }
-                    take('%') -> value / 100.0
                     else -> return value
                 }
             }
         }
         private fun power(): Double {
             var value = unary()
+            whitespace()
+            while (take('%')) value /= 100.0
             whitespace()
             if (take('^')) value = value.pow(power())
             return value
