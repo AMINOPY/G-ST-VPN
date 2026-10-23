@@ -19,6 +19,33 @@ internal object CalculatorMath {
         else -> right
     }
 
+    fun applyPercent(expression: String, degrees: Boolean = true): String {
+        var depth = 0
+        var operatorIndex = -1
+        for (index in expression.indices) {
+            when (expression[index]) {
+                '(' -> depth++
+                ')' -> depth--
+                '+', '−', '×', '÷' -> if (depth == 0) operatorIndex = index
+                '-' -> if (depth == 0 && index > 0 && expression[index - 1] !in "+−×÷-*/^(") operatorIndex = index
+            }
+        }
+        if (operatorIndex > 0) {
+            val operator = expression[operatorIndex]
+            if (operator == '+' || operator == '−' || operator == '-') {
+                val leftExpression = expression.substring(0, operatorIndex)
+                val rightExpression = expression.substring(operatorIndex + 1)
+                val left = evaluate(leftExpression, degrees)
+                val right = evaluate(rightExpression, degrees)
+                if (left != null && right != null) {
+                    val scaledRight = left * right / 100.0
+                    return leftExpression + operator + format(scaledRight)
+                }
+            }
+        }
+        return expression + "%"
+    }
+
     fun evaluate(expression: String, degrees: Boolean = true): Double? = try {
         ExpressionParser(expression, degrees).parse().takeIf { it.isFinite() }
     } catch (_: Exception) {
