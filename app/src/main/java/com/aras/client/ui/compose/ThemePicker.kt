@@ -119,7 +119,7 @@ fun ThemePicker(
             surface = Color(0xFF0C1212),
             accent = Color(0xFF54FFC0),
             foreground = Color(0xFFF1F8F4)
-        )
+        ),
         ThemeChoice(
             value = "rdrx",
             title = "RDR X",
