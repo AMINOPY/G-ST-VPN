@@ -281,13 +281,13 @@ object ThemeManager {
 
     private val _uiTheme = MutableStateFlow(
         MmkvManager.decodeSettingsString(PREF_UI_THEME, "default")?.takeIf {
-            it in setOf("default", "radar", "survival", "aurora")
+            it in setOf("default", "radar", "survival", "aurora", "rdrx")
         } ?: "default"
     )
     val uiTheme: StateFlow<String> = _uiTheme.asStateFlow()
 
     fun setUiTheme(value: String) {
-        val safeValue = value.takeIf { it in setOf("default", "radar", "survival", "aurora") } ?: "default"
+        val safeValue = value.takeIf { it in setOf("default", "radar", "survival", "aurora", "rdrx") } ?: "default"
         MmkvManager.encodeSettings(PREF_UI_THEME, safeValue)
         _uiTheme.value = safeValue
     }
@@ -310,7 +310,7 @@ object ThemeManager {
     fun refresh() {
         _themeMode.value = readThemeMode()
         _uiTheme.value = MmkvManager.decodeSettingsString(PREF_UI_THEME, "default")?.takeIf {
-            it in setOf("default", "radar", "survival", "aurora")
+            it in setOf("default", "radar", "survival", "aurora", "rdrx")
         } ?: "default"
         _dynamicColorEnabled.value =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
@@ -349,7 +349,7 @@ fun resolveDarkTheme(): Boolean {
     val mode by ThemeManager.themeMode.collectAsState()
     val uiTheme by ThemeManager.uiTheme.collectAsState()
     return when {
-        uiTheme == "radar" || uiTheme == "survival" || uiTheme == "aurora" -> true
+        uiTheme == "radar" || uiTheme == "survival" || uiTheme == "aurora" || uiTheme == "rdrx" -> true
         mode == "1" || mode == "4" -> false
         mode in setOf("2", "3") -> true
         else -> isSystemInDarkTheme()
@@ -370,15 +370,17 @@ fun AppTheme(
     val isRadarTheme = uiTheme == "radar"
     val isSurvivalTheme = uiTheme == "survival"
     val isAuroraTheme = uiTheme == "aurora"
+    val isRdrXTheme = uiTheme == "rdrx"
     val isPersepolisTheme = themeMode == "4"
     // Persepolis uses a light parchment palette; keep system-bar icons dark there.
     val effectiveDarkTheme = when {
         isPersepolisTheme -> false
-        isRadarTheme || isSurvivalTheme || isAuroraTheme || themeMode == "3" -> true
+        isRadarTheme || isSurvivalTheme || isAuroraTheme || isRdrXTheme || themeMode == "3" -> true
         else -> darkTheme
     }
     // Ordinary system appearance is the default; special themes are opt-in.
     val colorScheme = when {
+        isRdrXTheme -> RadarColorScheme
         isRadarTheme -> RadarColorScheme
         isSurvivalTheme -> SurvivalColorScheme
         isPersepolisTheme -> PersepolisColorScheme
