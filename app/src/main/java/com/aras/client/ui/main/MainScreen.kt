@@ -51,6 +51,9 @@ import com.aras.client.ui.compose.CulturalRadar
 import com.aras.client.ui.compose.LocalDarkTheme
 import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.QRCodeDialog
+import com.aras.client.ui.rdrx.RdrXDashboard
+import com.aras.client.ui.rdrx.RdrXStatus
+import com.aras.client.ui.rdrx.RdrXTheme
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -270,6 +273,25 @@ fun MainScreen(
                             isConnected = isRunning && hasPing,
                             serverTitle = mainViewModel.connectedServerTitle(),
                         )
+                        "rdrx" -> RdrXTheme(dark = isDarkTheme) {
+                            RdrXDashboard(
+                                status = when {
+                                    !isRunning -> RdrXStatus.OFFLINE
+                                    hasPing -> RdrXStatus.CONNECTED
+                                    else -> RdrXStatus.VERIFYING
+                                },
+                                isRunning = isRunning,
+                                hasPing = hasPing,
+                                serverTitle = mainViewModel.connectedServerTitle(),
+                                pingMs = selectedGuid?.let { guid ->
+                                    MmkvManager.decodeServerAffiliationInfo(guid)?.testDelayMillis
+                                }?.takeIf { it > 0L },
+                                onConnect = { onAction(MainAction.ToggleService) },
+                                onTest = { onAction(MainAction.TestCurrentServer) },
+                                onMenu = { showMenu = true },
+                                onImport = { onAction(MainAction.ImportManualMenu) },
+                            )
+                        }
                     }
                     updateAnnouncement?.let { announcement ->
                         UpdateAnnouncementBanner(
