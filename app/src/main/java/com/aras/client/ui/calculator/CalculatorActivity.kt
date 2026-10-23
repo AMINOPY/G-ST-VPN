@@ -269,7 +269,7 @@ private fun CalculatorScreen(
                                                 SmallCalcKey(key, Modifier.weight(1f)) {
                                                     when (key) {
                                                         "x²" -> { expression = "($expression)^2"; result = "" }
-                                                        else -> { expression = appendToken(expression, key); result = "" }
+                                                        else -> { expression = appendToken(expression, if (key == "√(") "sqrt(" else key); result = "" }
                                                     }
                                                 }
                                             }
@@ -584,7 +584,7 @@ private fun CalculatorScreen(
                                     Field("X minimum", graphMin, { graphMin = it }, true, Modifier.weight(1f))
                                     Field("X maximum", graphMax, { graphMax = it }, true, Modifier.weight(1f))
                                 }
-                                FunctionGraph(graphExpression, graphMin.toDoubleOrNull() ?: -10.0, graphMax.toDoubleOrNull() ?: 10.0)
+                                FunctionGraph(graphExpression, graphMin.toDoubleOrNull() ?: -10.0, graphMax.toDoubleOrNull() ?: 10.0, degrees)
                                 Text("Graph uses the current DEG/RAD setting for trigonometric functions.", color = Color.LightGray, fontSize = 12.sp)
                             }
                         }
@@ -615,14 +615,14 @@ private fun CalculatorScreen(
 }
 
 @Composable
-private fun FunctionGraph(expression: String, xMin: Double, xMax: Double) {
+private fun FunctionGraph(expression: String, xMin: Double, xMax: Double, degrees: Boolean) {
     Canvas(
         Modifier.fillMaxWidth().height(250.dp).background(Color(0xFF111111), RoundedCornerShape(16.dp)).padding(8.dp)
     ) {
         if (!xMin.isFinite() || !xMax.isFinite() || xMin >= xMax) return@Canvas
         val samples = (0..240).map { index ->
             val x = xMin + (xMax - xMin) * index / 240.0
-            x to CalculatorMath.evaluate(expression, true, mapOf("x" to x))
+            x to CalculatorMath.evaluate(expression, degrees, mapOf("x" to x))
         }.filter { it.second != null && it.second!!.isFinite() }
         if (samples.size < 2) return@Canvas
         val yMin = minOf(samples.minOf { it.second!! }, 0.0)
