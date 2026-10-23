@@ -68,7 +68,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
 import java.net.URL
 import java.util.Locale
-import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.roundToLong
 
 private enum class CalcPage(val label: String) {
@@ -404,7 +404,7 @@ private fun CalculatorScreen(
                                 if (currencyDate.isNotEmpty()) Text("Reference rate date: $currencyDate", color = Color.LightGray, fontSize = 12.sp)
                                 if (currencyError.isNotEmpty()) Text(currencyError, color = Color(0xFFFF7777))
                                 Text("Free daily reference rates, no API key. Rates are indicative, not live trading quotes.", color = Color.LightGray, fontSize = 12.sp)
-                                Text("Source: Frankfurter · frankfurter.dev", color = Color(0xFF999999), fontSize = 11.sp)
+                                Text("Source: fawazahmed0/exchange-api · free daily GitHub dataset · no API key", color = Color(0xFF999999), fontSize = 11.sp)
                             }
                         }
                         CalcPage.UNITS -> {
@@ -655,15 +655,29 @@ private fun Field(
 private suspend fun fetchCurrency(from: String, to: String): Result<Pair<Double, String>> = runCatching {
     require(from.matches(Regex("[A-Z]{3}")) && to.matches(Regex("[A-Z]{3}"))) { "Use 3-letter ISO currency codes." }
     if (from == to) return@runCatching Pair(1.0, java.time.LocalDate.now().toString())
-    val connection = URL("https://api.frankfurter.dev/v2/rates?base=$from&quotes=$to").openConnection()
-    connection.connectTimeout = 10000
-    connection.readTimeout = 10000
-    connection.getInputStream().bufferedReader().use { reader ->
-        val json = JSONArray(reader.readText())
-        require(json.length() > 0) { "No rate returned for $from/$to." }
-        val row = json.getJSONObject(0)
-        Pair(row.getDouble("rate"), row.getString("date"))
+    val base = from.lowercase(Locale.US)
+    val quote = to.lowercase(Locale.US)
+    val urls = listOf(
+        "https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/$base.json",
+        "https://latest.currency-api.pages.dev/v1/currencies/$base.json"
+    )
+    var lastError: Throwable? = null
+    for (endpoint in urls) {
+        try {
+            val connection = URL(endpoint).openConnection()
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+            connection.getInputStream().bufferedReader().use { reader ->
+                val json = JSONObject(reader.readText())
+                val rate = json.getJSONObject(base).getDouble(quote)
+                val date = json.optString("date", "unknown")
+                return@runCatching Pair(rate, date)
+            }
+        } catch (error: Throwable) {
+            lastError = error
+        }
     }
+    throw lastError ?: IllegalStateException("Currency rates are unavailable.")
 }
 
 private fun convertUnit(value: Double?, from: String, to: String): Double? {
