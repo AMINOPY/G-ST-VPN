@@ -58,6 +58,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
+import org.json.JSONArray
 import kotlin.math.max
 
 private val CalcBlack = Color(0xFF000000)
@@ -118,7 +119,25 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit, onBiometricRequested: 
     var showWelcome by remember { mutableStateOf(false) }
     var welcomeText by remember { mutableStateOf("") }
     var codeCandidate by remember { mutableStateOf("") }
-    val history = remember { mutableStateListOf<Pair<String, String>>() }
+    val history = remember {
+        mutableStateListOf<Pair<String, String>>().apply {
+            val stored = context.getSharedPreferences("radar_calculator", 0).getString("history", "[]")
+            val array = JSONArray(stored)
+            for (index in 0 until minOf(array.length(), 100)) {
+                val item = array.optJSONObject(index) ?: continue
+                val oldExpression = item.optString("expression")
+                val oldResult = item.optString("result")
+                if (oldExpression.isNotBlank() && oldResult.isNotBlank()) add(oldExpression to oldResult)
+            }
+        }
+    }
+    fun persistHistory() {
+        val array = JSONArray()
+        history.forEach { item ->
+            array.put(JSONObject().put("expression", item.first).put("result", item.second))
+        }
+        context.getSharedPreferences("radar_calculator", 0).edit().putString("history", array.toString()).apply()
+    }
     val heldKeys = remember { mutableStateListOf<String>() }
     val chordKeys = remember { mutableStateListOf<String>() }
     var chordDetected by remember { mutableStateOf(false) }
@@ -149,6 +168,7 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit, onBiometricRequested: 
                     val formatted = CalculatorMath.format(value)
                     history.add(0, expression to formatted)
                     while (history.size > 100) history.removeAt(history.lastIndex)
+                    persistHistory()
                     expression = formatted
                     answer = ""
                 }
@@ -212,7 +232,7 @@ private fun CalculatorScreen(onSecretEntered: () -> Unit, onBiometricRequested: 
         when (page) {
             "Tools" -> ToolsPanel(modifier = Modifier.weight(1f))
             "Notes" -> NotesPanel(degreeMode, modifier = Modifier.weight(1f))
-            "History" -> HistoryPanel(history, onSelect = { expression = it; page = "Basic" }, onClear = { history.clear() }, modifier = Modifier.weight(1f))
+            "History" -> HistoryPanel(history, onSelect = { expression = it; page = "Basic" }, onClear = { history.clear(); persistHistory() }, modifier = Modifier.weight(1f))
             else -> {
                 Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.Bottom, horizontalAlignment = Alignment.End) {
                     Text(expression, color = CalcWhite, fontSize = if (expression.length > 18) 27.sp else if (expression.length > 12) 36.sp else 52.sp,
