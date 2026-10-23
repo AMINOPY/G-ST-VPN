@@ -422,6 +422,36 @@ private fun ToolsPanel(modifier: Modifier = Modifier) {
                 ResultCard("Converted value", CalculatorMath.format(converted))
                 Text("More categories can include length, area, volume, time, pressure, energy, power and data units.", color = Color.Gray, fontSize = 11.sp)
             }
+            "Currency" -> {
+                Text("Currency Converter", color = CalcWhite, fontSize = 21.sp, fontWeight = FontWeight.SemiBold)
+                NumberField("Amount (" + fromCurrency + ")", currencyAmount, onValue = { currencyAmount = it })
+                Text("From currency", color = Color.Gray, fontSize = 11.sp)
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    currencies.forEach { code ->
+                        Text(code, color = if (fromCurrency == code) CalcBlack else CalcWhite, fontSize = 12.sp,
+                            modifier = Modifier.background(if (fromCurrency == code) CalcOrange else CalcPanel, RoundedCornerShape(12.dp))
+                                .padding(horizontal = 12.dp, vertical = 9.dp).pointerInput(code) { detectTapGestures(onTap = { fromCurrency = code }) })
+                    }
+                }
+                Text("To currency", color = Color.Gray, fontSize = 11.sp)
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    currencies.forEach { code ->
+                        Text(code, color = if (toCurrency == code) CalcBlack else CalcWhite, fontSize = 12.sp,
+                            modifier = Modifier.background(if (toCurrency == code) CalcOrange else CalcPanel, RoundedCornerShape(12.dp))
+                                .padding(horizontal = 12.dp, vertical = 9.dp).pointerInput(code) { detectTapGestures(onTap = { toCurrency = code }) })
+                    }
+                }
+                if (loadingRate) {
+                    ResultCard("Exchange rate", "Updating latest available rate…")
+                } else if (currencyRate != null) {
+                    ResultCard("Exchange rate", "1 " + fromCurrency + " = " + CalculatorMath.format(currencyRate!!) + " " + toCurrency)
+                    ResultCard("Converted amount", CalculatorMath.format((currencyAmount.toDoubleOrNull() ?: 0.0) * currencyRate!!) + " " + toCurrency)
+                    Text("Rate date: " + currencyDate + " · Daily reference rate, not a live trading quote.", color = Color.Gray, fontSize = 11.sp)
+                } else {
+                    ResultCard("Exchange rate", currencyError.ifBlank { "Choose currencies to load a rate." })
+                }
+                Text("Rates are retrieved from Frankfurter; an internet connection is required.", color = Color.Gray, fontSize = 11.sp)
+            }
             else -> {
                 Text("Discount & Finance", color = CalcWhite, fontSize = 21.sp, fontWeight = FontWeight.SemiBold)
                 NumberField("Original price", amount, onValue = { amount = it })
