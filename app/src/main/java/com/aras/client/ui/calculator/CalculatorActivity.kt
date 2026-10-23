@@ -272,17 +272,16 @@ private fun CalculatorScreen(
                                                 Modifier.weight(1f).padding(vertical = 3.dp).aspectRatio(1f).scale(scale)
                                                     .background(keyColor, CircleShape)
                                                     .pointerInput(key) {
-                                                        if (key == "0" || key == "1") {
-                                                            awaitEachGesture {
-                                                                awaitFirstDown(requireUnconsumed = false)
-                                                                if (!pressedKeys.contains(key)) pressedKeys.add(key)
-                                                                if (pressedKeys.contains("0") && pressedKeys.contains("1")) simultaneous01Seen = true
-                                                                try { waitForUpOrCancellation() } finally {
-                                                                    pressedKeys.remove(key)
-                                                                    if (pressedKeys.isEmpty() && simultaneous01Seen) {
-                                                                        biometricArmed = true
-                                                                        simultaneous01Seen = false
-                                                                    }
+                                                        awaitEachGesture {
+                                                            awaitFirstDown(requireUnconsumed = false)
+                                                            val tracksSecretGesture = key == "0" || key == "1"
+                                                            if (tracksSecretGesture && !pressedKeys.contains(key)) pressedKeys.add(key)
+                                                            if (pressedKeys.contains("0") && pressedKeys.contains("1")) simultaneous01Seen = true
+                                                            try { waitForUpOrCancellation() } finally {
+                                                                if (tracksSecretGesture) pressedKeys.remove(key)
+                                                                if (pressedKeys.isEmpty() && simultaneous01Seen) {
+                                                                    biometricArmed = true
+                                                                    simultaneous01Seen = false
                                                                 }
                                                             }
                                                         }
@@ -312,6 +311,7 @@ private fun CalculatorScreen(
                                                                         biometricArmed = false
                                                                         onBiometricRequested { onSecretEntered() }
                                                                     } else {
+                                                                        if (result.isNotEmpty() && (key.firstOrNull()?.isDigit() == true || key == ".")) expression = "0"
                                                                         expression = appendToken(expression, key)
                                                                         result = ""
                                                                         if (LauncherIconManager.verifyAccessCode(context, expression.filter { it.isDigit() }) &&
@@ -464,7 +464,7 @@ private fun appendToken(current: String, token: String): String {
         "sin(", "cos(", "tan(", "asin(", "acos(", "atan(", "sqrt(", "ln(", "log(", "abs(" ->
             if (current == "0") token else "$current$token"
         "π", "e" -> if (current == "0") token else "$current$token"
-        ".", -> current
+        "." -> if (!current.substringAfterLast(Regex("[+−×÷()^]")).contains(".")) current + "." else current
         else -> current + token
     }
 }
