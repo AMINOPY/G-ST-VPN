@@ -75,6 +75,13 @@ private data class SpeedTestOutcome(
     val uploadMbps: Double? = null,
 )
 
+private data class StabilityTestOutcome(
+    val display: String,
+    val medianMs: Long?,
+    val jitterMs: Long?,
+    val failurePercent: Int,
+)
+
 class AiDiagnosticsActivity : BaseComponentActivity() {
     private var snapshot by mutableStateOf<NetworkSnapshot?>(null)
     private var scanMessage by mutableStateOf<Int?>(R.string.ai_scan_hint)
@@ -82,6 +89,9 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
     private var dnsLookupResult by mutableStateOf<String?>(null)
     private var speedTestResult by mutableStateOf<String?>(null)
     private var speedTestRunning by mutableStateOf(false)
+    private var stabilityTestRunning by mutableStateOf(false)
+    private var stabilityResult by mutableStateOf<String?>(null)
+    private var stabilityReport: StabilityTestOutcome? = null
     private var smartAnalysis by mutableStateOf<String?>(null)
     private var measuredLatencyMs: Long? = null
     private var measuredDnsMs: Long? = null
@@ -102,8 +112,11 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             dnsLookupResult = dnsLookupResult,
             speedTestResult = speedTestResult,
             speedTestRunning = speedTestRunning,
+            stabilityResult = stabilityResult,
+            stabilityTestRunning = stabilityTestRunning,
             smartAnalysis = smartAnalysis,
             onSpeedTest = { startSpeedTest() },
+            onStabilityTest = { startStabilityTest() },
             onShareReport = { shareReport() },
             onBack = { finish() },
             onScan = { scanNetwork() },
@@ -368,6 +381,10 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
         if (measuredUploadMbps != null && measuredUploadMbps!! < 1.0) {
             findings += getString(R.string.ai_diagnosis_upload_low, measuredUploadMbps!!)
         }
+        stabilityReport?.let { result ->
+            if (result.failurePercent >= 34) findings += "برخی probeهای HTTPS ناموفق بودند (" + result.failurePercent + "٪)؛ endpoint مسدود یا ناپایدار هم می‌تواند علت باشد."
+            if (result.jitterMs != null && result.jitterMs >= 120L) findings += "نوسان تأخیر HTTPS بالاست (" + result.jitterMs + " ms)."
+        }
         if (current.vpn) findings += getString(R.string.ai_diagnosis_vpn_note)
 
         smartAnalysis = when {
@@ -375,6 +392,68 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             measuredLatencyMs != null || measuredDnsMs != null || measuredDownloadMbps != null ->
                 getString(R.string.ai_diagnosis_healthy)
             else -> current.advice
+        }
+    }
+
+    private fun startStabilityTest() {
+        if (stabilityTestRunning) return
+        stabilityTestRunning = true
+        stabilityResult = "در حال اجرای ۶ بررسی HTTPS برای اندازه‌گیری میانه، نوسان و نرخ شکست…"
+        lifecycleScope.launch {
+            val outcome = withContext(Dispatchers.IO) {
+                val endpoints = listOf(
+                    "https://www.google.com/generate_204",
+                    "https://connectivitycheck.gstatic.com/generate_204",
+                    "https://www.cloudflare.com/cdn-cgi/trace"
+                )
+                val samples = mutableListOf<Long>()
+                var failures = 0
+                repeat(6) { index ->
+                    var connection: HttpURLConnection? = null
+                    try {
+                        connection = (URL(endpoints[index % endpoints.size]).openConnection() as HttpURLConnection).apply {
+                            requestMethod = "GET"
+                            connectTimeout = 3500
+                            readTimeout = 3500
+                            instanceFollowRedirects = true
+                            useCaches = false
+                            setRequestProperty("Cache-Control", "no-cache")
+                            setRequestProperty("User-Agent", "RADAR-VPN-Network-Diagnostics/1.0")
+                        }
+                        val started = System.nanoTime()
+                        val code = connection.responseCode
+                        if (code in 200..399) {
+                            runCatching { connection.inputStream.use { it.readNBytes(64) } }
+                            samples += ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(0L)
+                        } else failures++
+                    } catch (_: Exception) {
+                        failures++
+                    } finally {
+                        connection?.disconnect()
+                    }
+                }
+                val sorted = samples.sorted()
+                val median = if (sorted.isEmpty()) null else sorted[sorted.size / 2]
+                val jitter = if (samples.size < 2) null else
+                    samples.zipWithNext { a, b -> kotlin.math.abs(b - a) }.sorted().let { it[it.size / 2] }
+                val failurePercent = failures * 100 / 6
+                val quality = if (median == null) 0 else {
+                    (100 - failurePercent - (median / 20).toInt().coerceAtMost(35) -
+                        ((jitter ?: 0L) / 10).toInt().coerceAtMost(25)).coerceIn(0, 100)
+                }
+                val display = buildString {
+                    append("پایداری مسیر: ").append(if (samples.isEmpty()) "قابل اندازه‌گیری نبود" else quality.toString() + "/100 (تخمینی)")
+                    append("\nمیانه HTTPS: ").append(median?.let { it.toString() + " ms" } ?: "ناموفق")
+                    append("\nنوسان بین نمونه‌ها: ").append(jitter?.let { it.toString() + " ms" } ?: "داده کافی نیست")
+                    append("\nدرخواست‌های ناموفق: ").append(failures).append("/6 (").append(failurePercent).append("%)")
+                    append("\nاین نرخ، شکست probeهای HTTPS است؛ packet loss واقعی ICMP نیست و مسدود بودن یک endpoint می‌تواند نتیجه را بدتر کند.")
+                }
+                StabilityTestOutcome(display, median, jitter, failurePercent)
+            }
+            stabilityReport = outcome
+            stabilityResult = outcome.display
+            stabilityTestRunning = false
+            refreshSmartAnalysis()
         }
     }
 
@@ -395,6 +474,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
                 "${getString(R.string.ai_latency_label)}: ${latencyResult ?: getString(R.string.ai_latency_not_run)}",
                 "${getString(R.string.ai_dns_lookup_latency)}: ${dnsLookupResult ?: getString(R.string.ai_latency_not_run)}",
                 "${getString(R.string.ai_speed_title)}: ${speedTestResult ?: getString(R.string.ai_latency_not_run)}",
+                "Stability probe: ${stabilityResult ?: "not run"}",
                 "${getString(R.string.ai_analysis_title)}: ${smartAnalysis ?: it.advice}",
             ).joinToString("\n")
         } ?: getString(R.string.ai_analysis_not_ready)
@@ -450,8 +530,11 @@ private fun AiDiagnosticsScreen(
     dnsLookupResult: String?,
     speedTestResult: String?,
     speedTestRunning: Boolean,
+    stabilityResult: String?,
+    stabilityTestRunning: Boolean,
     smartAnalysis: String?,
     onSpeedTest: () -> Unit,
+    onStabilityTest: () -> Unit,
     onShareReport: () -> Unit,
     onBack: () -> Unit,
     onScan: () -> Unit,
@@ -539,6 +622,19 @@ private fun AiDiagnosticsScreen(
                     smartAnalysis ?: snapshot?.advice ?: stringResource(R.string.ai_analysis_not_ready),
                     modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyLarge
                 )
+            }
+
+            Text("اسکن هوشمند پایداری", style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold)
+            Text("۶ درخواست HTTPS به چند مقصد عمومی؛ محاسبه میانه تأخیر، نوسان نمونه‌ها و نرخ شکست probe. این آزمون ping/packet-loss سطح ICMP نیست و هر مقصد ممکن است جداگانه مسدود باشد.",
+                style = MaterialTheme.typography.bodySmall)
+            Button(onClick = onStabilityTest, enabled = !stabilityTestRunning, modifier = Modifier.fillMaxWidth()) {
+                Text(if (stabilityTestRunning) "در حال بررسی پایداری…" else "اجرای اسکن پایداری")
+            }
+            stabilityResult?.let {
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                    Text(it, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
+                }
             }
 
             Text(stringResource(R.string.ai_speed_title), style = MaterialTheme.typography.titleMedium,
