@@ -56,6 +56,9 @@ import com.aras.client.ui.rdrx.RdrXMenuItem
 import com.aras.client.ui.rdrx.RdrXNode
 import com.aras.client.ui.rdrx.RdrXStatus
 import com.aras.client.ui.rdrx.RdrXTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -100,6 +103,26 @@ fun MainScreen(
     var showDelAllConfirm by remember { mutableStateOf(false) }
     var showDelDuplicateConfirm by remember { mutableStateOf(false) }
     var showDelInvalidConfirm by remember { mutableStateOf(false) }
+    var rdrxProbeFinished by remember { mutableStateOf(false) }
+    var rdrxEgressVerified by remember { mutableStateOf(false) }
+    var rdrxTunnelActive by remember { mutableStateOf(false) }
+    var rdrxPublicIp by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(uiTheme, isRunning, selectedGuid) {
+        rdrxProbeFinished = false
+        rdrxEgressVerified = false
+        rdrxTunnelActive = false
+        rdrxPublicIp = null
+        if (uiTheme != "rdrx" || !isRunning) return@LaunchedEffect
+        while (true) {
+            val probe = withContext(Dispatchers.IO) { verifyVpnEgress(context) }
+            rdrxTunnelActive = probe.tunnelActive
+            rdrxEgressVerified = probe.verified && !probe.ip.isNullOrBlank()
+            rdrxPublicIp = probe.ip
+            rdrxProbeFinished = true
+            delay(5_000)
+        }
+    }
     var showRemoveConfirm by remember { mutableStateOf<String?>(null) }
     var autoScrollEnabled by remember {
         mutableStateOf(MmkvManager.decodeSettingsBool(AppConfig.PREF_AUTO_SCROLL_TO_TOP, true))
@@ -270,6 +293,9 @@ fun MainScreen(
                 }
                 val rdrxStatus = when {
                     !isRunning -> RdrXStatus.OFFLINE
+                    !rdrxProbeFinished -> RdrXStatus.VERIFYING
+                    rdrxEgressVerified -> RdrXStatus.CONNECTED
+                    rdrxTunnelActive || !rdrxEgressVerified -> RdrXStatus.ERROR
                     else -> RdrXStatus.VERIFYING
                 }
                 RdrXTheme(dark = isDarkTheme) {
@@ -284,8 +310,9 @@ fun MainScreen(
                         },
                         detailLabel = when {
                             !isRunning -> "VPN DISCONNECTED"
-                            hasPing -> "پینگ پروفایل موفق است؛ عبور ترافیک هنوز تأیید نشده"
-                            else -> "در انتظار نتیجه تست کانفیگ"
+                            !rdrxProbeFinished -> "در حال بررسی عبور واقعی ترافیک از تونل…"
+                            rdrxEgressVerified -> "SECURE TUNNEL VERIFIED · ${rdrxPublicIp ?: "IP OK"}"
+                            else -> "عبور ترافیک تأیید نشد؛ شبکه یا کانفیگ را بررسی کنید"
                         },
                         activeNode = rdrxNodes.firstOrNull { it.id == selectedGuid },
                         nodes = rdrxNodes,
