@@ -87,7 +87,7 @@ class RadarConfigDetailActivity : ComponentActivity() {
                                 finish()
                             }
                         ) { Text("اتصال / افزودن به سرورها") }
-                        OutlinedButton(Modifier.fillMaxWidth(), onClick = { finish() }) { Text("بازگشت به رادار کانفیگ") }
+                        OutlinedButton(onClick = { finish() }, modifier = Modifier.fillMaxWidth()) { Text("بازگشت به رادار کانفیگ") }
                     }
                 }
             }
@@ -115,6 +115,8 @@ class RadarConfigDetailActivity : ComponentActivity() {
             } catch (_: Exception) { }
         }
         if (tcpMs == null) return CandidateDiagnostics(host, port, dnsMs, error = "DNS موفق بود اما اتصال TCP برقرار نشد.")
+        val resolvedAddress = tcpAddress
+            ?: return CandidateDiagnostics(host, port, dnsMs, tcpMs, error = "نشانی سرور قابل استفاده نیست.")
         val sni = parseSni(uri) ?: host
         val tlsStart = System.nanoTime()
         var tlsMs: Long? = null
@@ -122,7 +124,7 @@ class RadarConfigDetailActivity : ComponentActivity() {
             val factory = SSLSocketFactory.getDefault() as SSLSocketFactory
             factory.createSocket().use { raw ->
                 raw.soTimeout = 2500
-                raw.connect(InetSocketAddress(tcpAddress, port), 2500)
+                raw.connect(InetSocketAddress(resolvedAddress, port), 2500)
                 val ssl = raw as SSLSocket
                 ssl.sslParameters = ssl.sslParameters.apply {
                     serverNames = listOf(javax.net.ssl.SNIHostName(sni))
