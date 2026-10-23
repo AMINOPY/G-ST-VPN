@@ -19,4 +19,5 @@ class CalculatorMathTest {
     @Test fun evaluatesSineInRadians() = assertEquals(1.0, CalculatorMath.evaluate("sin(1.5707963267948966)", false)!!, 0.000001)
     @Test fun evaluatesPostfixPercent() = assertEquals(50.0, CalculatorMath.evaluate("100*50%")!!, 0.000001)
     @Test fun rejectsDivisionByZero() = assertNull(CalculatorMath.evaluate("12/0"))
+    @Test fun evaluatesExpressionsWithVariables() = assertEquals(10.0, CalculatorMath.evaluate("x^2+1", true, mapOf("x" to 3.0))!!, 0.000001)
 }
