@@ -85,6 +85,15 @@ fun ThemePicker(
     val uiTheme by ThemeManager.uiTheme.collectAsState()
     val uiChoices = listOf(
         ThemeChoice(
+            value = "rdrx",
+            title = "RDR X",
+            description = "Orbital Glass · رادار سه‌بعدی",
+            background = Color(0xFF0A0E1A),
+            surface = Color(0xFF111827),
+            accent = Color(0xFF39FF88),
+            foreground = Color(0xFFEAF3FF)
+        ),
+        ThemeChoice(
             value = "default",
             title = stringResource(R.string.theme_ui_default_title),
             description = stringResource(R.string.theme_ui_default_summary),
