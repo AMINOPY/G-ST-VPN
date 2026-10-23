@@ -345,7 +345,7 @@ private fun ToolsPanel(modifier: Modifier = Modifier) {
                 Text("Unit Converter", color = CalcWhite, fontSize = 21.sp, fontWeight = FontWeight.SemiBold)
                 NumberField("Value", unitAmount, onValue = { unitAmount = it })
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("km → mi", "mi → km", "kg → lb", "lb → kg", "°C → °F", "°F → °C").chunked(3).forEach { row ->
+                    listOf("km → mi", "mi → km", "kg → lb", "lb → kg", "°C → °F", "°F → °C", "m → ft", "ft → m", "GB → MB", "MB → GB", "Mbps → MB/s", "MB/s → Mbps", "hr → min", "min → hr", "L → gal", "gal → L").chunked(3).forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             row.forEach { option ->
                                 Text(option, color = if (unit == option) CalcBlack else CalcWhite, fontSize = 11.sp,
@@ -362,7 +362,17 @@ private fun ToolsPanel(modifier: Modifier = Modifier) {
                     "kg → lb" -> v * 2.2046226218
                     "lb → kg" -> v / 2.2046226218
                     "°C → °F" -> v * 9 / 5 + 32
-                    else -> (v - 32) * 5 / 9
+                    "°F → °C" -> (v - 32) * 5 / 9
+                    "m → ft" -> v * 3.280839895
+                    "ft → m" -> v / 3.280839895
+                    "GB → MB" -> v * 1000
+                    "MB → GB" -> v / 1000
+                    "Mbps → MB/s" -> v / 8
+                    "MB/s → Mbps" -> v * 8
+                    "hr → min" -> v * 60
+                    "min → hr" -> v / 60
+                    "L → gal" -> v * 0.2641720524
+                    else -> v / 0.2641720524
                 }
                 ResultCard("Converted value", CalculatorMath.format(converted))
                 Text("More categories can include length, area, volume, time, pressure, energy, power and data units.", color = Color.Gray, fontSize = 11.sp)
