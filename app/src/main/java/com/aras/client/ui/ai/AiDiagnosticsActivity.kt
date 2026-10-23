@@ -52,6 +52,8 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.InetAddress
 import java.net.URL
+import java.net.Socket
+import java.net.InetSocketAddress
 import java.util.Locale
 
 private data class NetworkSnapshot(
@@ -82,6 +84,8 @@ private data class StabilityTestOutcome(
     val failurePercent: Int,
 )
 
+private data class IpProbeOutcome(val display: String, val reachable: Int, val tested: Int)
+
 class AiDiagnosticsActivity : BaseComponentActivity() {
     private var snapshot by mutableStateOf<NetworkSnapshot?>(null)
     private var scanMessage by mutableStateOf<Int?>(R.string.ai_scan_hint)
@@ -91,6 +95,8 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
     private var speedTestRunning by mutableStateOf(false)
     private var stabilityTestRunning by mutableStateOf(false)
     private var stabilityResult by mutableStateOf<String?>(null)
+    private var ipScanRunning by mutableStateOf(false)
+    private var ipScanResult by mutableStateOf<String?>(null)
     private var stabilityReport: StabilityTestOutcome? = null
     private var smartAnalysis by mutableStateOf<String?>(null)
     private var measuredLatencyMs: Long? = null
@@ -114,9 +120,12 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             speedTestRunning = speedTestRunning,
             stabilityResult = stabilityResult,
             stabilityTestRunning = stabilityTestRunning,
+            ipScanResult = ipScanResult,
+            ipScanRunning = ipScanRunning,
             smartAnalysis = smartAnalysis,
             onSpeedTest = { startSpeedTest() },
             onStabilityTest = { startStabilityTest() },
+            onIpScan = { startIpScan() },
             onShareReport = { shareReport() },
             onBack = { finish() },
             onScan = { scanNetwork() },
@@ -395,6 +404,49 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
         }
     }
 
+    private fun startIpScan() {
+        if (ipScanRunning) return
+        ipScanRunning = true
+        ipScanResult = "در حال بررسی دسترسی TCP/443 به IPهای عمومی منتخب…"
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                val targets = listOf(
+                    "1.1.1.1" to "Cloudflare DNS",
+                    "1.0.0.1" to "Cloudflare DNS backup",
+                    "8.8.8.8" to "Google DNS",
+                    "8.8.4.4" to "Google DNS backup",
+                    "9.9.9.9" to "Quad9 DNS",
+                    "149.112.112.112" to "Quad9 DNS backup"
+                )
+                val lines = mutableListOf<String>()
+                var reachable = 0
+                targets.forEach { (ip, label) ->
+                    var socket: Socket? = null
+                    try {
+                        socket = Socket()
+                        val started = System.nanoTime()
+                        socket.connect(InetSocketAddress(ip, 443), 1800)
+                        val elapsed = ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(0L)
+                        reachable++
+                        lines += "✓ " + ip + " · " + label + " · TCP/443: " + elapsed + " ms"
+                    } catch (_: Exception) {
+                        lines += "✕ " + ip + " · " + label + " · TCP/443 ناموفق"
+                    } finally {
+                        runCatching { socket?.close() }
+                    }
+                }
+                IpProbeOutcome(
+                    "دسترسی IP: " + reachable + "/" + targets.size + "\n" + lines.joinToString("\n") +
+                        "\nاین اسکن فقط دسترسی TCP/443 به IPهای عمومی منتخب را می‌سنجد؛ پینگ ICMP، کیفیت VPN یا RDY هسته نیست.",
+                    reachable, targets.size
+                )
+            }
+            ipScanResult = result.display
+            ipScanRunning = false
+            refreshSmartAnalysis()
+        }
+    }
+
     private fun startStabilityTest() {
         if (stabilityTestRunning) return
         stabilityTestRunning = true
@@ -533,9 +585,12 @@ private fun AiDiagnosticsScreen(
     speedTestRunning: Boolean,
     stabilityResult: String?,
     stabilityTestRunning: Boolean,
+    ipScanResult: String?,
+    ipScanRunning: Boolean,
     smartAnalysis: String?,
     onSpeedTest: () -> Unit,
     onStabilityTest: () -> Unit,
+    onIpScan: () -> Unit,
     onShareReport: () -> Unit,
     onBack: () -> Unit,
     onScan: () -> Unit,
@@ -623,6 +678,19 @@ private fun AiDiagnosticsScreen(
                     smartAnalysis ?: snapshot?.advice ?: stringResource(R.string.ai_analysis_not_ready),
                     modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyLarge
                 )
+            }
+
+            Text("اسکن IPهای عمومی", style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold)
+            Text("بررسی کنترل‌شدهٔ دسترسی TCP/443 به IPهای منتخب سرویس‌های عمومی؛ این تست اسکن گستردهٔ رنج‌ها یا تست RDY تونل نیست.",
+                style = MaterialTheme.typography.bodySmall)
+            Button(onClick = onIpScan, enabled = !ipScanRunning, modifier = Modifier.fillMaxWidth()) {
+                Text(if (ipScanRunning) "در حال اسکن IPها…" else "شروع اسکن IP")
+            }
+            ipScanResult?.let {
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                    Text(it, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall)
+                }
             }
 
             Text("اسکن هوشمند پایداری", style = MaterialTheme.typography.titleMedium,
