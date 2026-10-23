@@ -73,7 +73,7 @@ import kotlin.math.roundToLong
 
 private enum class CalcPage(val label: String) {
     BASIC("Calculator"), SCIENTIFIC("Scientific"), TOOLS("Tools"), CURRENCY("Currency"),
-    UNITS("Unit converter"), SPEED("Speed"), DATA("Internet & data"), FINANCE("Finance"), HISTORY("History")
+    UNITS("Unit converter"), SPEED("Speed"), DATA("Internet & data"), FINANCE("Finance"), HISTORY("History"), EVERYDAY("Everyday tools"), PROGRAMMER("Programmer"), STATISTICS("Statistics"), DATE("Date calculator")
 }
 
 class CalculatorActivity : BaseComponentActivity() {
@@ -158,6 +158,22 @@ private fun CalculatorScreen(
     var annualRate by remember { mutableStateOf("5") }
     var years by remember { mutableStateOf("5") }
     var financeResult by remember { mutableStateOf("") }
+    var percentBase by remember { mutableStateOf("100") }
+    var percentValue by remember { mutableStateOf("15") }
+    var tipBill by remember { mutableStateOf("50") }
+    var tipRate by remember { mutableStateOf("10") }
+    var people by remember { mutableStateOf("2") }
+    var bmiWeight by remember { mutableStateOf("70") }
+    var bmiHeight by remember { mutableStateOf("175") }
+    var everydayResult by remember { mutableStateOf("") }
+    var programmerValue by remember { mutableStateOf("255") }
+    var programmerBase by remember { mutableStateOf("10") }
+    var programmerResult by remember { mutableStateOf("") }
+    var statisticsValues by remember { mutableStateOf("1, 2, 3, 4, 5") }
+    var statisticsResult by remember { mutableStateOf("") }
+    var dateStart by remember { mutableStateOf("2026-01-01") }
+    var dateEnd by remember { mutableStateOf("2026-12-31") }
+    var dateResult by remember { mutableStateOf("") }
     val history = remember { mutableStateListOf<String>() }
     val pressedKeys = remember { mutableStateListOf<String>() }
     var simultaneous01Seen by remember { mutableStateOf(false) }
@@ -451,8 +467,104 @@ private fun CalculatorScreen(
                                 TextButton(onClick = { history.clear() }) { Text("Clear history", color = orange) }
                             }
                         }
+                        CalcPage.EVERYDAY -> {
+                            ToolPage("Everyday tools", onBack = { page = CalcPage.TOOLS }) {
+                                Text("Percentage · discount · tax", fontSize = 18.sp)
+                                Field("Base amount", percentBase, { percentBase = it }, true)
+                                Field("Percentage (%)", percentValue, { percentValue = it }, true)
+                                Button(onClick = {
+                                    val base = percentBase.toDoubleOrNull()
+                                    val rate = percentValue.toDoubleOrNull()
+                                    everydayResult = if (base != null && rate != null) {
+                                        val part = base * rate / 100.0
+                                        "Percentage: ${CalculatorMath.format(part)}\nAfter discount: ${CalculatorMath.format(base - part)}\nAfter addition/tax: ${CalculatorMath.format(base + part)}"
+                                    } else "Enter valid numbers"
+                                }) { Text("Calculate percentage") }
+                                Text(everydayResult, color = orange, fontSize = 17.sp)
+                                Spacer(Modifier.height(8.dp))
+                                Text("Tip and split bill", fontSize = 18.sp)
+                                Field("Bill amount", tipBill, { tipBill = it }, true)
+                                Field("Tip (%)", tipRate, { tipRate = it }, true)
+                                Field("People", people, { people = it }, true)
+                                Button(onClick = {
+                                    val bill = tipBill.toDoubleOrNull()
+                                    val rate = tipRate.toDoubleOrNull()
+                                    val count = people.toIntOrNull()
+                                    everydayResult = if (bill != null && rate != null && count != null && bill >= 0 && rate >= 0 && count > 0) {
+                                        val total = bill * (1 + rate / 100)
+                                        "Tip: ${CalculatorMath.format(bill * rate / 100)}\nTotal: ${CalculatorMath.format(total)}\nPer person: ${CalculatorMath.format(total / count)}"
+                                    } else "Enter a valid bill, tip and people count"
+                                }) { Text("Calculate tip and split") }
+                                Spacer(Modifier.height(8.dp))
+                                Text("BMI estimate", fontSize = 18.sp)
+                                Field("Weight (kg)", bmiWeight, { bmiWeight = it }, true)
+                                Field("Height (cm)", bmiHeight, { bmiHeight = it }, true)
+                                Button(onClick = {
+                                    val weight = bmiWeight.toDoubleOrNull()
+                                    val height = bmiHeight.toDoubleOrNull()?.div(100)
+                                    everydayResult = if (weight != null && height != null && weight > 0 && height > 0) {
+                                        "BMI: ${CalculatorMath.format(weight / (height * height))} · screening estimate only"
+                                    } else "Enter valid weight and height"
+                                }) { Text("Calculate BMI") }
+                            }
+                        }
+                        CalcPage.PROGRAMMER -> {
+                            ToolPage("Programmer calculator", onBack = { page = CalcPage.TOOLS }) {
+                                Field("Integer value", programmerValue, { programmerValue = it.trim() })
+                                SettingsBaseSelector(programmerBase, { programmerBase = it })
+                                Button(onClick = {
+                                    val base = programmerBase.toIntOrNull() ?: 10
+                                    val number = programmerValue.toLongOrNull(base)
+                                    programmerResult = if (number != null) {
+                                        "Decimal: $number\nBinary: ${number.toString(2)}\nOctal: ${number.toString(8)}\nHex: ${number.toString(16).uppercase(Locale.US)}"
+                                    } else "Invalid integer for base $base"
+                                }) { Text("Convert number bases") }
+                                Text(programmerResult, color = orange, fontSize = 18.sp)
+                            }
+                        }
+                        CalcPage.STATISTICS -> {
+                            ToolPage("Statistics", onBack = { page = CalcPage.TOOLS }) {
+                                Field("Numbers separated by commas", statisticsValues, { statisticsValues = it })
+                                Button(onClick = {
+                                    val values = statisticsValues.split(",", ";", " ").mapNotNull { it.trim().toDoubleOrNull() }
+                                    statisticsResult = if (values.isNotEmpty()) {
+                                        val sorted = values.sorted()
+                                        val median = if (sorted.size % 2 == 1) sorted[sorted.size / 2] else (sorted[sorted.size / 2 - 1] + sorted[sorted.size / 2]) / 2
+                                        "Count: ${values.size}\nMean: ${CalculatorMath.format(values.average())}\nMedian: ${CalculatorMath.format(median)}\nMin: ${CalculatorMath.format(sorted.first())}\nMax: ${CalculatorMath.format(sorted.last())}"
+                                    } else "Enter at least one valid number"
+                                }) { Text("Calculate statistics") }
+                                Text(statisticsResult, color = orange, fontSize = 18.sp)
+                            }
+                        }
+                        CalcPage.DATE -> {
+                            ToolPage("Date calculator", onBack = { page = CalcPage.TOOLS }) {
+                                Field("Start date (YYYY-MM-DD)", dateStart, { dateStart = it })
+                                Field("End date (YYYY-MM-DD)", dateEnd, { dateEnd = it })
+                                Button(onClick = {
+                                    dateResult = runCatching {
+                                        val start = java.time.LocalDate.parse(dateStart)
+                                        val end = java.time.LocalDate.parse(dateEnd)
+                                        val days = java.time.temporal.ChronoUnit.DAYS.between(start, end)
+                                        "$days days between dates\nInclusive count: ${kotlin.math.abs(days) + 1} days"
+                                    }.getOrElse { "Use valid dates in YYYY-MM-DD format" }
+                                }) { Text("Calculate date difference") }
+                                Text(dateResult, color = orange, fontSize = 18.sp)
+                            }
+                        }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsBaseSelector(value: String, onChange: (String) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Input base:", color = Color.LightGray)
+        listOf("2", "8", "10", "16").forEach { base ->
+            TextButton(onClick = { onChange(base) }) {
+                Text(base, color = if (base == value) Color(0xFFFF9F0A) else Color.White)
             }
         }
     }
@@ -493,7 +605,7 @@ private fun ToolsMenu(onSelect: (CalcPage) -> Unit) {
                 }
             }
         }
-        Text("More tools planned: graphing, equation solving, statistics, date calculator, tip/tax/discount, fuel and power calculators.", color = Color.LightGray, fontSize = 12.sp)
+        Text("Scientific functions, conversion, data estimates and finance tools are available offline except currency rates.", color = Color.LightGray, fontSize = 12.sp)
     }
 }
 
