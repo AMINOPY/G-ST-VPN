@@ -17,6 +17,7 @@ import com.aras.client.radar.ui.RadarScanView
 import com.aras.client.ui.compose.AppTheme
 import android.content.Intent
 import com.aras.client.ui.main.MainActivity
+import com.aras.client.ui.radar.RadarRdyResultStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
@@ -89,7 +90,7 @@ class RadarConfigActivity : ComponentActivity() {
                                 }
                                 Column {
                                     Text("RDY واقعی تأییدشده", style = MaterialTheme.typography.labelSmall)
-                                    Text("—", style = MaterialTheme.typography.titleLarge)
+                                    Text(results.count { RadarRdyResultStore.read(it.uri)?.startsWith("RESULT:") == true }.toString(), style = MaterialTheme.typography.titleLarge)
                                 }
                             }
                         }
@@ -137,6 +138,16 @@ class RadarConfigActivity : ComponentActivity() {
                         // the nested lazy list received unbounded height and hid lower configs.
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             visibleResults.forEach { item ->
+                                val coreRdy = RadarRdyResultStore.read(item.uri)
+                                val coreRdyLabel = when {
+                                    coreRdy == "PENDING" -> "RDY هسته: تست واقعی در حال اجراست"
+                                    coreRdy?.startsWith("RESULT:") == true -> {
+                                        val delay = coreRdy.removePrefix("RESULT:").substringBefore(":").toLongOrNull()
+                                        if (delay != null) "RDY هسته: " + delay + " ms" else "RDY هسته: نتیجه ثبت شد"
+                                    }
+                                    coreRdy == "FINISHED:NO_VALID_RESULT" -> "RDY هسته: نتیجهٔ معتبر دریافت نشد"
+                                    else -> "RDY هسته: هنوز اندازه‌گیری نشده"
+                                }
                                 Card(
                                     Modifier.fillMaxWidth().clickable {
                                         startActivity(
@@ -151,7 +162,7 @@ class RadarConfigActivity : ComponentActivity() {
                                             if (item.latency == null) {
                                                 (item.dnsLatency?.let { "DNS " + it + " ms · " } ?: "") + item.note
                                             } else {
-                                                "TCP: " + (item.latency?.toString() ?: "—") + " ms · DNS: " + (item.dnsLatency?.toString() ?: "—") + " ms · RDY هسته: اندازه‌گیری نشده"
+                                                "TCP: " + (item.latency?.toString() ?: "—") + " ms · DNS: " + (item.dnsLatency?.toString() ?: "—") + " ms · " + coreRdyLabel
                                             },
                                             color = if (item.latency == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
                                         if (item.latency != null) {
