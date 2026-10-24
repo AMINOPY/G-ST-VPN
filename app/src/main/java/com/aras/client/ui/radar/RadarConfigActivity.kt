@@ -255,7 +255,11 @@ class RadarConfigActivity : ComponentActivity() {
             "coldwater-10/V2ray-Config", "sevcator/5ubscrpt10n", "TheCrowCreature/v2rayExtractor",
             "10Dream/sub-mod", "mheidari98/.proxy", "itsyebekhe/PSG", "Surfboardv2ray/TGParse",
             "MatinGhanbari/v2ray-configs", "MhdiTaheri/V2rayCollector", "4n0nymous/multi-proxy-config-fetcher",
-            "Rayan-Config/C-Sub", "V2RayRoot/V2RayConfig", "free-nodes/v2rayfree"
+            "Rayan-Config/C-Sub", "V2RayRoot/V2RayConfig", "free-nodes/v2rayfree",
+            "Mokafela/Config-Finder", "nodesradar/nodesradar-en", "Epodonios/v2ray-configs",
+            "TheSpeedX/PROXY-List", "hiddify/hiddify-config", "2dust/v2rayNG",
+            "barry-far/V2ray-Config", "vpn-vless-configs-russia/vpn-vless-configs-russia",
+            "Farid-Karimi/Config-Collector", "kort0881/vpn-vless-configs-russia"
         )
         val iranianRepos = listOf(
             "ircfspace/tconfig", "itsyebekhe/PSG", "MatinGhanbari/v2ray-configs",
@@ -265,6 +269,24 @@ class RadarConfigActivity : ComponentActivity() {
         )
         val repos = (iranianRepos + globalRepos).distinct()
         val found = linkedSetOf<String>()
+
+        // Public country-split feeds; the server IP is still geolocated independently below.
+        // Missing or renamed files are skipped so one source never blocks the rest.
+        val countryFeeds = listOf(
+            "https://raw.githubusercontent.com/Mokafela/Config-Finder/master/split/sub-ALL.txt",
+            "https://raw.githubusercontent.com/Mokafela/Config-Finder/master/split/sub-US.txt",
+            "https://raw.githubusercontent.com/Mokafela/Config-Finder/master/split/sub-NL.txt",
+            "https://raw.githubusercontent.com/Mokafela/Config-Finder/master/split/sub-CA.txt",
+            "https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/iran.txt",
+            "https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/all.txt",
+            "https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/best.txt",
+            "https://radarhub.top/v2ray.txt"
+        )
+        for (feed in countryFeeds) try {
+            extract(get(feed, 8000)).forEach { found.add(it) }
+            if (found.size >= 4000) return found.toList()
+        } catch (_: Exception) { /* Optional public feed unavailable. */ }
+
         for (repo in repos) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
             val branch = Regex("""default_branch"\s*:\s*"([^"]+)""").find(metadata)?.groupValues?.get(1) ?: "main"
