@@ -172,6 +172,11 @@ class RadarConfigActivity : ComponentActivity() {
                                     Column(Modifier.padding(12.dp)) {
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
                                         Text(
+                                            "کشور سرور: " + (item.country ?: "نامشخص") + " · پروتکل: " + protocolOf(item.uri).uppercase(),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.secondary
+                                        )
+                                        Text(
                                             if (item.latency == null) {
                                                 (item.dnsLatency?.let { "DNS " + it + " ms · " } ?: "") + item.note
                                             } else {
@@ -211,12 +216,20 @@ class RadarConfigActivity : ComponentActivity() {
                             val batchResults = coroutineScope {
                                 batch.map { uri -> async(Dispatchers.IO) { testTcp(uri) } }.map { it.await() }
                             }
-                            for (result in batchResults) {
+                            // Resolve endpoint countries concurrently but with the same small batch bound.
+                            // This avoids serial geo-IP requests making a large scan appear frozen.
+                            val enrichedResults = coroutineScope {
+                                batchResults.map { result ->
+                                    async(Dispatchers.IO) {
+                                        if (result.latency != null) result.copy(country = lookupCountry(result.uri)) else result
+                                    }
+                                }.map { it.await() }
+                            }
+                            for (result in enrichedResults) {
                                 if (result.latency != null) reachable++
                                 // TCP/DNS are preflight diagnostics only. Never render them as RDY blips;
                                 // a real radar result must come from a VPN-core measurement.
-                                val geoResult = if (result.latency != null) withContext(Dispatchers.IO) { result.copy(country = lookupCountry(result.uri)) } else result
-                                results.add(geoResult)
+                                results.add(result)
                                 val savedCoreRdy = RadarRdyResultStore.read(result.uri)
                                 val corePing = savedCoreRdy?.removePrefix("RESULT:")?.substringBefore(":")?.toLongOrNull()
                                 if (corePing != null) radar?.addCoreRdyCandidate(corePing) else radar?.addDiscoveryCandidate(result.latency != null)
@@ -379,13 +392,13 @@ class RadarConfigActivity : ComponentActivity() {
         val encodedIp = java.net.URLEncoder.encode(address, "UTF-8")
         val primary = runCatching { get("https://ipwho.is/" + encodedIp, 3500) }.getOrNull()
         val primaryCountry = primary
-            ?.takeUnless { it.contains("\"success\"\\s*:\\s*false".toRegex()) }
-            ?.let { Regex("\"country\"\\s*:\\s*\"([^\"]+)\"").find(it)?.groupValues?.get(1) }
+            ?.takeUnless { Regex("\"success\"\\s*:\\s*false", RegexOption.IGNORE_CASE).containsMatchIn(it) }
+            ?.let { Regex("\"country\"\\s*:\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE).find(it)?.groupValues?.get(1) }
         val fallbackCountry = if (primaryCountry.isNullOrBlank()) {
             runCatching {
                 val json = get("https://api.ipapi.is/?q=" + encodedIp, 3500)
-                Regex("\"country\"\\s*:\\s*\"([^\"]+)\"").find(json)?.groupValues?.get(1)
-                    ?: Regex("\"country_name\"\\s*:\\s*\"([^\"]+)\"").find(json)?.groupValues?.get(1)
+                Regex("\"country\"\\s*:\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE).find(json)?.groupValues?.get(1)
+                    ?: Regex("\"country_name\"\\s*:\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE).find(json)?.groupValues?.get(1)
             }.getOrNull()
         } else null
         val country = primaryCountry?.takeIf { it.isNotBlank() } ?: fallbackCountry
