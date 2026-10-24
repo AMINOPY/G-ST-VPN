@@ -50,6 +50,7 @@ class RadarConfigActivity : ComponentActivity() {
                 var radar by remember { mutableStateOf<RadarScanView?>(null) }
                 var resultFilter by remember { mutableStateOf("all") }
                 var protocolFilter by remember { mutableStateOf("all") }
+                var scanLimit by remember { mutableIntStateOf(1000) }
                 val visibleResults = results.filter { candidate ->
                     val reachabilityMatches = when (resultFilter) {
                         "reachable" -> candidate.latency != null
@@ -62,8 +63,6 @@ class RadarConfigActivity : ComponentActivity() {
                 }
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("رادار RDY هستهٔ VPN · کشف و پیش‌آزمایش شبکه", style = MaterialTheme.typography.titleMedium)
-                        Text("این رادار هیچ نتیجهٔ TCP را به‌عنوان RDY یا اتصال موفق نمایش نمی‌دهد. اسکن فعلی فقط کانفیگ‌ها و دسترسی DNS/TCP را غربال می‌کند؛ RDY معتبر فقط پس از واردکردن کانفیگ و اندازه‌گیری توسط هستهٔ VPN ثبت می‌شود.", style = MaterialTheme.typography.bodySmall)
                         AndroidView(
                             factory = { ctx -> RadarScanView(ctx).also { radar = it; it.startScan() } },
                             modifier = Modifier.fillMaxWidth().height(230.dp),
@@ -74,6 +73,10 @@ class RadarConfigActivity : ComponentActivity() {
                             OutlinedButton(enabled = scanning, onClick = { scanning = false }) { Text("توقف") }
                         }
                         if (scanning) LinearProgressIndicator(Modifier.fillMaxWidth())
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("تعداد:", modifier = Modifier.padding(top = 10.dp))
+                            listOf(1000, 2000, 4000).forEach { limit -> FilterChip(selected = scanLimit == limit, onClick = { scanLimit = limit }, enabled = !scanning, label = { Text(limit.toString()) }) }
+                        }
                         Text(message, style = MaterialTheme.typography.bodyMedium)
                         Card(Modifier.fillMaxWidth()) {
                             Row(
@@ -186,11 +189,11 @@ class RadarConfigActivity : ComponentActivity() {
                     try {
                         val uris = withContext(Dispatchers.IO) { discover().distinct() }
                         var reachable = 0
-                        val bounded = uris.take(180)
+                        val bounded = uris.take(scanLimit)
                         if (bounded.isEmpty()) {
                             message = "منابع پاسخ ندادند یا کانفیگ قابل‌خواندن پیدا نشد؛ اتصال اینترنت و دسترسی به GitHub را بررسی کن."
                         } else if (uris.size > bounded.size) {
-                            message = "تعداد زیادی نتیجه پیدا شد؛ برای حفظ سرعت، ۱۸۰ مورد اول بررسی می‌شوند."
+                            message = "نتیجه‌های زیادی پیدا شد؛ تعداد انتخاب‌شده بررسی می‌شود."
                         }
                         var checked = 0
                         for (batch in bounded.chunked(8)) {
