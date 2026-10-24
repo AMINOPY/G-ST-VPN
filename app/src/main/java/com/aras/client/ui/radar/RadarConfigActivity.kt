@@ -327,11 +327,13 @@ class RadarConfigActivity : ComponentActivity() {
         // wait for dozens of 8-second timeouts before showing the first result, appearing frozen.
         val feedCandidates = countryFeeds.take(14)
         val feedResults = kotlinx.coroutines.runBlocking {
-            feedCandidates.map { feed ->
-                kotlinx.coroutines.async(kotlinx.coroutines.Dispatchers.IO) {
-                    runCatching { extract(get(feed, 4500)) }.getOrDefault(emptyList())
-                }
-            }.let { tasks -> tasks.awaitAll() }
+            kotlinx.coroutines.coroutineScope {
+                feedCandidates.map { feed ->
+                    kotlinx.coroutines.async(kotlinx.coroutines.Dispatchers.IO) {
+                        runCatching { extract(get(feed, 4500)) }.getOrDefault(emptyList())
+                    }
+                }.awaitAll()
+            }
         }
         feedResults.forEach { batch -> batch.forEach { found.add(it) } }
         if (found.size >= 4000) return found.toList()
