@@ -113,6 +113,24 @@ class RadarScanView @JvmOverloads constructor(
         invalidate()
     }
 
+    /** Add discovery status: TCP reachability is amber, never proof of a working VPN tunnel. */
+    fun addDiscoveryCandidate(reachable: Boolean) {
+        val angle = Math.toRadians((sweepDegrees + 15f).toDouble()).toFloat()
+        blips.add(Blip(angle, if (reachable) 0.66f else 0.9f, if (reachable) YELLOW else RED, System.currentTimeMillis()))
+        if (blips.size > MAX_BLIPS) blips.removeAt(0)
+        invalidate()
+    }
+
+    /** Green blip is reserved for an actual non-negative VPN-core RDY measurement. */
+    fun addCoreRdyCandidate(pingMs: Long) {
+        if (pingMs < 0L) { addDiscoveryCandidate(false); return }
+        val fraction = (0.18f + (pingMs.coerceAtMost(600L) / 600f) * 0.72f).coerceIn(0.18f, 0.9f)
+        val angle = Math.toRadians((sweepDegrees + 15f).toDouble()).toFloat()
+        blips.add(Blip(angle, fraction, GREEN, System.currentTimeMillis()))
+        if (blips.size > MAX_BLIPS) blips.removeAt(0)
+        invalidate()
+    }
+
     /** Add a candidate at a radius derived from its measured latency; lower latency is nearer the center. */
     fun addTestedCandidate(pingMs: Long) {
         val reachable = pingMs >= 0L

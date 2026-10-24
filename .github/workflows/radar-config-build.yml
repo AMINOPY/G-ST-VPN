@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [feat/radar-config-discovery, fix/radar-vpn-full-restoration, feature/radar-rdy-core-results]
+    branches: [feat/radar-config-discovery, fix/radar-vpn-full-restoration, feature/radar-rdy-core-results, feature/radar-config-discovery-countries]
   workflow_dispatch:
 
 permissions:
@@ -12,13 +12,13 @@ permissions:
 
 jobs:
   debug-apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -59,7 +59,7 @@ jobs:
         run: ./gradlew --no-daemon :app:assembleDebug :app:testDebugUnitTest -x :app:checkDebugAarMetadata
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: radar-config-debug-apk
           path: app/build/outputs/apk/**/*.apk
