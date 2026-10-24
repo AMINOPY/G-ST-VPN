@@ -4,6 +4,10 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,6 +39,7 @@ fun RdrSpeedrDashboard(
     onOpenConfigs: () -> Unit,
 ) {
     val accent = Color(0xFF41F6D0)
+    val connectedPulse by animateFloatAsState(if (isRunning && hasPing) 1f else 0.72f, tween(650), label = "speedr-pulse")
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -71,16 +76,24 @@ fun RdrSpeedrDashboard(
                     hasPing = hasPing,
                     selectedGuid = selectedGuid,
                     isDarkTheme = isDarkTheme,
-                    serverTitle = serverTitle
+                    serverTitle = serverTitle,
+                    modifier = Modifier.alpha(connectedPulse),
+                    onRadarClick = onToggle
                 )
-                Button(onClick = onToggle, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (isRunning) "DISCONNECT TUNNEL" else "CONNECT TUNNEL")
-                }
+                Text(
+                    if (!isRunning) "TAP RADAR TO CONNECT" else "TAP RADAR TO DISCONNECT",
+                    color = accent,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.2.sp,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
             }
         }
         Surface(
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.82f),
+            shape = RoundedCornerShape(24.dp),
+            border = BorderStroke(1.dp, Color(0xFF71B8FF).copy(alpha = 0.18f)),
             modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenConfigs)
         ) {
             Row(
@@ -96,7 +109,7 @@ fun RdrSpeedrDashboard(
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1
                     )
-                    Text("Tap to open app navigation and configurations", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 11.sp)
+                    Text("TAP TO BROWSE CONFIGURATIONS", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp, letterSpacing = 0.7.sp)
                 }
                 Text("›", color = accent, fontSize = 28.sp, fontWeight = FontWeight.Light)
             }
