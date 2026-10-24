@@ -23,8 +23,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -36,6 +38,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aras.client.util.ConnectionStatsManager
+import com.aras.client.ui.compose.formatBytes
+import com.aras.client.ui.compose.formatDuration
+import kotlinx.coroutines.delay
 
 /** RDR SPEEDR: distinct liquid-glass-inspired dashboard; live tunnel verification stays in RadarDashboard. */
 @Composable
@@ -57,6 +63,27 @@ fun RdrSpeedrDashboard(
         label = "speedr-pulse"
     )
     var menuExpanded by remember { mutableStateOf(false) }
+    var sessionSnapshot by remember { mutableStateOf(ConnectionStatsManager.snapshot()) }
+    var downRate by remember { mutableLongStateOf(0L) }
+    var upRate by remember { mutableLongStateOf(0L) }
+
+    // Counters are cumulative, so derive throughput from deltas.
+    LaunchedEffect(isRunning) {
+        var previous = ConnectionStatsManager.snapshot()
+        while (true) {
+            delay(2000)
+            val current = ConnectionStatsManager.snapshot()
+            if (isRunning) {
+                downRate = (current.sessionDown - previous.sessionDown).coerceAtLeast(0L) / 2L
+                upRate = (current.sessionUp - previous.sessionUp).coerceAtLeast(0L) / 2L
+            } else {
+                downRate = 0L
+                upRate = 0L
+            }
+            sessionSnapshot = current
+            previous = current
+        }
+    }
     val status = when {
         !isRunning -> "STANDBY"
         connected -> "LINK VERIFIED"
@@ -211,10 +238,30 @@ fun RdrSpeedrDashboard(
         ) {
             SpeedrMetricCard(
                 modifier = Modifier.weight(1f),
-                symbol = "↗",
-                title = "TUNNEL",
-                value = if (connected) "VERIFIED" else if (isRunning) "CHECKING" else "OFFLINE",
-                tint = statusColor
+                symbol = "↓",
+                title = "DOWNLOAD",
+                value = if (connected) "${formatBytes(downRate)}/s" else "—",
+                tint = accent
+            )
+            SpeedrMetricCard(
+                modifier = Modifier.weight(1f),
+                symbol = "↑",
+                title = "UPLOAD",
+                value = if (connected) "${formatBytes(upRate)}/s" else "—",
+                tint = blue
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            SpeedrMetricCard(
+                modifier = Modifier.weight(1f),
+                symbol = "⏱",
+                title = "SESSION",
+                value = if (isRunning) formatDuration(sessionSnapshot.sessionMillis) else "00:00",
+                tint = blue
             )
             SpeedrMetricCard(
                 modifier = Modifier.weight(1f),
