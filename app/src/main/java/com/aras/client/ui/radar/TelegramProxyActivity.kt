@@ -270,9 +270,23 @@ class TelegramProxyActivity : ComponentActivity() {
         val connection = URL(url).openConnection() as HttpURLConnection
         connection.connectTimeout = timeoutMs
         connection.readTimeout = timeoutMs
+        connection.instanceFollowRedirects = true
         connection.setRequestProperty("User-Agent", "G-ST-VPN-TelegramProxyRadar/1.0")
+        connection.setRequestProperty("Accept-Encoding", "identity")
         return try {
-            connection.inputStream.bufferedReader().use { it.readText().take(2_000_000) }
+            val code = connection.responseCode
+            if (code !in 200..299) throw java.io.IOException("HTTP $code")
+            connection.inputStream.bufferedReader(Charsets.UTF_8).use { reader ->
+                val out = StringBuilder()
+                val buffer = CharArray(8192)
+                val maxChars = 1_000_000
+                while (out.length < maxChars) {
+                    val count = reader.read(buffer, 0, minOf(buffer.size, maxChars - out.length))
+                    if (count < 0) break
+                    out.append(buffer, 0, count)
+                }
+                out.toString()
+            }
         } finally {
             connection.disconnect()
         }
