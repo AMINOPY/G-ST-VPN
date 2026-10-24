@@ -215,7 +215,7 @@ class RadarConfigActivity : ComponentActivity() {
                                 if (result.latency != null) reachable++
                                 // TCP/DNS are preflight diagnostics only. Never render them as RDY blips;
                                 // a real radar result must come from a VPN-core measurement.
-                                val geoResult = withContext(Dispatchers.IO) { result.copy(country = lookupCountry(result.uri)) }
+                                val geoResult = if (result.latency != null) withContext(Dispatchers.IO) { result.copy(country = lookupCountry(result.uri)) } else result
                                 results.add(geoResult)
                                 val savedCoreRdy = RadarRdyResultStore.read(result.uri)
                                 val corePing = savedCoreRdy?.removePrefix("RESULT:")?.substringBefore(":")?.toLongOrNull()
@@ -336,10 +336,11 @@ class RadarConfigActivity : ComponentActivity() {
         val endpoint = parseEndpoint(uri) ?: return null
         val address = InetAddress.getByName(endpoint.first).hostAddress.substringBefore("%")
         geoCache[address]?.let { return it }
-        // HTTPS geolocation; only the public endpoint IP is sent, never the config URI or credentials.
+        if (geoCache.size >= 200) return null
+        // HTTPS lookup sends only the resolved public server IP, not the config URI or credentials.
         val json = get("https://ipwho.is/" + java.net.URLEncoder.encode(address, "UTF-8"), 5000)
-        if (Regex("""\\"success\\"\\s*:\\s*false""").containsMatchIn(json)) return null
-        val country = Regex("""\\"country\\"\\s*:\\s*\\"([^\\"]+)\\"""").find(json)?.groupValues?.get(1)
+        if (json.contains("\"success\":false")) return null
+        val country = Regex("\"country\"\\s*:\\s*\"([^\"]+)\"").find(json)?.groupValues?.get(1)
         if (!country.isNullOrBlank()) geoCache.putIfAbsent(address, country)
         country
     }.getOrNull()
