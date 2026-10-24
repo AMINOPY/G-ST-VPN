@@ -228,6 +228,41 @@ val toastInfoBg = Color(0xB33F51B5) // Indigo Blue
 val toastIconCircleBg = Color(0x33FFFFFF) // Semi-transparent White
 val toastTextColor = Color.White // White
 
+private val NovaColorScheme = darkColorScheme(
+    primary = Color(0xFF48E5F2),
+    onPrimary = Color(0xFF031014),
+    primaryContainer = Color(0xFF123A45),
+    onPrimaryContainer = Color(0xFFB8F8FF),
+    secondary = Color(0xFF00E6A0),
+    onSecondary = Color(0xFF002117),
+    secondaryContainer = Color(0xFF064A37),
+    onSecondaryContainer = Color(0xFFB7FFE4),
+    tertiary = Color(0xFFFFC857),
+    onTertiary = Color(0xFF251800),
+    error = Color(0xFFFF496C),
+    errorContainer = Color(0xFF5A1528),
+    onError = Color(0xFF25000A),
+    onErrorContainer = Color(0xFFFFD9E0),
+    background = Color(0xFF05090F),
+    onBackground = Color(0xFFEAF8FF),
+    surface = Color(0xFF0B1520),
+    onSurface = Color(0xFFEAF8FF),
+    surfaceVariant = Color(0xFF122432),
+    onSurfaceVariant = Color(0xFFB3C7D2),
+    outline = Color(0xFF3D6676),
+    outlineVariant = Color(0xFF23404E),
+    inverseSurface = Color(0xFFEAF8FF),
+    inverseOnSurface = Color(0xFF05090F),
+    inversePrimary = Color(0xFF12616A),
+    scrim = Color(0xFF000000),
+    surfaceTint = Color(0xFF48E5F2),
+    surfaceContainerLowest = Color(0xFF030609),
+    surfaceContainerLow = Color(0xFF08111A),
+    surfaceContainer = Color(0xFF0B1520),
+    surfaceContainerHigh = Color(0xFF122432),
+    surfaceContainerHighest = Color(0xFF193342),
+)
+
 object ThemeManager {
     private const val PREF_UI_THEME = "pref_ui_theme"
     private const val PREF_CULTURAL_PATTERN_INTENSITY = "cultural_pattern_intensity"
@@ -281,13 +316,13 @@ object ThemeManager {
 
     private val _uiTheme = MutableStateFlow(
         MmkvManager.decodeSettingsString(PREF_UI_THEME, "default")?.takeIf {
-            it in setOf("default", "radar", "survival", "aurora", "rdrx")
+            it in setOf("default", "radar", "survival", "aurora", "rdrx", "nova")
         } ?: "default"
     )
     val uiTheme: StateFlow<String> = _uiTheme.asStateFlow()
 
     fun setUiTheme(value: String) {
-        val safeValue = value.takeIf { it in setOf("default", "radar", "survival", "aurora", "rdrx") } ?: "default"
+        val safeValue = value.takeIf { it in setOf("default", "radar", "survival", "aurora", "rdrx", "nova") } ?: "default"
         MmkvManager.encodeSettings(PREF_UI_THEME, safeValue)
         _uiTheme.value = safeValue
     }
@@ -310,7 +345,7 @@ object ThemeManager {
     fun refresh() {
         _themeMode.value = readThemeMode()
         _uiTheme.value = MmkvManager.decodeSettingsString(PREF_UI_THEME, "default")?.takeIf {
-            it in setOf("default", "radar", "survival", "aurora", "rdrx")
+            it in setOf("default", "radar", "survival", "aurora", "rdrx", "nova")
         } ?: "default"
         _dynamicColorEnabled.value =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
@@ -349,7 +384,7 @@ fun resolveDarkTheme(): Boolean {
     val mode by ThemeManager.themeMode.collectAsState()
     val uiTheme by ThemeManager.uiTheme.collectAsState()
     return when {
-        uiTheme == "radar" || uiTheme == "survival" || uiTheme == "aurora" || uiTheme == "rdrx" -> true
+        uiTheme == "radar" || uiTheme == "survival" || uiTheme == "aurora" || uiTheme == "rdrx" || uiTheme == "nova" -> true
         mode == "1" || mode == "4" -> false
         mode in setOf("2", "3") -> true
         else -> isSystemInDarkTheme()
@@ -371,15 +406,17 @@ fun AppTheme(
     val isSurvivalTheme = uiTheme == "survival"
     val isAuroraTheme = uiTheme == "aurora"
     val isRdrXTheme = uiTheme == "rdrx"
+    val isNovaTheme = uiTheme == "nova"
     val isPersepolisTheme = themeMode == "4"
     // Persepolis uses a light parchment palette; keep system-bar icons dark there.
     val effectiveDarkTheme = when {
         isPersepolisTheme -> false
-        isRadarTheme || isSurvivalTheme || isAuroraTheme || isRdrXTheme || themeMode == "3" -> true
+        isRadarTheme || isSurvivalTheme || isAuroraTheme || isRdrXTheme || isNovaTheme || themeMode == "3" -> true
         else -> darkTheme
     }
     // Ordinary system appearance is the default; special themes are opt-in.
     val colorScheme = when {
+        isNovaTheme -> NovaColorScheme
         isRdrXTheme -> RadarColorScheme
         isRadarTheme -> RadarColorScheme
         isSurvivalTheme -> SurvivalColorScheme

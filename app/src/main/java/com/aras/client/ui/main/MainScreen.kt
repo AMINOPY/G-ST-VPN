@@ -61,6 +61,8 @@ import com.aras.client.ui.compose.QRCodeDialog
 import com.aras.client.ui.rdrx.RdrXDashboard
 import com.aras.client.ui.rdrx.RdrXStatus
 import com.aras.client.ui.rdrx.RdrXTheme
+import com.aras.client.ui.nova.NovaDashboard
+import com.aras.client.ui.nova.NovaStatus
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -194,7 +196,7 @@ fun MainScreen(
     Scaffold(
             contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
             topBar = {
-                MainTopBar(
+                if (uiTheme != "nova") MainTopBar(
                     isLoading = isLoading,
                     showSearch = showSearch,
                     searchQuery = searchQuery,
@@ -235,7 +237,7 @@ fun MainScreen(
                 )
             },
             bottomBar = {
-                Column {
+                if (uiTheme != "nova") Column {
                     if (isRunning) {
                         com.aras.client.ui.compose.ConnectionMiniStats(
                             modifier = Modifier.padding(bottom = 4.dp)
@@ -279,6 +281,25 @@ fun MainScreen(
                         "survival" -> SurvivalFieldPanel(
                             isConnected = isRunning && hasPing,
                             serverTitle = mainViewModel.connectedServerTitle(),
+                        )
+                        "nova" -> NovaDashboard(
+                            status = when {
+                                !isRunning -> NovaStatus.OFFLINE
+                                uiState.isTesting -> NovaStatus.VERIFYING
+                                hasPing -> NovaStatus.CONNECTED
+                                else -> NovaStatus.VERIFYING
+                            },
+                            isRunning = isRunning,
+                            hasPing = hasPing,
+                            serverTitle = mainViewModel.connectedServerTitle(),
+                            pingMs = selectedGuid?.let { guid ->
+                                MmkvManager.decodeServerAffiliationInfo(guid)?.testDelayMillis
+                            }?.takeIf { it > 0L },
+                            onConnect = { onAction(MainAction.ToggleService) },
+                            onTest = { onAction(MainAction.TestCurrentServer) },
+                            onMenu = { showMenu = true },
+                            onImport = { onAction(MainAction.ImportManualMenu) },
+                            onScanQr = { onAction(MainAction.ImportQRcode) }
                         )
                         "rdrx" -> RdrXTheme(dark = isDarkTheme) {
                             RdrXDashboard(
@@ -383,6 +404,23 @@ fun MainScreen(
                             )
                         )
                     }
+                }
+            } else if (uiTheme == "nova") {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(innerPadding)
+                ) {
+                    NovaDashboard(
+                        status = NovaStatus.OFFLINE,
+                        isRunning = isRunning,
+                        hasPing = hasPing,
+                        serverTitle = mainViewModel.connectedServerTitle(),
+                        pingMs = null,
+                        onConnect = { onAction(MainAction.ToggleService) },
+                        onTest = { onAction(MainAction.TestCurrentServer) },
+                        onMenu = { showMenu = true },
+                        onImport = { onAction(MainAction.ImportManualMenu) },
+                        onScanQr = { onAction(MainAction.ImportQRcode) }
+                    )
                 }
             } else if (themeMode == "3" && !isLoading) {
                 Box(

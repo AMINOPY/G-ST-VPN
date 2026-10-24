@@ -129,6 +129,15 @@ fun ThemePicker(
             accent = Color(0xFF3DA9FF),
             foreground = Color(0xFFEAF3FF)
         ),
+        ThemeChoice(
+            value = "nova",
+            title = "NOVA — Orbital Interface",
+            description = "Independent radar console with live tunnel telemetry",
+            background = Color(0xFF05090F),
+            surface = Color(0xFF0B1520),
+            accent = Color(0xFF48E5F2),
+            foreground = Color(0xFFEAF8FF)
+        ),
     )
 
     Column(
