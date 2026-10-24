@@ -22,6 +22,7 @@ import com.aras.client.extension.isComplexType
 import com.aras.client.extension.matchesPattern
 import com.aras.client.extension.moveItem
 import com.aras.client.ui.base.BaseViewModel
+import com.aras.client.ui.radar.RadarRdyResultStore
 import com.aras.client.util.LogUtil
 import com.aras.client.util.Utils
 import kotlinx.coroutines.CancellationException
@@ -131,6 +132,7 @@ class MainViewModel(
 
     // Round state and job ownership are confined to the main dispatcher.
     private val testRounds = SmartConnectRoundTracker()
+    private val radarRdyKeysByGuid = ConcurrentHashMap<String, String>()
     private var testPreparationJob: Job? = null
     private var testFinishJob: Job? = null
 
@@ -210,6 +212,9 @@ class MainViewModel(
                             testCountryCode = aff?.countryCode ?: cache.testCountryCode,
                         ) else cache
                     }
+                }
+                radarRdyKeysByGuid[event.guid]?.let { key ->
+                    aff?.testDelayMillis?.takeIf { it >= 0L }?.let { RadarRdyResultStore.recordDelay(key, it) }
                 }
             }
 
@@ -579,10 +584,16 @@ class MainViewModel(
 
     // ---------- Business actions (coroutine-based) ----------
     fun importRadarConfigAndTest(configText: String) {
-        importBatchConfig(configText, testImportedWithCore = true)
+        val rdyKey = RadarRdyResultStore.keyFor(configText)
+        RadarRdyResultStore.markPending(rdyKey)
+        importBatchConfig(configText, testImportedWithCore = true, radarRdyKey = rdyKey)
     }
 
-    private fun importBatchConfig(configText: String, testImportedWithCore: Boolean = false) {
+    private fun importBatchConfig(
+        configText: String,
+        testImportedWithCore: Boolean = false,
+        radarRdyKey: String? = null,
+    ) {
         launchLoading {
             withContext(ioDispatcher) {
                 try {
@@ -624,6 +635,7 @@ class MainViewModel(
                             .filterNot { it in previousGuids }
                         val candidates = buildServersCache(newGuids)
                         if (candidates.isNotEmpty()) {
+                            radarRdyKey?.let { key -> candidates.forEach { radarRdyKeysByGuid[it.guid] = key } }
                             withContext(Dispatchers.Main.immediate) {
                                 startTestRound(targetGroupId, candidates, onlyTcp = false, smartConnect = false)
                             }
@@ -1180,6 +1192,9 @@ class MainViewModel(
                 reloadJob?.join()
                 ensureActive()
                 if (!testRounds.isCurrent(round)) return@launch
+                round.candidates.forEach { guid ->
+                    radarRdyKeysByGuid.remove(guid)?.let { key -> RadarRdyResultStore.markFinished(key) }
+                }
                 val smartTarget = if (round.smartConnect) bestTestedServerInRound(round) else null
                 testRounds.invalidate()
                 if (smartTarget != null) updateSelectedGuid(smartTarget)
