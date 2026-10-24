@@ -243,7 +243,25 @@ class RadarConfigActivity : ComponentActivity() {
     }
 
     private fun discover(): List<String> {
-        val repos = listOf("barry-far/V2ray-Config", "0xRadikal/Free-v2ray-Configs", "ircfspace/tconfig", "Argh94/V2RayAutoConfig", "mahdibland/V2RayAggregator", "peasoft/NoMorewalls", "Leon406/SubCrawler", "Pawdroid/Free-servers", "ermaozi/get_subscribe", "aiboboxx/v2rayfree", "zxcvos/Free-Node", "Alvin9999/new-pac", "soroushmirzaei/telegram-configs-collector", "yaney01/V2ray-Configs")
+        val globalRepos = listOf(
+            "barry-far/V2ray-Config", "0xRadikal/Free-v2ray-Configs", "ircfspace/tconfig",
+            "Argh94/V2RayAutoConfig", "mahdibland/V2RayAggregator", "peasoft/NoMorewalls",
+            "Leon406/SubCrawler", "Pawdroid/Free-servers", "ermaozi/get_subscribe",
+            "aiboboxx/v2rayfree", "zxcvos/Free-Node", "Alvin9999/new-pac",
+            "soroushmirzaei/telegram-configs-collector", "yaney01/V2ray-Configs",
+            "morpheusadam/v2ray-config", "alexantSWE/V2ray-Config", "Delta-Kronecker/V2ray-Config",
+            "coldwater-10/V2ray-Config", "sevcator/5ubscrpt10n", "TheCrowCreature/v2rayExtractor",
+            "10Dream/sub-mod", "mheidari98/.proxy", "itsyebekhe/PSG", "Surfboardv2ray/TGParse",
+            "MatinGhanbari/v2ray-configs", "MhdiTaheri/V2rayCollector", "4n0nymous/multi-proxy-config-fetcher",
+            "Rayan-Config/C-Sub", "V2RayRoot/V2RayConfig", "free-nodes/v2rayfree"
+        )
+        val iranianRepos = listOf(
+            "ircfspace/tconfig", "itsyebekhe/PSG", "MatinGhanbari/v2ray-configs",
+            "MhdiTaheri/V2rayCollector", "Rayan-Config/C-Sub", "soroushmirzaei/telegram-configs-collector",
+            "Surfboardv2ray/TGParse", "mheidari98/.proxy", "V2RayRoot/V2RayConfig",
+            "4n0nymous/multi-proxy-config-fetcher"
+        )
+        val repos = (iranianRepos + globalRepos).distinct()
         val found = linkedSetOf<String>()
         for (repo in repos) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
@@ -251,7 +269,7 @@ class RadarConfigActivity : ComponentActivity() {
             val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
             val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"").findAll(tree).map { it.groupValues[1] }
                 .filter { p -> val q = p.lowercase(); (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) && (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country")) }
-                .take(24)
+                .take(40)
             for (path in paths) {
                 val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
                 extract(raw).forEach { found.add(it) }
