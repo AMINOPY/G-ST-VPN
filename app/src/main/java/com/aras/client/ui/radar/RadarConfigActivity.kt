@@ -215,6 +215,9 @@ class RadarConfigActivity : ComponentActivity() {
                                 // TCP/DNS are preflight diagnostics only. Never render them as RDY blips;
                                 // a real radar result must come from a VPN-core measurement.
                                 results.add(result)
+                                val savedCoreRdy = RadarRdyResultStore.read(result.uri)
+                                val corePing = savedCoreRdy?.removePrefix("RESULT:")?.substringBefore(":")?.toLongOrNull()
+                                if (corePing != null) radar?.addCoreRdyCandidate(corePing) else radar?.addDiscoveryCandidate(result.latency != null)
                                 checked++
                             }
                             message = "بررسی " + checked + "/" + bounded.size + " · پاسخ TCP: " + reachable
