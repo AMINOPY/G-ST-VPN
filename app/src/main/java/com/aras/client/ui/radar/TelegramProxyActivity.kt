@@ -159,15 +159,20 @@ class TelegramProxyActivity : ComponentActivity() {
                                     async(Dispatchers.IO) { probe(candidate) }
                                 }.awaitAll()
                             }
-                            checkedBatch.filterNotNull().sortedBy { it.pingMs }.forEach {
-                                results.add(it)
-                                online++
-                            }
+                            checkedBatch.filterNotNull().forEach { online++ }
+                            // Keep a ranked shortlist rather than growing the Compose list for
+                            // thousands of endpoints. The scan count still controls how many are tested.
+                            val best = (results.toList() + checkedBatch.filterNotNull())
+                                .distinctBy { it.link }
+                                .sortedBy { it.pingMs }
+                                .take(180)
+                            results.clear()
+                            results.addAll(best)
                             checked += batch.size
                             message = "بررسی‌شده: $checked / ${found.size} · پاسخ‌گوی TCP: $online"
                         }
                         if (scanning) {
-                            message = "پایان بررسی: $checked لینک بررسی شد؛ $online مورد از آزمون TCP عبور کرد و بر اساس پینگ مرتب شد. منابع ممکن است از قبل handshake واقعی را تأیید کرده باشند، اما آزمون داخل این صفحه TCP است و به‌تنهایی سلامت نشست تلگرام را تضمین نمی‌کند."
+                            message = "پایان بررسی: $checked لینک بررسی شد؛ $online مورد پاسخ TCP داشتند. بهترین ${results.size} مورد با کمترین تأخیر نمایش داده شده‌اند. TCP به‌تنهایی سلامت واقعی نشست تلگرام را تضمین نمی‌کند."
                         } else {
                             message = "اسکن متوقف شد؛ $checked لینک بررسی شد و $online مورد پاسخ‌گوی TCP بود."
                         }
