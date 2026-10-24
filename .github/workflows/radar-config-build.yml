@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [feat/radar-config-discovery, fix/radar-vpn-full-restoration, feature/radar-rdy-core-results]
+    branches: [feat/radar-config-discovery, fix/radar-vpn-full-restoration, feature/radar-rdy-core-results, feature/radar-config-discovery-countries]
   workflow_dispatch:
 
 permissions:
