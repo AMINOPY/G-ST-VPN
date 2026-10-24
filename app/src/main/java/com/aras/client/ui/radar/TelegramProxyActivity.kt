@@ -129,10 +129,11 @@ class TelegramProxyActivity : ComponentActivity() {
                                                 // Launch Telegram directly with the selected MTProto proxy.
                                                 // If the tg:// scheme is not handled, retry Telegram's HTTPS proxy link.
                                                 val encodedServer = java.net.URLEncoder.encode(item.server, "UTF-8")
-                                                val encodedSecret = java.net.URLEncoder.encode(
+                                                val rawSecret = URLDecoder.decode(
                                                     item.link.substringAfter("secret=", "").substringBefore("&"),
                                                     "UTF-8"
                                                 )
+                                                val encodedSecret = java.net.URLEncoder.encode(rawSecret, "UTF-8")
                                                 val tgUri = android.net.Uri.parse(item.link)
                                                 val webUri = android.net.Uri.parse(
                                                     "https://t.me/proxy?server=" + encodedServer +
