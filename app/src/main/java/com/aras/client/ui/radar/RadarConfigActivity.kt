@@ -45,7 +45,7 @@ class RadarConfigActivity : ComponentActivity() {
         setContent {
             AppTheme {
                 var scanning by remember { mutableStateOf(false) }
-                var message by remember { mutableStateOf("برای شروع، اسکن را اجرا کن.") }
+                var message by remember { mutableStateOf("") }
                 val results = remember { mutableStateListOf<RadarCandidate>() }
                 var radar by remember { mutableStateOf<RadarScanView?>(null) }
                 var resultFilter by remember { mutableStateOf("all") }
@@ -62,15 +62,13 @@ class RadarConfigActivity : ComponentActivity() {
                 }
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("رادار RDY هستهٔ VPN · کشف و پیش‌آزمایش شبکه", style = MaterialTheme.typography.titleMedium)
-                        Text("این رادار هیچ نتیجهٔ TCP را به‌عنوان RDY یا اتصال موفق نمایش نمی‌دهد. اسکن فعلی فقط کانفیگ‌ها و دسترسی DNS/TCP را غربال می‌کند؛ RDY معتبر فقط پس از واردکردن کانفیگ و اندازه‌گیری توسط هستهٔ VPN ثبت می‌شود.", style = MaterialTheme.typography.bodySmall)
                         AndroidView(
                             factory = { ctx -> RadarScanView(ctx).also { radar = it; it.startScan() } },
                             modifier = Modifier.fillMaxWidth().height(230.dp),
                             update = { if (scanning) it.startScan() else it.stopScan() }
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(enabled = !scanning, onClick = { results.clear(); radar?.clearBlips(); scanning = true; message = "در حال دریافت و بررسی منابع…" }) { Text("شروع اسکن") }
+                            Button(enabled = !scanning, onClick = { results.clear(); radar?.clearBlips(); scanning = true; message = "در حال اسکن…" }) { Text("شروع اسکن") }
                             OutlinedButton(enabled = scanning, onClick = { scanning = false }) { Text("توقف") }
                         }
                         if (scanning) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -186,11 +184,11 @@ class RadarConfigActivity : ComponentActivity() {
                     try {
                         val uris = withContext(Dispatchers.IO) { discover().distinct() }
                         var reachable = 0
-                        val bounded = uris.take(180)
+                        val bounded = uris.take(MAX_SCAN_RESULTS)
                         if (bounded.isEmpty()) {
                             message = "منابع پاسخ ندادند یا کانفیگ قابل‌خواندن پیدا نشد؛ اتصال اینترنت و دسترسی به GitHub را بررسی کن."
                         } else if (uris.size > bounded.size) {
-                            message = "تعداد زیادی نتیجه پیدا شد؛ برای حفظ سرعت، ۱۸۰ مورد اول بررسی می‌شوند."
+                            message = "بررسی حداکثر ۵۰۰ کانفیگ…"
                         }
                         var checked = 0
                         for (batch in bounded.chunked(8)) {
@@ -203,16 +201,19 @@ class RadarConfigActivity : ComponentActivity() {
                                 // TCP/DNS are preflight diagnostics only. Never render them as RDY blips;
                                 // a real radar result must come from a VPN-core measurement.
                                 results.add(result)
+                                val coreResult = RadarRdyResultStore.read(result.uri)
+                                    ?.takeIf { it.startsWith("RESULT:") }
+                                    ?.removePrefix("RESULT:")?.substringBefore(":")?.toLongOrNull()
+                                radar?.addScanResult(result.latency, coreResult)
                                 checked++
                             }
-                            message = "بررسی " + checked + "/" + bounded.size + " · پاسخ TCP: " + reachable
+                            message = checked.toString() + "/" + bounded.size
                         }
                         if (scanning) {
                             message = if (checked == 0) {
                                 "اسکن پایان یافت، اما نتیجه‌ای برای آزمایش پیدا نشد."
                             } else {
-                                "کشف تمام شد: " + checked + " کانفیگ · دسترسی اولیهٔ TCP: " + reachable +
-                                    " · RDY واقعی هنوز ثبت نشده؛ برای اندازه‌گیری هسته، «افزودن برای تست واقعی» را بزن."
+                                "پایان اسکن · " + checked + " کانفیگ · " + reachable + " پاسخ TCP"
                             }
                         }
                     } catch (cancelled: CancellationException) {
@@ -228,22 +229,44 @@ class RadarConfigActivity : ComponentActivity() {
     }
 
     private fun discover(): List<String> {
-        val repos = listOf("barry-far/V2ray-Config", "0xRadikal/Free-v2ray-Configs", "ircfspace/tconfig", "Argh94/V2RayAutoConfig")
+        // Prefer maintained public feeds that publish ready-to-import URI lines.
+        // All sources are best-effort: one unavailable repository must not stop others.
+        val sources = listOf(
+            "https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/verified/configs_base64.txt",
+            "https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/top100.txt",
+            "https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/all.txt",
+            "https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/best.txt",
+            "https://raw.githubusercontent.com/Alirewa/V2ray-Configs/main/config.txt",
+            "https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/subscriptions/v2ray/all_sub.txt",
+            "https://raw.githubusercontent.com/barry-far/V2ray-Config/main/All_Configs_Sub.txt",
+            "https://raw.githubusercontent.com/ALIILAPRO/v2rayNG-Config/main/sub.txt",
+            "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/all_configs.txt",
+            "https://raw.githubusercontent.com/mheidari98/.proxy/main/all",
+            "https://raw.githubusercontent.com/itsyebekhe/PSG/main/config.txt",
+            "https://raw.githubusercontent.com/Surfboardv2ray/TGParse/main/configtg.txt",
+            "https://raw.githubusercontent.com/4n0nymous/multi-proxy-config-fetcher/main/configs/proxy_configs.txt",
+            "https://raw.githubusercontent.com/Rayan-Config/C-Sub/main/configs/proxy.txt",
+            "https://raw.githubusercontent.com/shaoyouvip/free/main/base64.txt",
+            "https://raw.githubusercontent.com/V2RayRoot/V2RayConfig/main/Config/vless.txt",
+            "https://raw.githubusercontent.com/V2RayRoot/V2RayConfig/main/Config/shadowsocks.txt",
+            "https://raw.githubusercontent.com/fengfp/v2ray-configs-free/main/All_Configs_Sub.txt",
+            "https://raw.githubusercontent.com/Epodonios/v2ray-configs/main/All_Configs_Sub.txt",
+            "https://raw.githubusercontent.com/ircfspace/tconfig/main/config.txt",
+            "https://raw.githubusercontent.com/Argh94/V2RayAutoConfig/main/config.txt"
+        )
         val found = linkedSetOf<String>()
-        for (repo in repos) try {
-            val metadata = get("https://api.github.com/repos/" + repo, 10000)
-            val branch = Regex("""default_branch"\s*:\s*"([^"]+)""").find(metadata)?.groupValues?.get(1) ?: "main"
-            val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
-            val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"").findAll(tree).map { it.groupValues[1] }
-                .filter { p -> val q = p.lowercase(); (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) && (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country")) }
-                .take(10)
-            for (path in paths) {
-                val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
-                extract(raw).forEach { found.add(it) }
-                if (found.size >= 250) return found.toList()
+        for (source in sources) {
+            if (found.size >= MAX_SCAN_RESULTS) break
+            try {
+                val raw = get(source, 7000)
+                extract(raw).forEach { candidate ->
+                    if (found.size < MAX_SCAN_RESULTS) found.add(candidate)
+                }
+            } catch (_: Exception) {
+                // Keep scanning the remaining independent sources.
             }
-        } catch (_: Exception) { /* Other sources may still work. */ }
-        return found.toList()
+        }
+        return found.take(MAX_SCAN_RESULTS)
     }
 
     private fun extract(text: String): List<String> {
@@ -322,7 +345,8 @@ class RadarConfigActivity : ComponentActivity() {
     private fun get(url: String, timeout: Int): String {
         val c = URL(url).openConnection() as HttpURLConnection
         c.connectTimeout = timeout; c.readTimeout = timeout
-        c.setRequestProperty("User-Agent", "G-ST-VPN-Radar/1.0")
+        c.setRequestProperty("User-Agent", "G-ST-VPN-Radar/1.1")
         return try { c.inputStream.bufferedReader().use { it.readText().take(2_000_000) } } finally { c.disconnect() }
     }
+    companion object { private const val MAX_SCAN_RESULTS = 500 }
 }
