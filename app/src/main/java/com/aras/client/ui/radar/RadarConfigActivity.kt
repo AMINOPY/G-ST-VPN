@@ -338,9 +338,9 @@ class RadarConfigActivity : ComponentActivity() {
 
         for (repo in repos.take(6)) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
-            val branch = Regex("""default_branch"\\s*:\\s*"([^"]+)"""").find(metadata)?.groupValues?.get(1) ?: "main"
+            val branch = Regex("""default_branch"\s*:\s*"([^"]+)""").find(metadata)?.groupValues?.get(1) ?: "main"
             val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
-            val paths = Regex("\\"path\\"\\\\s*:\\\\s*\\"([^\\\"]+)\\"").findAll(tree).map { it.groupValues[1] }
+            val paths = Regex("\\\"path\\\"\\s*:\\s*\\\"([^\\"]+)\\\"").findAll(tree).map { it.groupValues[1] }
                 .filter { p -> val q = p.lowercase(); (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) && (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country")) }
                 .take(12)
             for (path in paths) {
@@ -353,7 +353,7 @@ class RadarConfigActivity : ComponentActivity() {
     }
 
     private fun extract(text: String): List<String> {
-        val pattern = Regex("""(?:vmess|vless|trojan|ss|hy2|hysteria2|tuic|socks)://[^\\s"'<>]+""", RegexOption.IGNORE_CASE)
+        val pattern = Regex("(?:vmess|vless|trojan|ss|hy2|hysteria2|tuic|socks)://[^\\s\\\"'<>]+", RegexOption.IGNORE_CASE)
         var candidate = text
         repeat(3) {
             val found = pattern.findAll(candidate).map { it.value.trimEnd(',', ';', ')', ']', '}') }.distinct().toList()
