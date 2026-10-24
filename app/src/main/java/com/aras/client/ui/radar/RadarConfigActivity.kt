@@ -35,6 +35,7 @@ private data class RadarCandidate(
     val latency: Long?,
     val note: String,
     val dnsLatency: Long? = null,
+    val country: String? = null,
 )
 
 /** Public-source discovery. TCP reachability is not treated as proof of a working proxy tunnel. */
@@ -59,7 +60,7 @@ class RadarConfigActivity : ComponentActivity() {
                         else -> true
                     }
                     val protocolMatches = protocolFilter == "all" || protocolOf(candidate.uri) == protocolFilter
-                    val countryMatches = countryFilter == "all" || countryOf(candidate.uri) == countryFilter
+                    val countryMatches = countryFilter == "all" || candidate.country == countryFilter
                     reachabilityMatches && protocolMatches && countryMatches
                 }
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
@@ -140,8 +141,8 @@ class RadarConfigActivity : ComponentActivity() {
                         Text("کشورها", style = MaterialTheme.typography.titleSmall)
                         androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             item { FilterChip(selected = countryFilter == "all", onClick = { countryFilter = "all" }, label = { Text("همه کشورها") }) }
-                            items(countryOptions(results).size) { index ->
-                                val country = countryOptions(results)[index]
+                            items(results.mapNotNull { it.country }.distinct().sorted().size) { index ->
+                                val country = results.mapNotNull { it.country }.distinct().sorted()[index]
                                 FilterChip(selected = countryFilter == country, onClick = { countryFilter = country }, label = { Text(country) })
                             }
                         }
@@ -214,7 +215,8 @@ class RadarConfigActivity : ComponentActivity() {
                                 if (result.latency != null) reachable++
                                 // TCP/DNS are preflight diagnostics only. Never render them as RDY blips;
                                 // a real radar result must come from a VPN-core measurement.
-                                results.add(result)
+                                val geoResult = withContext(Dispatchers.IO) { result.copy(country = lookupCountry(result.uri)) }
+                                results.add(geoResult)
                                 val savedCoreRdy = RadarRdyResultStore.read(result.uri)
                                 val corePing = savedCoreRdy?.removePrefix("RESULT:")?.substringBefore(":")?.toLongOrNull()
                                 if (corePing != null) radar?.addCoreRdyCandidate(corePing) else radar?.addDiscoveryCandidate(result.latency != null)
@@ -328,13 +330,19 @@ class RadarConfigActivity : ComponentActivity() {
         return RadarCandidate(uri, null, detail, dnsMs)
     }
 
-    private fun countryOf(uri: String): String {
-        val label = uri.substringAfter("#", "").lowercase()
-        val markers = listOf("🇩🇪" to "آلمان", "germany" to "آلمان", "🇺🇸" to "آمریکا", "usa" to "آمریکا", "united states" to "آمریکا", "🇳🇱" to "هلند", "netherlands" to "هلند", "🇫🇷" to "فرانسه", "france" to "فرانسه", "🇬🇧" to "بریتانیا", "united kingdom" to "بریتانیا", "🇯🇵" to "ژاپن", "japan" to "ژاپن", "🇸🇬" to "سنگاپور", "singapore" to "سنگاپور", "🇨🇦" to "کانادا", "canada" to "کانادا", "🇫🇮" to "فنلاند", "finland" to "فنلاند", "🇷🇺" to "روسیه", "russia" to "روسیه", "🇹🇷" to "ترکیه", "turkey" to "ترکیه", "🇮🇷" to "ایران", "iran" to "ایران", "🇸🇪" to "سوئد", "sweden" to "سوئد", "🇨🇭" to "سوئیس", "switzerland" to "سوئیس", "🇵🇱" to "لهستان", "poland" to "لهستان", "🇮🇳" to "هند", "india" to "هند", "🇭🇰" to "هنگ‌کنگ", "hong kong" to "هنگ‌کنگ", "🇦🇺" to "استرالیا", "australia" to "استرالیا", "🇪🇸" to "اسپانیا", "spain" to "اسپانیا", "🇮🇹" to "ایتالیا", "italy" to "ایتالیا")
-        return markers.firstOrNull { label.contains(it.first) }?.second ?: "نامشخص"
-    }
+    private val geoCache = java.util.concurrent.ConcurrentHashMap<String, String>()
 
-    private fun countryOptions(items: List<RadarCandidate>): List<String> = items.map { countryOf(it.uri) }.filter { it != "نامشخص" }.distinct().sorted()
+    private fun lookupCountry(uri: String): String? = runCatching {
+        val endpoint = parseEndpoint(uri) ?: return null
+        val address = InetAddress.getByName(endpoint.first).hostAddress.substringBefore("%")
+        geoCache[address]?.let { return it }
+        // HTTPS geolocation; only the public endpoint IP is sent, never the config URI or credentials.
+        val json = get("https://ipwho.is/" + java.net.URLEncoder.encode(address, "UTF-8"), 5000)
+        if (Regex("""\\"success\\"\\s*:\\s*false""").containsMatchIn(json)) return null
+        val country = Regex("""\\"country\\"\\s*:\\s*\\"([^\\"]+)\\"""").find(json)?.groupValues?.get(1)
+        if (!country.isNullOrBlank()) geoCache.putIfAbsent(address, country)
+        country
+    }.getOrNull()
 
     private fun protocolOf(uri: String): String {
         val scheme = uri.substringBefore("://", "").lowercase()
