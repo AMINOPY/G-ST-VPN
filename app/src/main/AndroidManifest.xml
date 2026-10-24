@@ -67,6 +67,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".ui.radar.TelegramProxyActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.radar.RadarConfigDetailActivity"
             android:exported="false" />
 
