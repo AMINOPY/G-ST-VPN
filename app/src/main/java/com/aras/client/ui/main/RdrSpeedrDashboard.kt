@@ -53,6 +53,7 @@ fun RdrSpeedrDashboard(
     serverTitle: String,
     onToggle: () -> Unit,
     onOpenConfigs: () -> Unit,
+    onOpenSettings: () -> Unit = onOpenConfigs,
 ) {
     val accent = Color(0xFF41F6D0)
     val blue = Color(0xFF71B8FF)
@@ -141,9 +142,9 @@ fun RdrSpeedrDashboard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 SpeedrMenuAction("⌂", "HOME", accent) { menuExpanded = false }
-                SpeedrMenuAction("⌁", "CONFIGS", blue) { menuExpanded = false; onOpenConfigs() }
+                SpeedrMenuAction("⌁", "MENU", blue) { menuExpanded = false; onOpenConfigs() }
                 SpeedrMenuAction("⏻", "TUNNEL", statusColor) { menuExpanded = false; onToggle() }
-                SpeedrMenuAction("⚙", "SETTINGS", blue) { menuExpanded = false; onOpenConfigs() }
+                SpeedrMenuAction("⚙", "SETTINGS", blue) { menuExpanded = false; onOpenSettings() }
             }
         }
 
