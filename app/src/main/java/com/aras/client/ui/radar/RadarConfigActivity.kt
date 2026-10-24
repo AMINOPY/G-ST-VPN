@@ -50,6 +50,7 @@ class RadarConfigActivity : ComponentActivity() {
                 var radar by remember { mutableStateOf<RadarScanView?>(null) }
                 var resultFilter by remember { mutableStateOf("all") }
                 var protocolFilter by remember { mutableStateOf("all") }
+                var countryFilter by remember { mutableStateOf("all") }
                 var scanLimit by remember { mutableIntStateOf(1000) }
                 val visibleResults = results.filter { candidate ->
                     val reachabilityMatches = when (resultFilter) {
@@ -57,9 +58,9 @@ class RadarConfigActivity : ComponentActivity() {
                         "failed" -> candidate.latency == null
                         else -> true
                     }
-                    val protocolMatches = protocolFilter == "all" ||
-                        protocolOf(candidate.uri) == protocolFilter
-                    reachabilityMatches && protocolMatches
+                    val protocolMatches = protocolFilter == "all" || protocolOf(candidate.uri) == protocolFilter
+                    val countryMatches = countryFilter == "all" || countryOf(candidate.uri) == countryFilter
+                    reachabilityMatches && protocolMatches && countryMatches
                 }
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -134,6 +135,14 @@ class RadarConfigActivity : ComponentActivity() {
                             }
                             item {
                                 FilterChip(selected = protocolFilter == "hysteria2", onClick = { protocolFilter = "hysteria2" }, label = { Text("Hysteria") })
+                            }
+                        }
+                        Text("کشورها", style = MaterialTheme.typography.titleSmall)
+                        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            item { FilterChip(selected = countryFilter == "all", onClick = { countryFilter = "all" }, label = { Text("همه کشورها") }) }
+                            items(countryOptions(results).size) { index ->
+                                val country = countryOptions(results)[index]
+                                FilterChip(selected = countryFilter == country, onClick = { countryFilter = country }, label = { Text(country) })
                             }
                         }
                         // The screen already owns the vertical scroll container. Use a regular
@@ -297,6 +306,14 @@ class RadarConfigActivity : ComponentActivity() {
         }
         return RadarCandidate(uri, null, detail, dnsMs)
     }
+
+    private fun countryOf(uri: String): String {
+        val label = uri.substringAfter("#", "").lowercase()
+        val markers = listOf("🇩🇪" to "آلمان", "germany" to "آلمان", "🇺🇸" to "آمریکا", "usa" to "آمریکا", "united states" to "آمریکا", "🇳🇱" to "هلند", "netherlands" to "هلند", "🇫🇷" to "فرانسه", "france" to "فرانسه", "🇬🇧" to "بریتانیا", "united kingdom" to "بریتانیا", "🇯🇵" to "ژاپن", "japan" to "ژاپن", "🇸🇬" to "سنگاپور", "singapore" to "سنگاپور", "🇨🇦" to "کانادا", "canada" to "کانادا", "🇫🇮" to "فنلاند", "finland" to "فنلاند", "🇷🇺" to "روسیه", "russia" to "روسیه", "🇹🇷" to "ترکیه", "turkey" to "ترکیه", "🇮🇷" to "ایران", "iran" to "ایران", "🇸🇪" to "سوئد", "sweden" to "سوئد", "🇨🇭" to "سوئیس", "switzerland" to "سوئیس", "🇵🇱" to "لهستان", "poland" to "لهستان", "🇮🇳" to "هند", "india" to "هند", "🇭🇰" to "هنگ‌کنگ", "hong kong" to "هنگ‌کنگ", "🇦🇺" to "استرالیا", "australia" to "استرالیا", "🇪🇸" to "اسپانیا", "spain" to "اسپانیا", "🇮🇹" to "ایتالیا", "italy" to "ایتالیا")
+        return markers.firstOrNull { label.contains(it.first) }?.second ?: "نامشخص"
+    }
+
+    private fun countryOptions(items: List<RadarCandidate>): List<String> = items.map { countryOf(it.uri) }.filter { it != "نامشخص" }.distinct().sorted()
 
     private fun protocolOf(uri: String): String {
         val scheme = uri.substringBefore("://", "").lowercase()
