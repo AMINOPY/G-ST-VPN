@@ -329,7 +329,7 @@ class RadarConfigActivity : ComponentActivity() {
         val feedResults = kotlinx.coroutines.runBlocking {
             kotlinx.coroutines.coroutineScope {
                 feedCandidates.map { feed ->
-                    kotlinx.coroutines.async(kotlinx.coroutines.Dispatchers.IO) {
+                    this.async(kotlinx.coroutines.Dispatchers.IO) {
                         runCatching { extract(get(feed, 4500)) }.getOrDefault(emptyList())
                     }
                 }.awaitAll()
