@@ -5,6 +5,7 @@ on:
     branches:
       - feature/calculator-on-radar-restoration
       - feature/omnicalc-hidden-calculator
+      - feature/radar-rdy-core-results
   pull_request:
     branches:
       - fix/radar-vpn-full-restoration
