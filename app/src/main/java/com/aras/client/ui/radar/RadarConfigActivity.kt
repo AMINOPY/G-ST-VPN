@@ -272,16 +272,31 @@ class RadarConfigActivity : ComponentActivity() {
 
         // Public country-split feeds; the server IP is still geolocated independently below.
         // Missing or renamed files are skipped so one source never blocks the rest.
-        val countryFeeds = listOf(
-            "https://raw.githubusercontent.com/Mokafela/Config-Finder/master/split/sub-ALL.txt",
-            "https://raw.githubusercontent.com/Mokafela/Config-Finder/master/split/sub-US.txt",
-            "https://raw.githubusercontent.com/Mokafela/Config-Finder/master/split/sub-NL.txt",
-            "https://raw.githubusercontent.com/Mokafela/Config-Finder/master/split/sub-CA.txt",
-            "https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/iran.txt",
-            "https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/all.txt",
-            "https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/best.txt",
-            "https://radarhub.top/v2ray.txt"
+        val countryCodes = listOf(
+            "IR", "DE", "US", "NL", "FR", "GB", "TR", "AE", "RU", "JP",
+            "SG", "CA", "CH", "SE", "FI", "PL", "IT", "ES", "AT", "BE",
+            "CZ", "RO", "UA", "IN", "KR", "TW", "HK", "ID", "TH", "BR",
+            "AU", "ZA", "IL", "IQ", "AM", "AZ", "GE", "KZ", "NO", "DK"
         )
+        val countryFeeds = buildList {
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/everything.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/verified.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/curated.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/IR.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/DE.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/NL.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/US.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/GB.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/TR.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/AE.txt")
+            add("https://raw.githubusercontent.com/Au1rxx/free-vpn-subscriptions/main/output/v2ray-base64.txt")
+            for (code in countryCodes) {
+                add("https://raw.githubusercontent.com/Au1rxx/free-vpn-subscriptions/main/output/v2ray-base64-" + code + ".txt")
+            }
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/iran.txt")
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/all.txt")
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/best.txt")
+        }.distinct()
         for (feed in countryFeeds) try {
             extract(get(feed, 8000)).forEach { found.add(it) }
             if (found.size >= 4000) return found.toList()
@@ -359,10 +374,21 @@ class RadarConfigActivity : ComponentActivity() {
         val address = InetAddress.getByName(endpoint.first).hostAddress.substringBefore("%")
         geoCache[address]?.let { return it }
         if (geoCache.size >= 200) return null
-        // HTTPS lookup sends only the resolved public server IP, not the config URI or credentials.
-        val json = get("https://ipwho.is/" + java.net.URLEncoder.encode(address, "UTF-8"), 5000)
-        if (json.contains("\"success\":false")) return null
-        val country = Regex("\"country\"\\s*:\\s*\"([^\"]+)\"").find(json)?.groupValues?.get(1)
+        // Query public IP-only endpoints over HTTPS. Never send the config URI or credentials.
+        // A second provider is used only when the first is unavailable or returns no country.
+        val encodedIp = java.net.URLEncoder.encode(address, "UTF-8")
+        val primary = runCatching { get("https://ipwho.is/" + encodedIp, 3500) }.getOrNull()
+        val primaryCountry = primary
+            ?.takeUnless { it.contains("\"success\"\\s*:\\s*false".toRegex()) }
+            ?.let { Regex("\"country\"\\s*:\\s*\"([^\"]+)\"").find(it)?.groupValues?.get(1) }
+        val fallbackCountry = if (primaryCountry.isNullOrBlank()) {
+            runCatching {
+                val json = get("https://api.ipapi.is/?q=" + encodedIp, 3500)
+                Regex("\"country\"\\s*:\\s*\"([^\"]+)\"").find(json)?.groupValues?.get(1)
+                    ?: Regex("\"country_name\"\\s*:\\s*\"([^\"]+)\"").find(json)?.groupValues?.get(1)
+            }.getOrNull()
+        } else null
+        val country = primaryCountry?.takeIf { it.isNotBlank() } ?: fallbackCountry
         if (!country.isNullOrBlank()) geoCache.putIfAbsent(address, country)
         country
     }.getOrNull()
