@@ -189,9 +189,8 @@ class RadarConfigActivity : ComponentActivity() {
                             }
                             for (result in batchResults) {
                                 if (result.latency != null) reachable++
-                                // Every candidate gets a blip: green/yellow for reachable latency,
-                                // red for an unreachable endpoint.
-                                radar?.addTestedCandidate(result.latency ?: -1L)
+                                // TCP/DNS are preflight diagnostics only. Never render them as RDY blips;
+                                // a real radar result must come from a VPN-core measurement.
                                 results.add(result)
                                 checked++
                             }
@@ -201,8 +200,8 @@ class RadarConfigActivity : ComponentActivity() {
                             message = if (checked == 0) {
                                 "اسکن پایان یافت، اما نتیجه‌ای برای آزمایش پیدا نشد."
                             } else {
-                                "آزمایش تمام شد: " + checked + " کانفیگ · پیش‌آزمایش TCP موفق: " + reachable +
-                                    " · RDY تا اجرای کانفیگ با هستهٔ VPN اندازه‌گیری نشده است."
+                                "کشف تمام شد: " + checked + " کانفیگ · دسترسی اولیهٔ TCP: " + reachable +
+                                    " · RDY واقعی هنوز ثبت نشده؛ برای اندازه‌گیری هسته، «افزودن برای تست واقعی» را بزن."
                             }
                         }
                     } catch (cancelled: CancellationException) {
