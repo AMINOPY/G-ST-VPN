@@ -82,7 +82,9 @@ class RadarConfigActivity : ComponentActivity() {
                         if (scanning) LinearProgressIndicator(Modifier.fillMaxWidth())
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("تعداد:", modifier = Modifier.padding(top = 10.dp))
-                            listOf(1000, 2000, 4000).forEach { limit -> FilterChip(selected = scanLimit == limit, onClick = { scanLimit = limit }, enabled = !scanning, label = { Text(limit.toString()) }) }
+                            listOf(100, 200, 400, 800, 1000, 2000, 4000).forEach { limit ->
+                                FilterChip(selected = scanLimit == limit, onClick = { scanLimit = limit }, enabled = !scanning, label = { Text(limit.toString()) })
+                            }
                         }
                         Text(message, style = MaterialTheme.typography.bodyMedium)
                         Card(Modifier.fillMaxWidth()) {
@@ -154,15 +156,15 @@ class RadarConfigActivity : ComponentActivity() {
                         // The screen already owns the vertical scroll container. Use a regular
                         // Column here rather than nesting a LazyColumn inside verticalScroll;
                         // the nested lazy list received unbounded height and hid lower configs.
-                        if (visibleResults.size > 100) {
+                        if (visibleResults.size > 180) {
                             Text(
-                                "برای جلوگیری از سنگین‌شدن صفحه، ۱۰۰ نتیجهٔ اول از " + visibleResults.size + " مورد نمایش داده می‌شود.",
+                                "۱۸۰ نتیجهٔ برتر از " + visibleResults.size + " مورد نمایش داده می‌شود؛ ترتیب بر اساس کمترین تأخیر TCP است.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.secondary
                             )
                         }
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            visibleResults.take(100).forEach { item ->
+                            visibleResults.take(180).forEach { item ->
                                 val coreRdy = RadarRdyResultStore.read(item.uri)
                                 val coreRdyLabel = when {
                                     coreRdy == "PENDING" -> "RDY هسته: تست واقعی در حال اجراست"
@@ -214,47 +216,44 @@ class RadarConfigActivity : ComponentActivity() {
                 LaunchedEffect(scanning) {
                     if (!scanning) return@LaunchedEffect
                     try {
+                        message = "در حال جمع‌آوری منابع؛ بعد از آن بهترین نتایج رتبه‌بندی می‌شوند…"
                         val uris = withContext(Dispatchers.IO) { discover().distinct() }
                         var reachable = 0
+                        var checked = 0
                         val bounded = uris.take(scanLimit)
                         if (bounded.isEmpty()) {
                             message = "منابع پاسخ ندادند یا کانفیگ قابل‌خواندن پیدا نشد؛ اتصال اینترنت و دسترسی به GitHub را بررسی کن."
                         } else if (uris.size > bounded.size) {
                             message = "نتیجه‌های زیادی پیدا شد؛ تعداد انتخاب‌شده بررسی می‌شود."
                         }
-                        var checked = 0
                         for (batch in bounded.chunked(8)) {
                             if (!scanning) break
                             val batchResults = coroutineScope {
                                 batch.map { uri -> async(Dispatchers.IO) { testTcp(uri) } }.map { it.await() }
                             }
-                            // Resolve endpoint countries concurrently but with the same small batch bound.
-                            // This avoids serial geo-IP requests making a large scan appear frozen.
-                            val enrichedResults = coroutineScope {
-                                batchResults.map { result ->
-                                    async(Dispatchers.IO) {
-                                        if (result.latency != null) result.copy(country = lookupCountry(result.uri)) else result
-                                    }
-                                }.map { it.await() }
-                            }
-                            for (result in enrichedResults) {
-                                if (result.latency != null) reachable++
-                                // TCP/DNS are preflight diagnostics only. Never render them as RDY blips;
-                                // a real radar result must come from a VPN-core measurement.
-                                results.add(result)
+                            for (result in batchResults) {
+                                if (result.latency != null) {
+                                    reachable++
+                                    // Keep only successful candidates. Cap the live Compose list at 180
+                                    // to avoid excessive recompositions and memory pressure on mobile.
+                                    results.add(result)
+                                    val ranked = results.sortedBy { it.latency ?: Long.MAX_VALUE }.take(180)
+                                    results.clear()
+                                    results.addAll(ranked)
+                                }
                                 val savedCoreRdy = RadarRdyResultStore.read(result.uri)
                                 val corePing = savedCoreRdy?.removePrefix("RESULT:")?.substringBefore(":")?.toLongOrNull()
                                 if (corePing != null) radar?.addCoreRdyCandidate(corePing) else radar?.addDiscoveryCandidate(result.latency != null)
                                 checked++
                             }
-                            message = "بررسی " + checked + "/" + bounded.size + " · پاسخ TCP: " + reachable
+                            message = "بررسی " + checked + "/" + bounded.size + " · پاسخ TCP: " + reachable + " · نمایش بهترین‌ها: " + results.size
                         }
                         if (scanning) {
                             message = if (checked == 0) {
                                 "اسکن پایان یافت، اما نتیجه‌ای برای آزمایش پیدا نشد."
                             } else {
-                                "کشف تمام شد: " + checked + " کانفیگ · دسترسی اولیهٔ TCP: " + reachable +
-                                    " · RDY واقعی هنوز ثبت نشده؛ برای اندازه‌گیری هسته، «افزودن برای تست واقعی» را بزن."
+                                "پایان جست‌وجو: " + checked + " کانفیگ بررسی شد؛ " + reachable +
+                                    " پاسخ TCP داشتند. بهترین " + results.size + " مورد بر اساس تأخیر مرتب شده‌اند. TCP به‌تنهایی تأیید سلامت تونل نیست."
                             }
                         }
                     } catch (cancelled: CancellationException) {
@@ -292,7 +291,8 @@ class RadarConfigActivity : ComponentActivity() {
             "Surfboardv2ray/TGParse", "mheidari98/.proxy", "V2RayRoot/V2RayConfig",
             "4n0nymous/multi-proxy-config-fetcher"
         )
-        val repos = (iranianRepos + globalRepos).distinct()
+        // Bound sequential GitHub crawling to reduce long stalls and memory pressure on phones.
+        val repos = (iranianRepos + globalRepos).distinct().take(12)
         val found = linkedSetOf<String>()
 
         // Public country-split feeds; the server IP is still geolocated independently below.
@@ -333,7 +333,7 @@ class RadarConfigActivity : ComponentActivity() {
             val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
             val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"").findAll(tree).map { it.groupValues[1] }
                 .filter { p -> val q = p.lowercase(); (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) && (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country")) }
-                .take(40)
+                .take(12)
             for (path in paths) {
                 val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
                 extract(raw).forEach { found.add(it) }
