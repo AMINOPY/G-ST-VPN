@@ -108,7 +108,7 @@ class TelegramProxyActivity : ComponentActivity() {
                         Text(message, style = MaterialTheme.typography.bodyMedium)
                         Text("پروکسی‌های قابل‌استفادهٔ فعلی: ${results.size}", style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "نکته: منابع منتخب، فهرست‌های خود را به‌عنوان بررسی‌شده منتشر می‌کنند؛ این برنامه علاوه بر آن DNS/TCP را آزمایش می‌کند. بررسی handshake واقعی تلگرام داخل خود اپ هنوز انجام نمی‌شود.",
+                            "مهم: پینگ این صفحه زمان DNS و اتصال TCP به سرور است؛ به‌تنهایی تأیید MTProto یا اتصال واقعی به شبکه تلگرام نیست. فقط بررسی با TDLib/handshake واقعی می‌تواند سلامت نهایی را تأیید کند.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.secondary
                         )
@@ -190,19 +190,25 @@ class TelegramProxyActivity : ComponentActivity() {
         // files under different names/branches; each optional URL is isolated so one 404 cannot
         // prevent the remaining sources from being scanned.
         val feeds = listOf(
-            "https://raw.githubusercontent.com/tgmtproxy/telegram-mtproto-proxy-list/main/proxies.txt" to "tgmtproxy list",
-            "https://raw.githubusercontent.com/tgmtproxy/telegram-mtproto-proxy-list/main/proxies.json" to "tgmtproxy JSON",
-            "https://raw.githubusercontent.com/tgmtproxy/mtproxy/main/proxies.txt" to "tgmtproxy mtproxy",
-            "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt" to "SoliSpirit MTProto",
-            "https://raw.githubusercontent.com/SoliSpirit/proxy-list/master/mtproto.txt" to "SoliSpirit proxy-list",
-            "https://raw.githubusercontent.com/Argh94/Proxy-List/main/MTProto.txt" to "Argh94 Proxy-List",
-            "https://raw.githubusercontent.com/Argh94/Proxy-List/main/mtproto.txt" to "Argh94 MTProto",
+            // Live/generated lists documented by the supplied projects. Repositories that only
+            // contain checker source code are not treated as proxy feeds.
+            "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt" to "SoliSpirit all_proxies",
+            "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/proxies.txt" to "SoliSpirit proxies",
+            "https://raw.githubusercontent.com/Argh94/telegram-proxy-scraper/main/proxy.txt" to "Argh94 scraper proxy.txt",
             "https://raw.githubusercontent.com/Argh94/telegram-proxy-scraper/main/proxies.txt" to "Argh94 scraper",
             "https://raw.githubusercontent.com/Argh94/telegram-proxy-scraper/main/mtproto.txt" to "Argh94 scraper MTProto",
+            "https://raw.githubusercontent.com/Argh94/Proxy-List/main/MTProto.txt" to "Argh94 Proxy-List",
+            "https://raw.githubusercontent.com/Argh94/Proxy-List/main/mtproto.txt" to "Argh94 MTProto",
+            "https://raw.githubusercontent.com/tgmtproxy/telegram-mtproto-proxy-list/main/proxies.txt" to "tgmtproxy list",
+            "https://raw.githubusercontent.com/tgmtproxy/telegram-mtproto-proxy-list/main/proxies.json" to "tgmtproxy JSON",
+            "https://raw.githubusercontent.com/tgmtproxy/telegram-mtproto-proxy-list/main/working.txt" to "tgmtproxy working",
+            "https://raw.githubusercontent.com/tgmtproxy/mtproxy/main/proxies.txt" to "tgmtproxy mtproxy",
+            "https://raw.githubusercontent.com/SoliSpirit/proxy-list/master/mtproto.txt" to "SoliSpirit proxy-list",
             "https://raw.githubusercontent.com/bulaatt/mtproto-checker-for-telegram/main/proxies.txt" to "bulaatt checker",
             "https://raw.githubusercontent.com/bulaatt/mtproto-checker-for-telegram/main/data/proxies.txt" to "bulaatt data",
-            "https://raw.githubusercontent.com/tgmtproxy/telegram-mtproto-proxy-list/main/working.txt" to "tgmtproxy working",
-            "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/proxies.txt" to "SoliSpirit proxies"
+            "https://raw.githubusercontent.com/hookzof/socks5_list/master/tg/mtproto.json" to "hookzof MTProto JSON",
+            "https://raw.githubusercontent.com/MhdiTaheri/ProxyCollector/main/proxy.txt" to "MhdiTaheri collector",
+            "https://raw.githubusercontent.com/MahsaNetConfigTopic/proxy/main/proxies.txt" to "MahsaNetConfigTopic"
         )
         val unique = linkedMapOf<String, Candidate>()
         for ((url, source) in feeds) {
