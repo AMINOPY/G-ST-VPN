@@ -126,11 +126,29 @@ class TelegramProxyActivity : ComponentActivity() {
                                                 Toast.makeText(context, "لینک کپی شد", Toast.LENGTH_SHORT).show()
                                             }) { Text("کپی لینک") }
                                             Button(onClick = {
-                                                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(item.link))
-                                                runCatching { startActivity(intent) }.onFailure {
-                                                    Toast.makeText(context, "برنامه‌ای برای باز کردن لینک پیدا نشد", Toast.LENGTH_SHORT).show()
+                                                // Launch Telegram directly with the selected MTProto proxy.
+                                                // If the tg:// scheme is not handled, retry Telegram's HTTPS proxy link.
+                                                val encodedServer = java.net.URLEncoder.encode(item.server, "UTF-8")
+                                                val encodedSecret = java.net.URLEncoder.encode(
+                                                    item.link.substringAfter("secret=", "").substringBefore("&"),
+                                                    "UTF-8"
+                                                )
+                                                val tgUri = android.net.Uri.parse(item.link)
+                                                val webUri = android.net.Uri.parse(
+                                                    "https://t.me/proxy?server=" + encodedServer +
+                                                        "&port=" + item.port + "&secret=" + encodedSecret
+                                                )
+                                                val launched = runCatching {
+                                                    startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, tgUri))
+                                                }.isSuccess
+                                                if (!launched) {
+                                                    runCatching {
+                                                        startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, webUri))
+                                                    }.onFailure {
+                                                        Toast.makeText(context, "تلگرام نصب نیست یا لینک قابل باز شدن نیست", Toast.LENGTH_SHORT).show()
+                                                    }
                                                 }
-                                            }) { Text("باز کردن در تلگرام") }
+                                            }) { Text("اتصال در تلگرام") }
                                         }
                                     }
                                 }
