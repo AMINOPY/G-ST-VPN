@@ -283,7 +283,8 @@ fun MainScreen(
                             isDarkTheme = isDarkTheme,
                             serverTitle = mainViewModel.connectedServerTitle(),
                             onToggle = { onAction(MainAction.ToggleService) },
-                            onOpenConfigs = { showMenu = true }
+                            onOpenConfigs = { showMenu = true },
+                            onOpenSettings = { onNavigate(MainDestination.Settings) }
                         )
                         "survival" -> SurvivalFieldPanel(
                             isConnected = isRunning && hasPing,
