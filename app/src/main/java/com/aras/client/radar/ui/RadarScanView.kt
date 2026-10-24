@@ -127,6 +127,27 @@ class RadarScanView @JvmOverloads constructor(
         invalidate()
     }
 
+    /**
+     * Plot a real result on the radar: red = endpoint preflight failed,
+     * amber = TCP answered but the VPN core has not verified this config,
+     * green = a non-negative delay was measured by the VPN core.
+     */
+    fun addScanResult(tcpLatencyMs: Long?, coreRdyMs: Long?) {
+        val coreVerified = coreRdyMs != null && coreRdyMs >= 0L
+        val tcpReachable = tcpLatencyMs != null && tcpLatencyMs >= 0L
+        val latency = if (coreVerified) coreRdyMs!! else (tcpLatencyMs ?: 600L)
+        val fraction = (0.18f + (latency.coerceAtMost(600L) / 600f) * 0.72f).coerceIn(0.18f, 0.9f)
+        val angle = Math.toRadians((sweepDegrees + 15f).toDouble()).toFloat()
+        val color = when {
+            coreVerified -> GREEN
+            !tcpReachable -> RED
+            else -> YELLOW
+        }
+        blips.add(Blip(angle, fraction, color, System.currentTimeMillis()))
+        if (blips.size > MAX_BLIPS) blips.removeAt(0)
+        invalidate()
+    }
+
     override fun onDetachedFromWindow() {
         stopScan()
         super.onDetachedFromWindow()
