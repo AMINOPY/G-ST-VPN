@@ -233,15 +233,17 @@ class RadarConfigActivity : ComponentActivity() {
                                 batch.map { uri -> async(Dispatchers.IO) { testTcp(uri) } }.map { it.await() }
                             }
                             for (result in batchResults) {
-                                if (result.latency != null) {
-                                    reachable++
-                                    // Keep only successful candidates. Cap the live Compose list at 180
-                                    // to avoid excessive recompositions and memory pressure on mobile.
-                                    results.add(result)
-                                    val ranked = results.sortedBy { it.latency ?: Long.MAX_VALUE }.take(180)
-                                    results.clear()
-                                    results.addAll(ranked)
-                                }
+                                if (result.latency != null) reachable++
+                                // Keep reachable candidates first, but retain failed candidates too so
+                                // the "بدون پاسخ" filter works and users can inspect failed sources.
+                                results.add(result)
+                                val ranked = results
+                                    .distinctBy { it.uri }
+                                    .sortedWith(compareBy<RadarCandidate> { it.latency == null }
+                                        .thenBy { it.latency ?: Long.MAX_VALUE })
+                                    .take(180)
+                                results.clear()
+                                results.addAll(ranked)
                                 val savedCoreRdy = RadarRdyResultStore.read(result.uri)
                                 val corePing = savedCoreRdy?.removePrefix("RESULT:")?.substringBefore(":")?.toLongOrNull()
                                 if (corePing != null) radar?.addCoreRdyCandidate(corePing) else radar?.addDiscoveryCandidate(result.latency != null)
@@ -320,18 +322,22 @@ class RadarConfigActivity : ComponentActivity() {
                 add("https://raw.githubusercontent.com/Au1rxx/free-vpn-subscriptions/main/output/v2ray-base64-" + code + ".txt")
             }
             add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/iran.txt")
-            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/all.txt")
-            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/best.txt")
-        }.distinct()
-        // Fetch a small bounded group of feeds concurrently. The previous serial loop could
-        // wait for dozens of 8-second timeouts before showing the first result, appearing frozen.
-        val feedCandidates = countryFeeds.take(14)
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bun        // Fetch every configured public/country feed, but only eight at a time to avoid
+        // overwhelming mobile networks or creating dozens of simultaneous connections.
+        val feedCandidates = countryFeeds
         val feedResults = kotlinx.coroutines.runBlocking {
             kotlinx.coroutines.coroutineScope {
-                val feedScope = this
-                feedCandidates.map { feed ->
-                    feedScope.async(kotlinx.coroutines.Dispatchers.IO) {
-                        runCatching { extract(get(feed, 4500)) }.getOrDefault(emptyList())
+                feedCandidates.chunked(8).flatMap { batch ->
+                    val feedScope = this
+                    batch.map { feed ->
+                        feedScope.async(kotlinx.coroutines.Dispatchers.IO) {
+                            runCatching { extract(get(feed, 4500)) }.getOrDefault(emptyList())
+                        }
+                    }.awaitAll()
+                }
+            }
+        }
+runCatching { extract(get(feed, 4500)) }.getOrDefault(emptyList())
                     }
                 }.awaitAll()
             }
@@ -348,21 +354,28 @@ class RadarConfigActivity : ComponentActivity() {
                 .take(12)
             for (path in paths) {
                 val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
-                extract(raw).forEach { found.add(it) }
-                if (found.size >= 4000) return found.toList()
-            }
-        } catch (_: Exception) { /* Other sources may still work. */ }
-        return found.toList()
-    }
-
-    private fun extract(text: String): List<String> {
+                extract(raw    private fun extract(text: String): List<String> {
         val pattern = Regex("(?:vmess|vless|trojan|ss|hy2|hysteria2|tuic|socks)://[^\\s\"'<>]+", RegexOption.IGNORE_CASE)
-        val direct = pattern.findAll(text).map { it.value.trimEnd(',', ';', ')') }.toList()
-        if (direct.isNotEmpty()) return direct
-        val compact = text.filterNot { it.isWhitespace() }
-        if (compact.length !in 24..2_000_000) return emptyList()
-        val bytes = runCatching { Base64.decode(compact, Base64.DEFAULT) }
-            .recoverCatching { Base64.decode(compact, Base64.URL_SAFE or Base64.NO_WRAP) }
+        var candidate = text
+        // Some subscription feeds wrap their payload in more than one Base64 layer.
+        // Decode at most three layers and stop as soon as protocol URIs are found.
+        repeat(3) {
+            val found = pattern.findAll(candidate)
+                .map { it.value.trimEnd(',', ';', ')', ']', '}') }
+                .distinct()
+                .toList()
+            if (found.isNotEmpty()) return found
+            val compact = candidate.filterNot { it.isWhitespace() }
+            if (compact.length !in 24..2_000_000) return emptyList()
+            val bytes = runCatching { Base64.decode(compact, Base64.DEFAULT) }
+                .recoverCatching { Base64.decode(compact, Base64.URL_SAFE or Base64.NO_WRAP) }
+                .getOrNull() ?: return emptyList()
+            val decoded = bytes.toString(Charsets.UTF_8)
+            if (decoded == candidate) return emptyList()
+            candidate = decoded
+        }
+        return pattern.findAll(candidate).map { it.value.trimEnd(',', ';', ')', ']', '}') }.distinct().toList()
+    }ase64.NO_WRAP) }
             .getOrNull() ?: return emptyList()
         val decoded = bytes.toString(Charsets.UTF_8)
         return pattern.findAll(decoded).map { it.value.trimEnd(',', ';', ')') }.toList()
