@@ -74,6 +74,11 @@ class RadarConfigActivity : ComponentActivity() {
                             Button(enabled = !scanning, onClick = { results.clear(); radar?.clearBlips(); scanning = true; message = "در حال دریافت و بررسی منابع…" }) { Text("شروع اسکن") }
                             OutlinedButton(enabled = scanning, onClick = { scanning = false }) { Text("توقف") }
                         }
+                        OutlinedButton(
+                            enabled = !scanning,
+                            onClick = { startActivity(Intent(this@RadarConfigActivity, TelegramProxyActivity::class.java)) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("پروکسی تلگرام · جست‌وجوی MTProto") }
                         if (scanning) LinearProgressIndicator(Modifier.fillMaxWidth())
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("تعداد:", modifier = Modifier.padding(top = 10.dp))
