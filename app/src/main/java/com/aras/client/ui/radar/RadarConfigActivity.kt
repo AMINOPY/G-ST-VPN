@@ -310,24 +310,20 @@ class RadarConfigActivity : ComponentActivity() {
             add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/everything.txt")
             add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/verified.txt")
             add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/curated.txt")
-            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/IR.txt")
-            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/DE.txt")
-            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/NL.txt")
-            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/US.txt")
-            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/GB.txt")
-            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/TR.txt")
-            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/AE.txt")
-            add("https://raw.githubusercontent.com/Au1rxx/free-vpn-subscriptions/main/output/v2ray-base64.txt")
             for (code in countryCodes) {
+                add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/" + code + ".txt")
                 add("https://raw.githubusercontent.com/Au1rxx/free-vpn-subscriptions/main/output/v2ray-base64-" + code + ".txt")
             }
+            add("https://raw.githubusercontent.com/Au1rxx/free-vpn-subscriptions/main/output/v2ray-base64.txt")
             add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/iran.txt")
-            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bun        // Fetch every configured public/country feed, but only eight at a time to avoid
-        // overwhelming mobile networks or creating dozens of simultaneous connections.
-        val feedCandidates = countryFeeds
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/all.txt")
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/best.txt")
+        }.distinct()
+
+        // Fetch all configured feeds in small concurrent batches.
         val feedResults = kotlinx.coroutines.runBlocking {
             kotlinx.coroutines.coroutineScope {
-                feedCandidates.chunked(8).flatMap { batch ->
+                countryFeeds.chunked(8).flatMap { batch ->
                     val feedScope = this
                     batch.map { feed ->
                         feedScope.async(kotlinx.coroutines.Dispatchers.IO) {
@@ -337,33 +333,30 @@ class RadarConfigActivity : ComponentActivity() {
                 }
             }
         }
-runCatching { extract(get(feed, 4500)) }.getOrDefault(emptyList())
-                    }
-                }.awaitAll()
-            }
-        }
         feedResults.forEach { batch -> batch.forEach { found.add(it) } }
         if (found.size >= 4000) return found.toList()
 
         for (repo in repos.take(6)) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
-            val branch = Regex("""default_branch"\s*:\s*"([^"]+)""").find(metadata)?.groupValues?.get(1) ?: "main"
+            val branch = Regex("""default_branch"\\s*:\\s*"([^"]+)"""").find(metadata)?.groupValues?.get(1) ?: "main"
             val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
-            val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"").findAll(tree).map { it.groupValues[1] }
+            val paths = Regex("\\"path\\"\\\\s*:\\\\s*\\"([^\\\"]+)\\"").findAll(tree).map { it.groupValues[1] }
                 .filter { p -> val q = p.lowercase(); (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) && (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country")) }
                 .take(12)
             for (path in paths) {
                 val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
-                extract(raw    private fun extract(text: String): List<String> {
-        val pattern = Regex("(?:vmess|vless|trojan|ss|hy2|hysteria2|tuic|socks)://[^\\s\"'<>]+", RegexOption.IGNORE_CASE)
+                extract(raw).forEach { found.add(it) }
+                if (found.size >= 4000) return found.toList()
+            }
+        } catch (_: Exception) { /* Other sources may still work. */ }
+        return found.toList()
+    }
+
+    private fun extract(text: String): List<String> {
+        val pattern = Regex("""(?:vmess|vless|trojan|ss|hy2|hysteria2|tuic|socks)://[^\\s"'<>]+""", RegexOption.IGNORE_CASE)
         var candidate = text
-        // Some subscription feeds wrap their payload in more than one Base64 layer.
-        // Decode at most three layers and stop as soon as protocol URIs are found.
         repeat(3) {
-            val found = pattern.findAll(candidate)
-                .map { it.value.trimEnd(',', ';', ')', ']', '}') }
-                .distinct()
-                .toList()
+            val found = pattern.findAll(candidate).map { it.value.trimEnd(',', ';', ')', ']', '}') }.distinct().toList()
             if (found.isNotEmpty()) return found
             val compact = candidate.filterNot { it.isWhitespace() }
             if (compact.length !in 24..2_000_000) return emptyList()
@@ -375,10 +368,6 @@ runCatching { extract(get(feed, 4500)) }.getOrDefault(emptyList())
             candidate = decoded
         }
         return pattern.findAll(candidate).map { it.value.trimEnd(',', ';', ')', ']', '}') }.distinct().toList()
-    }ase64.NO_WRAP) }
-            .getOrNull() ?: return emptyList()
-        val decoded = bytes.toString(Charsets.UTF_8)
-        return pattern.findAll(decoded).map { it.value.trimEnd(',', ';', ')') }.toList()
     }
 
     private fun testTcp(uri: String): RadarCandidate {
