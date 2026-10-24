@@ -28,6 +28,7 @@ import java.net.URL
 import android.util.Base64
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 
 private data class RadarCandidate(
