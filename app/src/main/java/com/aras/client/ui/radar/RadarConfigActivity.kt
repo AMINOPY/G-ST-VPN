@@ -154,8 +154,15 @@ class RadarConfigActivity : ComponentActivity() {
                         // The screen already owns the vertical scroll container. Use a regular
                         // Column here rather than nesting a LazyColumn inside verticalScroll;
                         // the nested lazy list received unbounded height and hid lower configs.
+                        if (visibleResults.size > 100) {
+                            Text(
+                                "برای جلوگیری از سنگین‌شدن صفحه، ۱۰۰ نتیجهٔ اول از " + visibleResults.size + " مورد نمایش داده می‌شود.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            visibleResults.forEach { item ->
+                            visibleResults.take(100).forEach { item ->
                                 val coreRdy = RadarRdyResultStore.read(item.uri)
                                 val coreRdyLabel = when {
                                     coreRdy == "PENDING" -> "RDY هسته: تست واقعی در حال اجراست"
@@ -437,8 +444,27 @@ class RadarConfigActivity : ComponentActivity() {
 
     private fun get(url: String, timeout: Int): String {
         val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = timeout; c.readTimeout = timeout
+        c.connectTimeout = timeout
+        c.readTimeout = timeout
+        c.instanceFollowRedirects = true
         c.setRequestProperty("User-Agent", "G-ST-VPN-Radar/1.0")
-        return try { c.inputStream.bufferedReader().use { it.readText().take(2_000_000) } } finally { c.disconnect() }
+        c.setRequestProperty("Accept-Encoding", "identity")
+        return try {
+            val code = c.responseCode
+            if (code !in 200..299) throw java.io.IOException("HTTP $code")
+            c.inputStream.bufferedReader(Charsets.UTF_8).use { reader ->
+                val out = StringBuilder()
+                val buffer = CharArray(8192)
+                val maxChars = 1_000_000
+                while (out.length < maxChars) {
+                    val count = reader.read(buffer, 0, minOf(buffer.size, maxChars - out.length))
+                    if (count < 0) break
+                    out.append(buffer, 0, count)
+                }
+                out.toString()
+            }
+        } finally {
+            c.disconnect()
+        }
     }
 }
