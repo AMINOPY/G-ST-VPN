@@ -61,8 +61,8 @@ class RadarConfigActivity : ComponentActivity() {
                 }
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("جست‌وجوی کانفیگ و پیش‌آزمایش شبکه", style = MaterialTheme.typography.titleMedium)
-                        Text("عدد TCP به‌عنوان پینگ نمایش داده نمی‌شود. RDY فقط پس از افزودن کانفیگ و اجرای تست با هستهٔ VPN از خود هسته خوانده می‌شود؛ نتیجهٔ این اسکن صرفاً پیدا شدن و دسترسی اولیه است.", style = MaterialTheme.typography.bodySmall)
+                        Text("رادار RDY هستهٔ VPN · کشف و پیش‌آزمایش شبکه", style = MaterialTheme.typography.titleMedium)
+                        Text("این رادار هیچ نتیجهٔ TCP را به‌عنوان RDY یا اتصال موفق نمایش نمی‌دهد. اسکن فعلی فقط کانفیگ‌ها و دسترسی DNS/TCP را غربال می‌کند؛ RDY معتبر فقط پس از واردکردن کانفیگ و اندازه‌گیری توسط هستهٔ VPN ثبت می‌شود.", style = MaterialTheme.typography.bodySmall)
                         AndroidView(
                             factory = { ctx -> RadarScanView(ctx).also { radar = it; it.startScan() } },
                             modifier = Modifier.fillMaxWidth().height(230.dp),
@@ -88,8 +88,8 @@ class RadarConfigActivity : ComponentActivity() {
                                     Text(results.count { it.latency != null }.toString(), style = MaterialTheme.typography.titleLarge, color = Color(0xFF00A86B))
                                 }
                                 Column {
-                                    Text("RDY هسته تأییدشده", style = MaterialTheme.typography.labelSmall)
-                                    Text("0", style = MaterialTheme.typography.titleLarge)
+                                    Text("RDY واقعی تأییدشده", style = MaterialTheme.typography.labelSmall)
+                                    Text("—", style = MaterialTheme.typography.titleLarge)
                                 }
                             }
                         }
