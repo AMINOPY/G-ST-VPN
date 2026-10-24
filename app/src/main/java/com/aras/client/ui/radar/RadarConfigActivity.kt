@@ -322,12 +322,20 @@ class RadarConfigActivity : ComponentActivity() {
             add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/all.txt")
             add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/best.txt")
         }.distinct()
-        for (feed in countryFeeds) try {
-            extract(get(feed, 8000)).forEach { found.add(it) }
-            if (found.size >= 4000) return found.toList()
-        } catch (_: Exception) { /* Optional public feed unavailable. */ }
+        // Fetch a small bounded group of feeds concurrently. The previous serial loop could
+        // wait for dozens of 8-second timeouts before showing the first result, appearing frozen.
+        val feedCandidates = countryFeeds.take(14)
+        val feedResults = kotlinx.coroutines.runBlocking {
+            feedCandidates.map { feed ->
+                kotlinx.coroutines.async(kotlinx.coroutines.Dispatchers.IO) {
+                    runCatching { extract(get(feed, 4500)) }.getOrDefault(emptyList())
+                }
+            }.let { tasks -> tasks.awaitAll() }
+        }
+        feedResults.forEach { batch -> batch.forEach { found.add(it) } }
+        if (found.size >= 4000) return found.toList()
 
-        for (repo in repos) try {
+        for (repo in repos.take(6)) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
             val branch = Regex("""default_branch"\s*:\s*"([^"]+)""").find(metadata)?.groupValues?.get(1) ?: "main"
             val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
