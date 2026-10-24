@@ -142,7 +142,8 @@ class TelegramProxyActivity : ComponentActivity() {
                 LaunchedEffect(scanRequest) {
                     if (scanRequest == 0) return@LaunchedEffect
                     try {
-                        val found = withContext(Dispatchers.IO) { discoverTelegramProxies().take(scanLimit) }
+                        val discovered = withContext(Dispatchers.IO) { discoverTelegramProxies().distinctBy { it.link } }
+                        val found = discovered.take(scanLimit)
                         if (found.isEmpty()) {
                             message = "از منابع در دسترس، لینک MTProto قابل‌خواندن پیدا نشد. بعداً دوباره امتحان کن."
                             scanning = false
@@ -150,6 +151,7 @@ class TelegramProxyActivity : ComponentActivity() {
                         }
                         var checked = 0
                         var online = 0
+                        message = "لینک یکتا پیدا شد: ${discovered.size} · بررسی این نوبت: ${found.size}"
                         for (batch in found.chunked(8)) {
                             if (!scanning) break
                             val checkedBatch = coroutineScope {
@@ -157,7 +159,7 @@ class TelegramProxyActivity : ComponentActivity() {
                                     async(Dispatchers.IO) { probe(candidate) }
                                 }.awaitAll()
                             }
-                            checkedBatch.filterNotNull().forEach {
+                            checkedBatch.filterNotNull().sortedBy { it.pingMs }.forEach {
                                 results.add(it)
                                 online++
                             }
@@ -165,7 +167,7 @@ class TelegramProxyActivity : ComponentActivity() {
                             message = "بررسی‌شده: $checked / ${found.size} · پاسخ‌گوی TCP: $online"
                         }
                         if (scanning) {
-                            message = "پایان بررسی: $checked لینک بررسی شد؛ $online مورد از آزمون TCP عبور کرد. این نتیجه به‌تنهایی handshake تلگرام را تضمین نمی‌کند."
+                            message = "پایان بررسی: $checked لینک بررسی شد؛ $online مورد از آزمون TCP عبور کرد و بر اساس پینگ مرتب شد. منابع ممکن است از قبل handshake واقعی را تأیید کرده باشند، اما آزمون داخل این صفحه TCP است و به‌تنهایی سلامت نشست تلگرام را تضمین نمی‌کند."
                         } else {
                             message = "اسکن متوقف شد؛ $checked لینک بررسی شد و $online مورد پاسخ‌گوی TCP بود."
                         }
@@ -184,12 +186,23 @@ class TelegramProxyActivity : ComponentActivity() {
     private data class Candidate(val link: String, val source: String, val server: String, val port: Int)
 
     private fun discoverTelegramProxies(): List<Candidate> {
+        // Only MTProto-specific feeds are included here. Some repositories publish generated
+        // files under different names/branches; each optional URL is isolated so one 404 cannot
+        // prevent the remaining sources from being scanned.
         val feeds = listOf(
-            "https://raw.githubusercontent.com/tgmtproxy/telegram-mtproto-proxy-list/main/proxies.txt" to "tgmtproxy",
-            "https://raw.githubusercontent.com/tgmtproxy/telegram-mtproto-proxy-list/main/proxies.json" to "tgmtproxy",
-            "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt" to "SoliSpirit",
-            "https://raw.githubusercontent.com/Argh94/Proxy-List/main/MTProto.txt" to "Argh94",
-            "https://raw.githubusercontent.com/Argh94/telegram-proxy-scraper/main/proxies.txt" to "Argh94 scraper"
+            "https://raw.githubusercontent.com/tgmtproxy/telegram-mtproto-proxy-list/main/proxies.txt" to "tgmtproxy list",
+            "https://raw.githubusercontent.com/tgmtproxy/telegram-mtproto-proxy-list/main/proxies.json" to "tgmtproxy JSON",
+            "https://raw.githubusercontent.com/tgmtproxy/mtproxy/main/proxies.txt" to "tgmtproxy mtproxy",
+            "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt" to "SoliSpirit MTProto",
+            "https://raw.githubusercontent.com/SoliSpirit/proxy-list/master/mtproto.txt" to "SoliSpirit proxy-list",
+            "https://raw.githubusercontent.com/Argh94/Proxy-List/main/MTProto.txt" to "Argh94 Proxy-List",
+            "https://raw.githubusercontent.com/Argh94/Proxy-List/main/mtproto.txt" to "Argh94 MTProto",
+            "https://raw.githubusercontent.com/Argh94/telegram-proxy-scraper/main/proxies.txt" to "Argh94 scraper",
+            "https://raw.githubusercontent.com/Argh94/telegram-proxy-scraper/main/mtproto.txt" to "Argh94 scraper MTProto",
+            "https://raw.githubusercontent.com/bulaatt/mtproto-checker-for-telegram/main/proxies.txt" to "bulaatt checker",
+            "https://raw.githubusercontent.com/bulaatt/mtproto-checker-for-telegram/main/data/proxies.txt" to "bulaatt data",
+            "https://raw.githubusercontent.com/tgmtproxy/telegram-mtproto-proxy-list/main/working.txt" to "tgmtproxy working",
+            "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/proxies.txt" to "SoliSpirit proxies"
         )
         val unique = linkedMapOf<String, Candidate>()
         for ((url, source) in feeds) {
