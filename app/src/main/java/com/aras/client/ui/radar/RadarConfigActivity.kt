@@ -231,7 +231,7 @@ class RadarConfigActivity : ComponentActivity() {
     }
 
     private fun discover(): List<String> {
-        val repos = listOf("barry-far/V2ray-Config", "0xRadikal/Free-v2ray-Configs", "ircfspace/tconfig", "Argh94/V2RayAutoConfig")
+        val repos = listOf("barry-far/V2ray-Config", "0xRadikal/Free-v2ray-Configs", "ircfspace/tconfig", "Argh94/V2RayAutoConfig", "mahdibland/V2RayAggregator", "peasoft/NoMorewalls", "Leon406/SubCrawler", "Pawdroid/Free-servers", "ermaozi/get_subscribe", "aiboboxx/v2rayfree", "zxcvos/Free-Node", "Alvin9999/new-pac", "soroushmirzaei/telegram-configs-collector", "yaney01/V2ray-Configs")
         val found = linkedSetOf<String>()
         for (repo in repos) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
@@ -239,11 +239,11 @@ class RadarConfigActivity : ComponentActivity() {
             val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
             val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"").findAll(tree).map { it.groupValues[1] }
                 .filter { p -> val q = p.lowercase(); (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) && (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country")) }
-                .take(10)
+                .take(24)
             for (path in paths) {
                 val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
                 extract(raw).forEach { found.add(it) }
-                if (found.size >= 250) return found.toList()
+                if (found.size >= 4000) return found.toList()
             }
         } catch (_: Exception) { /* Other sources may still work. */ }
         return found.toList()
