@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -57,14 +58,11 @@ class RadarConfigActivity : ComponentActivity() {
                     val protocolMatches = protocolFilter == "all" ||
                         protocolOf(candidate.uri) == protocolFilter
                     reachabilityMatches && protocolMatches
-                }.sortedWith(
-                    compareBy<RadarCandidate> { it.latency == null }
-                        .thenBy { it.latency ?: Long.MAX_VALUE }
-                )
+                }
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("جست‌وجو در منابع عمومی و پیش‌آزمایش دسترسی شبکه", style = MaterialTheme.typography.titleMedium)
-                        Text("پاسخ TCP به‌تنهایی سلامت تونل را ثابت نمی‌کند. هیچ کانفیگی خودکار نصب یا متصل نمی‌شود.", style = MaterialTheme.typography.bodySmall)
+                        Text("رادار RDY هستهٔ VPN · کشف و پیش‌آزمایش شبکه", style = MaterialTheme.typography.titleMedium)
+                        Text("این رادار هیچ نتیجهٔ TCP را به‌عنوان RDY یا اتصال موفق نمایش نمی‌دهد. اسکن فعلی فقط کانفیگ‌ها و دسترسی DNS/TCP را غربال می‌کند؛ RDY معتبر فقط پس از واردکردن کانفیگ و اندازه‌گیری توسط هستهٔ VPN ثبت می‌شود.", style = MaterialTheme.typography.bodySmall)
                         AndroidView(
                             factory = { ctx -> RadarScanView(ctx).also { radar = it; it.startScan() } },
                             modifier = Modifier.fillMaxWidth().height(230.dp),
@@ -86,12 +84,12 @@ class RadarConfigActivity : ComponentActivity() {
                                     Text(results.size.toString(), style = MaterialTheme.typography.titleLarge)
                                 }
                                 Column {
-                                    Text("TCP پاسخ‌گو", style = MaterialTheme.typography.labelSmall)
+                                    Text("TCP در دسترس", style = MaterialTheme.typography.labelSmall)
                                     Text(results.count { it.latency != null }.toString(), style = MaterialTheme.typography.titleLarge, color = Color(0xFF00A86B))
                                 }
                                 Column {
-                                    Text("سریع ≤۱۵۰ms", style = MaterialTheme.typography.labelSmall)
-                                    Text(results.count { (it.latency ?: Long.MAX_VALUE) <= 150 }.toString(), style = MaterialTheme.typography.titleLarge)
+                                    Text("RDY واقعی تأییدشده", style = MaterialTheme.typography.labelSmall)
+                                    Text("—", style = MaterialTheme.typography.titleLarge)
                                 }
                             }
                         }
@@ -104,7 +102,7 @@ class RadarConfigActivity : ComponentActivity() {
                             FilterChip(
                                 selected = resultFilter == "reachable",
                                 onClick = { resultFilter = "reachable" },
-                                label = { Text("پاسخ‌گو (" + results.count { it.latency != null } + ")") }
+                                label = { Text("دسترسی اولیه (" + results.count { it.latency != null } + ")") }
                             )
                             FilterChip(
                                 selected = resultFilter == "failed",
@@ -139,21 +137,29 @@ class RadarConfigActivity : ComponentActivity() {
                         // the nested lazy list received unbounded height and hid lower configs.
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             visibleResults.forEach { item ->
-                                Card(Modifier.fillMaxWidth()) {
+                                Card(
+                                    Modifier.fillMaxWidth().clickable {
+                                        startActivity(
+                                            Intent(this@RadarConfigActivity, RadarConfigDetailActivity::class.java)
+                                                .putExtra(RadarConfigDetailActivity.EXTRA_CONFIG, item.uri)
+                                        )
+                                    }
+                                ) {
                                     Column(Modifier.padding(12.dp)) {
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
                                         Text(
                                             if (item.latency == null) {
                                                 (item.dnsLatency?.let { "DNS " + it + " ms · " } ?: "") + item.note
                                             } else {
-                                                "DNS " + (item.dnsLatency?.toString() ?: "—") + " ms · TCP " + item.latency + " ms · " + item.note
+                                                "TCP: " + (item.latency?.toString() ?: "—") + " ms · DNS: " + (item.dnsLatency?.toString() ?: "—") + " ms · RDY هسته: اندازه‌گیری نشده"
                                             },
-                                            color = when { item.latency == null -> MaterialTheme.colorScheme.error; item.latency <= 150 -> Color(0xFF00A86B); item.latency <= 300 -> Color(0xFFB8860B); else -> Color(0xFFC62828) })
+                                            color = if (item.latency == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
                                         if (item.latency != null) {
                                             Button(onClick = {
                                                 startActivity(Intent(this@RadarConfigActivity, MainActivity::class.java).apply {
                                                     action = "com.aras.client.action.IMPORT_RADAR_CONFIG"
                                                     putExtra("radar_config", item.uri)
+                                                    putExtra("test_real_delay_after_import", true)
                                                 })
                                                 finish()
                                             }) { Text("افزودن برای تست واقعی") }
@@ -183,9 +189,8 @@ class RadarConfigActivity : ComponentActivity() {
                             }
                             for (result in batchResults) {
                                 if (result.latency != null) reachable++
-                                // Every candidate gets a blip: green/yellow for reachable latency,
-                                // red for an unreachable endpoint.
-                                radar?.addTestedCandidate(result.latency ?: -1L)
+                                // TCP/DNS are preflight diagnostics only. Never render them as RDY blips;
+                                // a real radar result must come from a VPN-core measurement.
                                 results.add(result)
                                 checked++
                             }
@@ -195,8 +200,8 @@ class RadarConfigActivity : ComponentActivity() {
                             message = if (checked == 0) {
                                 "اسکن پایان یافت، اما نتیجه‌ای برای آزمایش پیدا نشد."
                             } else {
-                                "آزمایش تمام شد: " + checked + " کانفیگ · TCP پاسخ‌گو: " + reachable +
-                                    " · تکراری‌ها حذف شدند؛ اتصال واقعی هنوز باید داخل برنامه تست شود."
+                                "کشف تمام شد: " + checked + " کانفیگ · دسترسی اولیهٔ TCP: " + reachable +
+                                    " · RDY واقعی هنوز ثبت نشده؛ برای اندازه‌گیری هسته، «افزودن برای تست واقعی» را بزن."
                             }
                         }
                     } catch (cancelled: CancellationException) {

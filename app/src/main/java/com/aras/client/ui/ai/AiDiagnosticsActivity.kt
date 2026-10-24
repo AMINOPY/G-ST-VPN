@@ -52,6 +52,8 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.InetAddress
 import java.net.URL
+import java.net.Socket
+import java.net.InetSocketAddress
 import java.util.Locale
 
 private data class NetworkSnapshot(
@@ -75,6 +77,15 @@ private data class SpeedTestOutcome(
     val uploadMbps: Double? = null,
 )
 
+private data class StabilityTestOutcome(
+    val display: String,
+    val medianMs: Long?,
+    val jitterMs: Long?,
+    val failurePercent: Int,
+)
+
+private data class IpProbeOutcome(val display: String, val reachable: Int, val tested: Int)
+
 class AiDiagnosticsActivity : BaseComponentActivity() {
     private var snapshot by mutableStateOf<NetworkSnapshot?>(null)
     private var scanMessage by mutableStateOf<Int?>(R.string.ai_scan_hint)
@@ -82,6 +93,11 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
     private var dnsLookupResult by mutableStateOf<String?>(null)
     private var speedTestResult by mutableStateOf<String?>(null)
     private var speedTestRunning by mutableStateOf(false)
+    private var stabilityTestRunning by mutableStateOf(false)
+    private var stabilityResult by mutableStateOf<String?>(null)
+    private var ipScanRunning by mutableStateOf(false)
+    private var ipScanResult by mutableStateOf<String?>(null)
+    private var stabilityReport: StabilityTestOutcome? = null
     private var smartAnalysis by mutableStateOf<String?>(null)
     private var measuredLatencyMs: Long? = null
     private var measuredDnsMs: Long? = null
@@ -102,8 +118,14 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             dnsLookupResult = dnsLookupResult,
             speedTestResult = speedTestResult,
             speedTestRunning = speedTestRunning,
+            stabilityResult = stabilityResult,
+            stabilityTestRunning = stabilityTestRunning,
+            ipScanResult = ipScanResult,
+            ipScanRunning = ipScanRunning,
             smartAnalysis = smartAnalysis,
             onSpeedTest = { startSpeedTest() },
+            onStabilityTest = { startStabilityTest() },
+            onIpScan = { startIpScan() },
             onShareReport = { shareReport() },
             onBack = { finish() },
             onScan = { scanNetwork() },
@@ -368,6 +390,10 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
         if (measuredUploadMbps != null && measuredUploadMbps!! < 1.0) {
             findings += getString(R.string.ai_diagnosis_upload_low, measuredUploadMbps!!)
         }
+        stabilityReport?.let { result ->
+            if (result.failurePercent >= 34) findings += "برخی probeهای HTTPS ناموفق بودند (" + result.failurePercent + "٪)؛ endpoint مسدود یا ناپایدار هم می‌تواند علت باشد."
+            if (result.jitterMs != null && result.jitterMs >= 120L) findings += "نوسان تأخیر HTTPS بالاست (" + result.jitterMs + " ms)."
+        }
         if (current.vpn) findings += getString(R.string.ai_diagnosis_vpn_note)
 
         smartAnalysis = when {
@@ -375,6 +401,126 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
             measuredLatencyMs != null || measuredDnsMs != null || measuredDownloadMbps != null ->
                 getString(R.string.ai_diagnosis_healthy)
             else -> current.advice
+        }
+    }
+
+    private fun startIpScan() {
+        if (ipScanRunning) return
+        ipScanRunning = true
+        ipScanResult = "در حال بررسی IPهای منتخب سرویس‌های عمومی از طریق TCP/443…"
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                // Bounded public-IP sweep: test well-known anycast services on TCP/443.
+                // This is reachability/handshake timing, not ICMP ping or VPN-core RDY.
+                val targets = listOf(
+                    "1.1.1.1" to "Cloudflare DNS",
+                    "1.0.0.1" to "Cloudflare DNS backup",
+                    "8.8.8.8" to "Google DNS",
+                    "8.8.4.4" to "Google DNS backup",
+                    "9.9.9.9" to "Quad9 DNS",
+                    "149.112.112.112" to "Quad9 DNS backup",
+                    "208.67.222.222" to "OpenDNS",
+                    "208.67.220.220" to "OpenDNS backup",
+                    "76.76.2.0" to "Control D",
+                    "76.76.10.0" to "Control D backup",
+                    "94.140.14.14" to "AdGuard DNS",
+                    "94.140.15.15" to "AdGuard DNS backup",
+                    "8.26.56.26" to "Comodo Secure DNS",
+                    "8.20.247.20" to "Comodo Secure DNS backup",
+                    "185.228.168.9" to "CleanBrowsing",
+                    "185.228.169.9" to "CleanBrowsing backup",
+                    "45.90.28.0" to "NextDNS",
+                    "45.90.30.0" to "NextDNS backup"
+                )
+                val lines = mutableListOf<String>()
+                var reachable = 0
+                targets.forEach { (ip, label) ->
+                    var socket: Socket? = null
+                    try {
+                        socket = Socket()
+                        val started = System.nanoTime()
+                        socket.connect(InetSocketAddress(ip, 443), 1800)
+                        val elapsed = ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(0L)
+                        reachable++
+                        lines += "✓ " + ip + " · " + label + " · TCP/443: " + elapsed + " ms"
+                    } catch (_: Exception) {
+                        lines += "✕ " + ip + " · " + label + " · TCP/443 ناموفق"
+                    } finally {
+                        runCatching { socket?.close() }
+                    }
+                }
+                IpProbeOutcome(
+                    "دسترسی IP: " + reachable + "/" + targets.size + "\n" + lines.joinToString("\n") +
+                        "\nاین اسکن فقط دسترسی TCP/443 به IPهای عمومی منتخب را می‌سنجد؛ پینگ ICMP، کیفیت VPN یا RDY هسته نیست.",
+                    reachable, targets.size
+                )
+            }
+            ipScanResult = result.display
+            ipScanRunning = false
+            refreshSmartAnalysis()
+        }
+    }
+
+    private fun startStabilityTest() {
+        if (stabilityTestRunning) return
+        stabilityTestRunning = true
+        stabilityResult = "در حال اجرای ۶ بررسی HTTPS برای اندازه‌گیری میانه، نوسان و نرخ شکست…"
+        lifecycleScope.launch {
+            val outcome = withContext(Dispatchers.IO) {
+                val endpoints = listOf(
+                    "https://www.google.com/generate_204",
+                    "https://connectivitycheck.gstatic.com/generate_204",
+                    "https://www.cloudflare.com/cdn-cgi/trace"
+                )
+                val samples = mutableListOf<Long>()
+                var failures = 0
+                repeat(6) { index ->
+                    var connection: HttpURLConnection? = null
+                    try {
+                        val probe = (URL(endpoints[index % endpoints.size]).openConnection() as HttpURLConnection).apply {
+                            requestMethod = "GET"
+                            connectTimeout = 3500
+                            readTimeout = 3500
+                            instanceFollowRedirects = true
+                            useCaches = false
+                            setRequestProperty("Cache-Control", "no-cache")
+                            setRequestProperty("User-Agent", "RADAR-VPN-Network-Diagnostics/1.0")
+                        }
+                        connection = probe
+                        val started = System.nanoTime()
+                        val code = probe.responseCode
+                        if (code in 200..399) {
+                            runCatching { probe.inputStream.use { it.read() } }
+                            samples += ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(0L)
+                        } else failures++
+                    } catch (_: Exception) {
+                        failures++
+                    } finally {
+                        connection?.disconnect()
+                    }
+                }
+                val sorted = samples.sorted()
+                val median = if (sorted.isEmpty()) null else sorted[sorted.size / 2]
+                val jitter = if (samples.size < 2) null else
+                    samples.zipWithNext { a, b -> kotlin.math.abs(b - a) }.sorted().let { it[it.size / 2] }
+                val failurePercent = failures * 100 / 6
+                val quality = if (median == null) 0 else {
+                    (100 - failurePercent - (median / 20).toInt().coerceAtMost(35) -
+                        ((jitter ?: 0L) / 10).toInt().coerceAtMost(25)).coerceIn(0, 100)
+                }
+                val display = buildString {
+                    append("پایداری مسیر: ").append(if (samples.isEmpty()) "قابل اندازه‌گیری نبود" else quality.toString() + "/100 (تخمینی)")
+                    append("\nمیانه HTTPS: ").append(median?.let { it.toString() + " ms" } ?: "ناموفق")
+                    append("\nنوسان بین نمونه‌ها: ").append(jitter?.let { it.toString() + " ms" } ?: "داده کافی نیست")
+                    append("\nدرخواست‌های ناموفق: ").append(failures).append("/6 (").append(failurePercent).append("%)")
+                    append("\nاین نرخ، شکست probeهای HTTPS است؛ packet loss واقعی ICMP نیست و مسدود بودن یک endpoint می‌تواند نتیجه را بدتر کند.")
+                }
+                StabilityTestOutcome(display, median, jitter, failurePercent)
+            }
+            stabilityReport = outcome
+            stabilityResult = outcome.display
+            stabilityTestRunning = false
+            refreshSmartAnalysis()
         }
     }
 
@@ -395,6 +541,7 @@ class AiDiagnosticsActivity : BaseComponentActivity() {
                 "${getString(R.string.ai_latency_label)}: ${latencyResult ?: getString(R.string.ai_latency_not_run)}",
                 "${getString(R.string.ai_dns_lookup_latency)}: ${dnsLookupResult ?: getString(R.string.ai_latency_not_run)}",
                 "${getString(R.string.ai_speed_title)}: ${speedTestResult ?: getString(R.string.ai_latency_not_run)}",
+                "Stability probe: ${stabilityResult ?: "not run"}",
                 "${getString(R.string.ai_analysis_title)}: ${smartAnalysis ?: it.advice}",
             ).joinToString("\n")
         } ?: getString(R.string.ai_analysis_not_ready)
@@ -450,8 +597,14 @@ private fun AiDiagnosticsScreen(
     dnsLookupResult: String?,
     speedTestResult: String?,
     speedTestRunning: Boolean,
+    stabilityResult: String?,
+    stabilityTestRunning: Boolean,
+    ipScanResult: String?,
+    ipScanRunning: Boolean,
     smartAnalysis: String?,
     onSpeedTest: () -> Unit,
+    onStabilityTest: () -> Unit,
+    onIpScan: () -> Unit,
     onShareReport: () -> Unit,
     onBack: () -> Unit,
     onScan: () -> Unit,
@@ -539,6 +692,32 @@ private fun AiDiagnosticsScreen(
                     smartAnalysis ?: snapshot?.advice ?: stringResource(R.string.ai_analysis_not_ready),
                     modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyLarge
                 )
+            }
+
+            Text("اسکن دسترسی IP", style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold)
+            Text("بررسی کنترل‌شدهٔ IPهای منتخب سرویس‌های عمومی روی TCP/443؛ این پینگ ICMP، تست ضد DPI یا RDY هستهٔ VPN نیست. اسکن رنج‌های تصادفی و بسیار بزرگ اجرا نمی‌شود.",
+                style = MaterialTheme.typography.bodySmall)
+            Button(onClick = onIpScan, enabled = !ipScanRunning, modifier = Modifier.fillMaxWidth()) {
+                Text(if (ipScanRunning) "در حال اسکن IPها…" else "شروع اسکن IP")
+            }
+            ipScanResult?.let {
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                    Text(it, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            Text("اسکن هوشمند پایداری", style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold)
+            Text("۶ درخواست HTTPS به چند مقصد عمومی؛ محاسبه میانه تأخیر، نوسان نمونه‌ها و نرخ شکست probe. این آزمون ping/packet-loss سطح ICMP نیست و هر مقصد ممکن است جداگانه مسدود باشد.",
+                style = MaterialTheme.typography.bodySmall)
+            Button(onClick = onStabilityTest, enabled = !stabilityTestRunning, modifier = Modifier.fillMaxWidth()) {
+                Text(if (stabilityTestRunning) "در حال بررسی پایداری…" else "اجرای اسکن پایداری")
+            }
+            stabilityResult?.let {
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                    Text(it, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
+                }
             }
 
             Text(stringResource(R.string.ai_speed_title), style = MaterialTheme.typography.titleMedium,

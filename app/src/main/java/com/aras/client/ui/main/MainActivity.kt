@@ -144,8 +144,13 @@ class MainActivity : HelperBaseComponentActivity() {
         intent.removeExtra("radar_config")
         intent.action = null
         if (rawConfig.isNotBlank()) {
-            mainViewModel.onAction(MainAction.ImportBatchConfig(rawConfig))
-            mainViewModel.onAction(MainAction.RefreshGroups)
+            val runCoreRdy = intent.getBooleanExtra("test_real_delay_after_import", false)
+            if (runCoreRdy) {
+                mainViewModel.importRadarConfigAndTest(rawConfig)
+            } else {
+                mainViewModel.onAction(MainAction.ImportBatchConfig(rawConfig))
+                mainViewModel.onAction(MainAction.RefreshGroups)
+            }
         }
     }
 

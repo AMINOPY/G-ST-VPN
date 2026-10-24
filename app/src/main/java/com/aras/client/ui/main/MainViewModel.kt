@@ -578,7 +578,11 @@ class MainViewModel(
     }
 
     // ---------- Business actions (coroutine-based) ----------
-    private fun importBatchConfig(configText: String) {
+    fun importRadarConfigAndTest(configText: String) {
+        importBatchConfig(configText, testImportedWithCore = true)
+    }
+
+    private fun importBatchConfig(configText: String, testImportedWithCore: Boolean = false) {
         launchLoading {
             withContext(ioDispatcher) {
                 try {
@@ -588,6 +592,9 @@ class MainViewModel(
                     } else {
                         selectedGroupId
                     }
+                    val previousGuids = if (testImportedWithCore) {
+                        dataSource.getGroupServerGuids(targetGroupId).toSet()
+                    } else emptySet()
                     val imported = dataSource.importBatchConfig(configText, targetGroupId, true)
                     val firstNewSubscriptionId = imported.newSubscriptionIds.firstOrNull()
                     if (firstNewSubscriptionId != null) {
@@ -611,6 +618,19 @@ class MainViewModel(
                         showSubscriptionUpdateResult(updateResult)
                     } else if (imported.totalCount == 0) {
                         toastError(R.string.toast_failure)
+                    }
+                    if (testImportedWithCore && imported.totalCount > 0) {
+                        val newGuids = dataSource.getGroupServerGuids(targetGroupId)
+                            .filterNot { it in previousGuids }
+                        val candidates = buildServersCache(newGuids)
+                        if (candidates.isNotEmpty()) {
+                            withContext(Dispatchers.Main.immediate) {
+                                startTestRound(targetGroupId, candidates, onlyTcp = false, smartConnect = false)
+                            }
+                            toast("تست RDY با هستهٔ VPN برای " + candidates.size + " کانفیگ شروع شد؛ نتیجه در فهرست سرورها نمایش داده می‌شود.")
+                        } else {
+                            toast("کانفیگ قبلاً وجود داشت؛ برای دیدن RDY آن را در فهرست سرورها انتخاب و تست واقعی را اجرا کن.")
+                        }
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
