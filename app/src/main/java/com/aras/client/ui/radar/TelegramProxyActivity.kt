@@ -20,6 +20,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -61,6 +62,7 @@ private data class TelegramProxyResult(
  * Telegram-only proxy discovery. Sources used here publish MTProto links as verified lists;
  * a TCP probe is an additional reachability check, not a substitute for Telegram's MTProto handshake.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 class TelegramProxyActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
