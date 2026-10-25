@@ -37,6 +37,7 @@ private data class RadarCandidate(
     val note: String,
     val dnsLatency: Long? = null,
     val country: String? = null,
+    val serverIp: String? = null,
 )
 
 /** Public-source discovery. TCP reachability is not treated as proof of a working proxy tunnel. */
@@ -54,6 +55,8 @@ class RadarConfigActivity : ComponentActivity() {
                 var protocolFilter by remember { mutableStateOf("all") }
                 var countryFilter by remember { mutableStateOf("all") }
                 var scanLimit by remember { mutableIntStateOf(1000) }
+                val availableCountries = results.mapNotNull { it.country }.distinct().sorted()
+                val hasUnknownCountry = results.any { it.country.isNullOrBlank() }
                 val visibleResults = results.filter { candidate ->
                     val reachabilityMatches = when (resultFilter) {
                         "reachable" -> candidate.latency != null
@@ -61,7 +64,11 @@ class RadarConfigActivity : ComponentActivity() {
                         else -> true
                     }
                     val protocolMatches = protocolFilter == "all" || protocolOf(candidate.uri) == protocolFilter
-                    val countryMatches = countryFilter == "all" || candidate.country == countryFilter
+                    val countryMatches = when (countryFilter) {
+                        "all" -> true
+                        "__unknown__" -> candidate.country.isNullOrBlank()
+                        else -> candidate.country == countryFilter
+                    }
                     reachabilityMatches && protocolMatches && countryMatches
                 }
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
@@ -146,12 +153,37 @@ class RadarConfigActivity : ComponentActivity() {
                                 FilterChip(selected = protocolFilter == "hysteria2", onClick = { protocolFilter = "hysteria2" }, label = { Text("Hysteria") })
                             }
                         }
-                        Text("کشورها", style = MaterialTheme.typography.titleSmall)
+                        Text("کشور سرور بر اساس IP", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "کشور از IP عمومی میزبان تخمین زده می‌شود؛ برای IPهای خصوصی، نامشخص یا سرویس جغرافیایی در دسترس‌نباشد، کشور نمایش داده نمی‌شود.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
                         androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            item { FilterChip(selected = countryFilter == "all", onClick = { countryFilter = "all" }, label = { Text("همه کشورها") }) }
-                            items(results.mapNotNull { it.country }.distinct().sorted().size) { index ->
-                                val country = results.mapNotNull { it.country }.distinct().sorted()[index]
-                                FilterChip(selected = countryFilter == country, onClick = { countryFilter = country }, label = { Text(country) })
+                            item {
+                                FilterChip(
+                                    selected = countryFilter == "all",
+                                    onClick = { countryFilter = "all" },
+                                    label = { Text("همه کشورها (${results.size})") }
+                                )
+                            }
+                            items(availableCountries.size) { index ->
+                                val country = availableCountries[index]
+                                val count = results.count { it.country == country }
+                                FilterChip(
+                                    selected = countryFilter == country,
+                                    onClick = { countryFilter = country },
+                                    label = { Text("${country} (${count})") }
+                                )
+                            }
+                            if (hasUnknownCountry) {
+                                item {
+                                    FilterChip(
+                                        selected = countryFilter == "__unknown__",
+                                        onClick = { countryFilter = "__unknown__" },
+                                        label = { Text("نامشخص (${results.count { it.country.isNullOrBlank() }})") }
+                                    )
+                                }
                             }
                         }
                         // The screen already owns the vertical scroll container. Use a regular
@@ -187,7 +219,9 @@ class RadarConfigActivity : ComponentActivity() {
                                     Column(Modifier.padding(12.dp)) {
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
                                         Text(
-                                            "کشور سرور: " + (item.country ?: "نامشخص") + " · پروتکل: " + protocolOf(item.uri).uppercase(),
+                                            "کشور بر اساس IP: " + (item.country ?: "نامشخص") +
+                                                " · IP: " + (item.serverIp ?: "نامشخص") +
+                                                " · پروتکل: " + protocolOf(item.uri).uppercase(),
                                             style = MaterialTheme.typography.labelMedium,
                                             color = MaterialTheme.colorScheme.secondary
                                         )
@@ -272,6 +306,17 @@ class RadarConfigActivity : ComponentActivity() {
     }
 
     private fun discover(): List<String> {
+        val priorityRepos = listOf(
+            "miladtahanian/V2RayScrapeByCountry",
+            "SoliSpirit/v2ray-configs",
+            "Delta-Kronecker/V2ray-Config",
+            "Danialsamadi/v2go",
+            "morpheusadam/v2ray-config",
+            "MatinGhanbari/v2ray-configs",
+            "0xRadikal/Free-v2ray-Configs",
+            "drmikecrypto/PulseConfigs",
+            "rtwo2/FastNodes"
+        )
         val globalRepos = listOf(
             "barry-far/V2ray-Config", "0xRadikal/Free-v2ray-Configs", "ircfspace/tconfig",
             "Argh94/V2RayAutoConfig", "mahdibland/V2RayAggregator", "peasoft/NoMorewalls",
@@ -295,7 +340,7 @@ class RadarConfigActivity : ComponentActivity() {
             "4n0nymous/multi-proxy-config-fetcher"
         )
         // Bound sequential GitHub crawling to reduce long stalls and memory pressure on phones.
-        val repos = (iranianRepos + globalRepos).distinct().take(12)
+        val repos = (priorityRepos + iranianRepos + globalRepos).distinct().take(15)
         val found = linkedSetOf<String>()
 
         // Public country-split feeds; the server IP is still geolocated independently below.
@@ -307,6 +352,37 @@ class RadarConfigActivity : ComponentActivity() {
             "AU", "ZA", "IL", "IQ", "AM", "AZ", "GE", "KZ", "NO", "DK"
         )
         val countryFeeds = buildList {
+            // User-requested public source feeds; unavailable paths are skipped independently.
+            add("https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/United_States.txt")
+            add("https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Germany.txt")
+            add("https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/T%C3%BCrkiye.txt")
+            add("https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/South_Korea.txt")
+            add("https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Russia.txt")
+            add("https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/United_States.txt")
+            add("https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Germany.txt")
+            add("https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/T%C3%BCrkiye.txt")
+            add("https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/South_Korea.txt")
+            add("https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Russia.txt")
+            add("https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/us.txt")
+            add("https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/de.txt")
+            add("https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/tr.txt")
+            add("https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/kr.txt")
+            add("https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/ru.txt")
+            add("https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/US.txt")
+            add("https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/DE.txt")
+            add("https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/TR.txt")
+            add("https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/KR.txt")
+            add("https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/RU.txt")
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/reality.txt")
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/best.txt")
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/iran.txt")
+            add("https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/subscriptions/filtered/subs/hysteria2.txt")
+            add("https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/fast/configs.txt")
+            add("https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/verified/configs.txt")
+            add("https://raw.githubusercontent.com/drmikecrypto/PulseConfigs/main/top5.txt")
+            add("https://raw.githubusercontent.com/drmikecrypto/PulseConfigs/main/top5_speed.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/Best-Results/top100.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/Best-Results/top500.txt")
             add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/everything.txt")
             add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/verified.txt")
             add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/curated.txt")
@@ -393,6 +469,8 @@ class RadarConfigActivity : ComponentActivity() {
                     latency = tcpMs,
                     note = "DNS و پورت پاسخ دادند؛ سلامت تونل تأیید نشده",
                     dnsLatency = dnsMs,
+                    country = lookupCountry(uri),
+                    serverIp = resolveServerIp(uri),
                 )
             } catch (e: Exception) {
                 lastError = e
@@ -403,14 +481,31 @@ class RadarConfigActivity : ComponentActivity() {
         } else {
             "DNS پاسخ داد، اما پورت TCP در دسترس نیست"
         }
-        return RadarCandidate(uri, null, detail, dnsMs)
+        return RadarCandidate(
+            uri = uri,
+            latency = null,
+            note = detail,
+            dnsLatency = dnsMs,
+            country = lookupCountry(uri),
+            serverIp = resolveServerIp(uri),
+        )
     }
 
     private val geoCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val resolvedIpCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    private fun resolveServerIp(uri: String): String? = runCatching {
+        val endpoint = parseEndpoint(uri) ?: return null
+        val host = endpoint.first
+        resolvedIpCache[host]?.let { return it }
+        val ip = InetAddress.getAllByName(host).firstOrNull()?.hostAddress?.substringBefore("%")
+            ?: return null
+        if (resolvedIpCache.size < 500) resolvedIpCache.putIfAbsent(host, ip)
+        ip
+    }.getOrNull()
 
     private fun lookupCountry(uri: String): String? = runCatching {
-        val endpoint = parseEndpoint(uri) ?: return null
-        val address = InetAddress.getByName(endpoint.first).hostAddress.substringBefore("%")
+        val address = resolveServerIp(uri) ?: return null
         geoCache[address]?.let { return it }
         if (geoCache.size >= 200) return null
         // Query public IP-only endpoints over HTTPS. Never send the config URI or credentials.
