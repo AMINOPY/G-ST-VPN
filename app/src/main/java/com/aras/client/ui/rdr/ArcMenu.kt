@@ -70,6 +70,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -217,6 +219,9 @@ fun ArcMenu(
                 .size(48.dp)
                 .graphicsLayer { alpha = master.value.coerceIn(0f, 1f) }
                 .glass(CircleShape, strong = true, tint = c.accent, shadow = 10.dp)
+                .semantics {
+                    stateDescription = if (isDark) "حالت شب فعال؛ برای تغییر به روز لمس کنید" else "حالت روز فعال؛ برای تغییر به شب لمس کنید"
+                }
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
