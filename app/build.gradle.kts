@@ -163,6 +163,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.foundation)
     implementation("androidx.compose.animation:animation")
+    implementation("androidx.biometric:biometric:1.2.0-alpha05")
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui.tooling.preview)
