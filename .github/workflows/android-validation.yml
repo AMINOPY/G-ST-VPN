@@ -4,7 +4,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, feature/cultural-theme-picker]
+    branches: [main, feature/cultural-theme-picker, feature/radar-intelligence-scan-v2]
   workflow_dispatch:
 
 permissions:
