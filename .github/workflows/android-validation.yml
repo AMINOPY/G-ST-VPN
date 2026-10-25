@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: android-validation-${{ github.event.pull_request.head.ref || github.ref_name }}
@@ -62,3 +62,16 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+
+      # Stable public download link: https://github.com/<repo>/releases/tag/latest-debug
+      - name: Publish APK to the latest-debug release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk=$(ls app/build/outputs/apk/debug/*.apk | head -1)
+          gh release delete latest-debug --cleanup-tag --yes || true
+          gh release create latest-debug "$apk" --prerelease \
+            --title "Latest debug build" \
+            --notes "Auto-built from ${GITHUB_SHA}" \
+            --target "${GITHUB_SHA}"
