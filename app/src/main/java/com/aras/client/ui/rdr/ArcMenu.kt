@@ -212,7 +212,7 @@ fun ArcMenu(
             }
         }
 
-        // Dedicated glass sun/moon control; it does not replace any existing destination.
+        // Animated glass sun/moon control; every existing destination remains in the menu.
         Box(
             Modifier
                 .absoluteOffset(cx + 42.dp * dirX - 24.dp, cy - 24.dp)
