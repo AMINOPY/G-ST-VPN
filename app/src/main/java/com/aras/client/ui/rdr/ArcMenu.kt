@@ -8,6 +8,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,6 +32,8 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CallSplit
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Hub
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.IosShare
@@ -66,6 +70,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -116,6 +122,8 @@ fun ArcMenu(
     open: Boolean,
     onDismiss: () -> Unit,
     onSelect: (RdrDest) -> Unit,
+    isDark: Boolean,
+    onToggleTheme: () -> Unit,
     modifier: Modifier = Modifier,
     fromRight: Boolean = true,
     items: List<ArcItem> = RdrMenuDefaults.items,
@@ -129,6 +137,8 @@ fun ArcMenu(
     if (!open && master.value < 0.002f) return
 
     val c = LocalRdrColors.current
+    val fx = LocalRdrFx.current
+    val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
     var pressedLabel by remember { mutableStateOf<Int?>(null) }
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -180,9 +190,9 @@ fun ArcMenu(
         // نام آیتمِ در حال لمس (وسط نیم‌دایره)
         Box(
             Modifier
-                .absoluteOffset(cx + 42.dp * dirX - 33.dp, cy - 20.dp)
-                .width(66.dp)
-                .size(width = 66.dp, height = 40.dp)
+                .absoluteOffset(cx + 42.dp * dirX - 44.dp, cy + 30.dp)
+                .width(88.dp)
+                .size(width = 88.dp, height = 40.dp)
                 .graphicsLayer { alpha = master.value.coerceIn(0f, 1f) },
             contentAlignment = Alignment.Center,
         ) {
@@ -198,6 +208,44 @@ fun ArcMenu(
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
+                )
+            }
+        }
+
+        // Animated glass sun/moon control; every existing destination remains in the menu.
+        Box(
+            Modifier
+                .absoluteOffset(cx + 42.dp * dirX - 24.dp, cy - 24.dp)
+                .size(48.dp)
+                .graphicsLayer { alpha = master.value.coerceIn(0f, 1f) }
+                .glass(CircleShape, strong = true, tint = c.accent, shadow = 10.dp)
+                .semantics {
+                    stateDescription = if (isDark) "حالت شب فعال؛ برای تغییر به روز لمس کنید" else "حالت روز فعال؛ برای تغییر به شب لمس کنید"
+                }
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    role = Role.Button,
+                    onClickLabel = if (isDark) "تغییر به حالت روز" else "تغییر به حالت شب",
+                ) {
+                    if (fx.haptics) haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onToggleTheme()
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            AnimatedContent(
+                targetState = isDark,
+                transitionSpec = {
+                    (fadeIn(tween(160)) + scaleIn(initialScale = 0.68f, animationSpec = tween(180))) togetherWith
+                        (fadeOut(tween(110)) + scaleOut(targetScale = 0.68f, animationSpec = tween(110)))
+                },
+                label = "themeToggleIcon",
+            ) { dark ->
+                Icon(
+                    imageVector = if (dark) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+                    contentDescription = if (dark) "تغییر به حالت روز" else "تغییر به حالت شب",
+                    tint = if (dark) Color(0xFFFFC857) else c.accent,
+                    modifier = Modifier.size(24.dp),
                 )
             }
         }
@@ -269,6 +317,7 @@ private fun ArcIconButton(
     LaunchedEffect(pressed) { onPressed(pressed) }
     val hf = LocalHapticFeedback.current
     val fx = LocalRdrFx.current
+    val c = LocalRdrColors.current
     val label = stringResource(item.label)
 
     val ox = with(density) { originX.toPx() }
@@ -294,30 +343,20 @@ private fun ArcIconButton(
                 scaleY = s
                 alpha = p
             }
-            // استیکر رنگیِ شیشه‌ای: گرادیان رنگ + هایلایت بالا + لبه‌ی روشن؛ آیکون سفید و همیشه خوانا
-            .shadow(10.dp, CircleShape, clip = false, ambientColor = item.tint, spotColor = item.tint)
-            .clip(CircleShape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(item.tint.copy(alpha = 0.78f).compositeOver(Color.White), item.tint),
-                ),
-            )
-            .border(1.dp, Color.White.copy(alpha = 0.55f), CircleShape)
-            .drawWithContent {
-                drawContent()
-                drawRect(
-                    Brush.verticalGradient(
-                        0f to Color.White.copy(alpha = 0.38f),
-                        0.5f to Color.Transparent,
-                    ),
-                )
-            }
+            // Theme-aware translucent glass; preserve icon identity through a subtle tint.
+            .glass(CircleShape, strong = true, tint = item.tint, shadow = 12.dp)
+            .border(1.5.dp, item.tint.copy(alpha = 0.92f), CircleShape)
             .clickable(interactionSource = src, indication = null, role = Role.Button, onClickLabel = label) {
                 if (fx.haptics) hf.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
             },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(item.icon, label, tint = Color.White, modifier = Modifier.size(size * 0.5f))
+        Icon(
+            item.icon,
+            label,
+            tint = item.tint,
+            modifier = Modifier.size(size * 0.58f),
+        )
     }
 }

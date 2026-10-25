@@ -233,6 +233,7 @@ val toastTextColor = Color.White // White
 
 object ThemeManager {
     private const val PREF_UI_THEME = "pref_ui_theme"
+    private const val PREF_RDR_GLASS_DARK = "pref_rdr_glass_dark_override"
     private const val PREF_CULTURAL_PATTERN_INTENSITY = "cultural_pattern_intensity"
     private const val PREF_CULTURAL_REDUCED_MOTION = "cultural_reduced_motion"
     private const val PREF_CULTURAL_PERSIAN_DIGITS = "cultural_persian_digits"
@@ -282,6 +283,27 @@ object ThemeManager {
     private val _themeMode = MutableStateFlow(readThemeMode())
     val themeMode: StateFlow<String> = _themeMode.asStateFlow()
 
+    private fun readRdrGlassDarkOverride(): Boolean? = when (
+        MmkvManager.decodeSettingsString(PREF_RDR_GLASS_DARK, "system") ?: "system"
+    ) {
+        "dark" -> true
+        "light" -> false
+        else -> null
+    }
+
+    private val _rdrGlassDarkOverride = MutableStateFlow(readRdrGlassDarkOverride())
+    val rdrGlassDarkOverride: StateFlow<Boolean?> = _rdrGlassDarkOverride.asStateFlow()
+
+    fun setRdrGlassDarkOverride(dark: Boolean?) {
+        val stored = when (dark) {
+            true -> "dark"
+            false -> "light"
+            null -> "system"
+        }
+        MmkvManager.encodeSettings(PREF_RDR_GLASS_DARK, stored)
+        _rdrGlassDarkOverride.value = dark
+    }
+
     private val _uiTheme = MutableStateFlow(
         MmkvManager.decodeSettingsString(PREF_UI_THEME, "default")?.takeIf {
             it in setOf("default", "radar", "survival", "aurora", "rdrx")
@@ -312,6 +334,7 @@ object ThemeManager {
 
     fun refresh() {
         _themeMode.value = readThemeMode()
+        _rdrGlassDarkOverride.value = readRdrGlassDarkOverride()
         _uiTheme.value = MmkvManager.decodeSettingsString(PREF_UI_THEME, "default")?.takeIf {
             it in setOf("default", "radar", "survival", "aurora", "rdrx")
         } ?: "default"
@@ -369,6 +392,9 @@ fun AppTheme(
     val dynamicColor by ThemeManager.dynamicColorEnabled.collectAsState()
     val themeMode by ThemeManager.themeMode.collectAsState()
     val uiTheme by ThemeManager.uiTheme.collectAsState()
+    val rdrGlassDarkOverride by ThemeManager.rdrGlassDarkOverride.collectAsState()
+    val resolvedDarkTheme = if (uiTheme == "rdrx") rdrGlassDarkOverride ?: darkTheme else darkTheme
+    val rdrGlassOverrideActive = uiTheme == "rdrx" && rdrGlassDarkOverride != null
     val context = LocalContext.current
     val isRadarTheme = uiTheme == "radar"
     val isSurvivalTheme = uiTheme == "survival"
@@ -376,21 +402,23 @@ fun AppTheme(
     val isPersepolisTheme = themeMode == "4"
     // Persepolis uses a light parchment palette; keep system-bar icons dark there.
     val effectiveDarkTheme = when {
+        rdrGlassOverrideActive -> resolvedDarkTheme
         isPersepolisTheme -> false
         isRadarTheme || isSurvivalTheme || isAuroraTheme || themeMode == "3" -> true
-        else -> darkTheme
+        else -> resolvedDarkTheme
     }
     // Ordinary system appearance is the default; special themes are opt-in.
     val colorScheme = when {
+        rdrGlassOverrideActive -> if (resolvedDarkTheme) DarkColor else LightColor
         isRadarTheme -> RadarColorScheme
         isSurvivalTheme -> SurvivalColorScheme
         isPersepolisTheme -> PersepolisColorScheme
         themeMode == "3" -> CulturalNightColor
-        isAuroraTheme && darkTheme -> AuroraDarkColor
+        isAuroraTheme && resolvedDarkTheme -> AuroraDarkColor
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            if (resolvedDarkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColor
+        resolvedDarkTheme -> DarkColor
         else -> LightColor
     }
     val snackbarController = rememberAppSnackbarController()
@@ -408,7 +436,7 @@ fun AppTheme(
     }
 
     CompositionLocalProvider(
-        LocalDarkTheme provides darkTheme,
+        LocalDarkTheme provides resolvedDarkTheme,
         LocalAppSnackbar provides snackbarController
     ) {
         MaterialTheme(
@@ -427,7 +455,7 @@ fun AppTheme(
             if (uiTheme == "rdrx") {
                 // RADAR Glass: گرادیان متحرک زیر همه‌ی صفحه‌ها + رنگ/اجزای شیشه‌ای مشترک
                 val rdrState = rememberRdrThemeState()
-                RdrTheme(rdrState, darkOverride = darkTheme) {
+                RdrTheme(rdrState, darkOverride = resolvedDarkTheme) {
                     RdrBackground { body() }
                 }
             } else {
