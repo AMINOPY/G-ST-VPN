@@ -59,6 +59,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.aras.client.R
+import com.aras.client.ui.rdr.LocalRdrActive
+import com.aras.client.ui.rdr.glass
 import com.aras.client.util.AppIconFetcher
 import sh.calvin.reorderable.ReorderableCollectionItemScope
 
@@ -77,7 +79,11 @@ fun AppTopBar(
     actions: @Composable RowScope.() -> Unit = {},
     titleContent: (@Composable () -> Unit)? = null
 ) {
-    Column {
+    val rdr = LocalRdrActive.current
+    Column(
+        if (rdr) Modifier.glass(RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp), strong = true, shadow = 8.dp)
+        else Modifier
+    ) {
         TopAppBar(
             title = {
                 if (isSearchActive) {
@@ -106,7 +112,8 @@ fun AppTopBar(
             },
             actions = actions,
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface,
+                containerColor = if (rdr) Color.Transparent else MaterialTheme.colorScheme.surface,
+                scrolledContainerColor = if (rdr) Color.Transparent else MaterialTheme.colorScheme.surfaceContainer,
                 titleContentColor = MaterialTheme.colorScheme.onSurface,
                 navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
                 actionIconContentColor = MaterialTheme.colorScheme.onSurface
@@ -171,9 +178,16 @@ fun AppListItem(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val rdrRow = LocalRdrActive.current
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .then(
+                if (rdrRow) Modifier
+                    .padding(horizontal = 10.dp, vertical = 3.dp)
+                    .glass(RoundedCornerShape(18.dp), shadow = 0.dp)
+                else Modifier
+            )
             .clickable { onCheckedChange(!checked) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically

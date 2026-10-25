@@ -29,6 +29,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.aras.client.AppConfig
 import com.aras.client.handler.MmkvManager
+import com.aras.client.ui.rdr.RdrBackground
+import com.aras.client.ui.rdr.RdrTheme
+import com.aras.client.ui.rdr.rememberRdrThemeState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -349,7 +352,7 @@ fun resolveDarkTheme(): Boolean {
     val mode by ThemeManager.themeMode.collectAsState()
     val uiTheme by ThemeManager.uiTheme.collectAsState()
     return when {
-        uiTheme == "radar" || uiTheme == "survival" || uiTheme == "aurora" || uiTheme == "rdrx" -> true
+        uiTheme == "radar" || uiTheme == "survival" || uiTheme == "aurora" -> true
         mode == "1" || mode == "4" -> false
         mode in setOf("2", "3") -> true
         else -> isSystemInDarkTheme()
@@ -370,17 +373,15 @@ fun AppTheme(
     val isRadarTheme = uiTheme == "radar"
     val isSurvivalTheme = uiTheme == "survival"
     val isAuroraTheme = uiTheme == "aurora"
-    val isRdrXTheme = uiTheme == "rdrx"
     val isPersepolisTheme = themeMode == "4"
     // Persepolis uses a light parchment palette; keep system-bar icons dark there.
     val effectiveDarkTheme = when {
         isPersepolisTheme -> false
-        isRadarTheme || isSurvivalTheme || isAuroraTheme || isRdrXTheme || themeMode == "3" -> true
+        isRadarTheme || isSurvivalTheme || isAuroraTheme || themeMode == "3" -> true
         else -> darkTheme
     }
     // Ordinary system appearance is the default; special themes are opt-in.
     val colorScheme = when {
-        isRdrXTheme -> RadarColorScheme
         isRadarTheme -> RadarColorScheme
         isSurvivalTheme -> SurvivalColorScheme
         isPersepolisTheme -> PersepolisColorScheme
@@ -414,12 +415,23 @@ fun AppTheme(
             colorScheme = colorScheme,
             typography = AppTypography
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                AppSnackbarBridge(controller = snackbarController)
-                content()
-                if (isPersepolisTheme) PersepolisOverlay()
-                if (isSurvivalTheme) SurvivalOverlay()
-                AppSnackbarHost(hostState = snackbarController.hostState)
+            val body: @Composable () -> Unit = {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AppSnackbarBridge(controller = snackbarController)
+                    content()
+                    if (isPersepolisTheme) PersepolisOverlay()
+                    if (isSurvivalTheme) SurvivalOverlay()
+                    AppSnackbarHost(hostState = snackbarController.hostState)
+                }
+            }
+            if (uiTheme == "rdrx") {
+                // RADAR Glass: گرادیان متحرک زیر همه‌ی صفحه‌ها + رنگ/اجزای شیشه‌ای مشترک
+                val rdrState = rememberRdrThemeState()
+                RdrTheme(rdrState, darkOverride = darkTheme) {
+                    RdrBackground { body() }
+                }
+            } else {
+                body()
             }
         }
     }

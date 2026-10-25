@@ -76,7 +76,7 @@ private fun GroupTabItem(
             .clip(shape)
             .background(
                 if (selected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surfaceContainerHigh
+                else com.aras.client.ui.rdr.rdrOr(MaterialTheme.colorScheme.surfaceContainerHigh)
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 7.dp),

@@ -16,6 +16,7 @@ import com.aras.client.ui.compose.AuroraGlassCard
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.Spacer
@@ -31,6 +32,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.runtime.Composable
@@ -58,9 +60,10 @@ import com.aras.client.ui.compose.CulturalRadar
 import com.aras.client.ui.compose.LocalDarkTheme
 import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.QRCodeDialog
-import com.aras.client.ui.rdrx.RdrXDashboard
-import com.aras.client.ui.rdrx.RdrXStatus
-import com.aras.client.ui.rdrx.RdrXTheme
+import com.aras.client.ui.rdr.RdrListShell
+import com.aras.client.ui.rdr.RdrListTopBar
+import com.aras.client.ui.rdr.RdrToolbarCapsule
+import com.aras.client.ui.rdr.RdrMainHost
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -99,6 +102,9 @@ fun MainScreen(
     val themeMode by ThemeManager.themeMode.collectAsStateWithLifecycle()
     val uiTheme by ThemeManager.uiTheme.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
+    // RADAR Glass theme ("rdrx"): home = radar, tapping the config card opens the normal list.
+    var rdrShowList by remember { mutableStateOf(false) }
+    BackHandler(enabled = uiTheme == "rdrx" && rdrShowList) { rdrShowList = false }
     val scope = rememberCoroutineScope()
     var showSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -155,6 +161,30 @@ fun MainScreen(
             }
     }
 
+    val handleMore: (MainMoreMenuAction) -> Unit = { action ->
+        when (action) {
+            MainMoreMenuAction.RestartService -> onAction(MainAction.RestartService)
+            MainMoreMenuAction.DeleteAll -> showDelAllConfirm = true
+            MainMoreMenuAction.DeleteDuplicate -> showDelDuplicateConfirm = true
+            MainMoreMenuAction.DeleteInvalid -> showDelInvalidConfirm = true
+            MainMoreMenuAction.ExportAll -> onAction(MainAction.ExportAll)
+            MainMoreMenuAction.ExportSubTxt -> onAction(MainAction.ExportGroupTxt)
+            MainMoreMenuAction.LocateSelected -> onAction(MainAction.LocateSelectedServer)
+            MainMoreMenuAction.SortByTestResults -> onAction(MainAction.SortByTestResults)
+            MainMoreMenuAction.PingSelectedSubscription -> onAction(MainAction.PingSelectedSubscription)
+            MainMoreMenuAction.TestAll -> onAction(MainAction.TestAllServers)
+            MainMoreMenuAction.TestAllRealPing -> onAction(MainAction.TestRealAllServers)
+            MainMoreMenuAction.DpiDiagnostics -> context.startActivity(Intent(context, DpiTestActivity::class.java))
+            MainMoreMenuAction.UpdateSubscriptions -> onAction(MainAction.UpdateSubscriptions)
+        }
+    }
+    val rdrTheme = uiTheme == "rdrx"
+    val closeSearch: () -> Unit = {
+        searchQuery = ""
+        onAction(MainAction.Search(""))
+        showSearch = false
+    }
+
     MainDialogs(
         showDelAllConfirm = showDelAllConfirm,
         onDismissDelAll = { showDelAllConfirm = false },
@@ -191,10 +221,45 @@ fun MainScreen(
         onNavigate = onNavigate,
     )
 
+    if (uiTheme == "rdrx" && !rdrShowList) {
+        RdrMainHost(
+            uiState = uiState,
+            hasPing = hasPing,
+            isDark = isDarkTheme,
+            onAction = onAction,
+            onNavigate = onNavigate,
+            onOpenList = { rdrShowList = true },
+            onOpenSearch = { showSearch = true; rdrShowList = true },
+            onMoreAction = handleMore,
+        )
+        return
+    }
+
+    val listContent: @Composable () -> Unit = {
     Scaffold(
+            containerColor = if (rdrTheme) Color.Transparent else MaterialTheme.colorScheme.background,
             contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
             topBar = {
-                MainTopBar(
+                if (rdrTheme) {
+                    RdrListTopBar(
+                        isLoading = isLoading,
+                        showSearch = showSearch,
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { query: String ->
+                            searchQuery = query
+                            onAction(MainAction.Search(query))
+                        },
+                        onSearchToggle = { show: Boolean -> if (show) showSearch = true else closeSearch() },
+                        onBack = { rdrShowList = false },
+                        toolbar = {
+                            RdrToolbarCapsule(
+                                onSearch = { showSearch = true },
+                                onImportAction = onAction,
+                                onMoreAction = handleMore,
+                            )
+                        },
+                    )
+                } else MainTopBar(
                     isLoading = isLoading,
                     showSearch = showSearch,
                     searchQuery = searchQuery,
@@ -215,27 +280,11 @@ fun MainScreen(
                     onSearchToggle = { show: Boolean -> showSearch = show },
                     onMenuClick = { showMenu = true },
                     onAction = onAction,
-                    onMoreMenuAction = { action ->
-                        when (action) {
-                            MainMoreMenuAction.RestartService -> onAction(MainAction.RestartService)
-                            MainMoreMenuAction.DeleteAll -> showDelAllConfirm = true
-                            MainMoreMenuAction.DeleteDuplicate -> showDelDuplicateConfirm = true
-                            MainMoreMenuAction.DeleteInvalid -> showDelInvalidConfirm = true
-                            MainMoreMenuAction.ExportAll -> onAction(MainAction.ExportAll)
-                            MainMoreMenuAction.ExportSubTxt -> onAction(MainAction.ExportGroupTxt)
-                            MainMoreMenuAction.LocateSelected -> onAction(MainAction.LocateSelectedServer)
-                            MainMoreMenuAction.SortByTestResults -> onAction(MainAction.SortByTestResults)
-                            MainMoreMenuAction.PingSelectedSubscription -> onAction(MainAction.PingSelectedSubscription)
-                            MainMoreMenuAction.TestAll -> onAction(MainAction.TestAllServers)
-                            MainMoreMenuAction.TestAllRealPing -> onAction(MainAction.TestRealAllServers)
-                            MainMoreMenuAction.DpiDiagnostics -> context.startActivity(Intent(context, DpiTestActivity::class.java))
-                            MainMoreMenuAction.UpdateSubscriptions -> onAction(MainAction.UpdateSubscriptions)
-                        }
-                    }
+                    onMoreMenuAction = handleMore
                 )
             },
             bottomBar = {
-                Column {
+                if (!rdrTheme) Column {
                     if (isRunning) {
                         com.aras.client.ui.compose.ConnectionMiniStats(
                             modifier = Modifier.padding(bottom = 4.dp)
@@ -280,25 +329,6 @@ fun MainScreen(
                             isConnected = isRunning && hasPing,
                             serverTitle = mainViewModel.connectedServerTitle(),
                         )
-                        "rdrx" -> RdrXTheme(dark = isDarkTheme) {
-                            RdrXDashboard(
-                                status = when {
-                                    !isRunning -> RdrXStatus.OFFLINE
-                                    hasPing -> RdrXStatus.CONNECTED
-                                    else -> RdrXStatus.VERIFYING
-                                },
-                                isRunning = isRunning,
-                                hasPing = hasPing,
-                                serverTitle = mainViewModel.connectedServerTitle(),
-                                pingMs = selectedGuid?.let { guid ->
-                                    MmkvManager.decodeServerAffiliationInfo(guid)?.testDelayMillis
-                                }?.takeIf { it > 0L },
-                                onConnect = { onAction(MainAction.ToggleService) },
-                                onTest = { onAction(MainAction.TestCurrentServer) },
-                                onMenu = { showMenu = true },
-                                onImport = { onAction(MainAction.ImportManualMenu) },
-                            )
-                        }
                     }
                     updateAnnouncement?.let { announcement ->
                         UpdateAnnouncementBanner(
@@ -353,7 +383,10 @@ fun MainScreen(
                             scrollToTopTick = scrollToTopTick,
                             lazyListStates = lazyListStates,
                             lazyGridStates = lazyGridStates,
-                            onSelectServer = { guid -> onAction(MainAction.SelectServer(guid)) },
+                            onSelectServer = { guid ->
+                                onAction(MainAction.SelectServer(guid))
+                                if (uiTheme == "rdrx") rdrShowList = false
+                            },
                             onEditServer = { guid, profile -> onAction(MainAction.EditServer(guid, profile)) },
                             onShareServer = { guid, profile ->
                                 shareTarget = Triple(guid, profile, false)
@@ -401,8 +434,9 @@ fun MainScreen(
                 }
             }
         }
+    }
+    if (rdrTheme) RdrListShell(isDarkTheme, listContent) else listContent()
 }
-
 
 @Composable
 private fun AuroraSentinelHero(

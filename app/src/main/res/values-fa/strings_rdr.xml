@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="rdr_radar_idle">Not connect</string>
+    <string name="rdr_radar_connecting">Connecting</string>
+    <string name="rdr_radar_connect">Connect</string>
+    <string name="rdr_radar_danger">Danger</string>
+    <string name="rdr_tap_to_connect">برای اتصال روی رادار بزنید</string>
+    <string name="rdr_tap_to_disconnect">برای قطع اتصال لمس کنید</string>
+
+    <string name="rdr_menu_title">منو</string>
+    <string name="rdr_add_subscription">افزودن اشتراک</string>
+    <string name="rdr_search_hint">جستجو</string>
+    <string name="rdr_add">افزودن</string>
+    <string name="rdr_more">بیشتر</string>
+    <string name="rdr_back">بازگشت</string>
+
+    <string name="rdr_no_config">کانفیگی انتخاب نشده</string>
+    <string name="rdr_pick_config">برای انتخاب کانفیگ لمس کنید</string>
+    <string name="rdr_smart_connect">اتصال هوشمند</string>
+    <string name="rdr_ping_timeout">بدون پاسخ</string>
+
+    <string name="rdr_configs">کانفیگ‌ها</string>
+    <string name="rdr_selected_count">%d انتخاب شده</string>
+    <string name="rdr_select_all">انتخاب همه</string>
+    <string name="rdr_sort">مرتب‌سازی</string>
+    <string name="rdr_sort_default">پیش‌فرض</string>
+    <string name="rdr_sort_ping">پینگ</string>
+    <string name="rdr_sort_name">نام</string>
+    <string name="rdr_test_all">تست همه</string>
+    <string name="rdr_test">تست</string>
+    <string name="rdr_all">همه</string>
+    <string name="rdr_delete">حذف</string>
+    <string name="rdr_duplicate">کپی</string>
+    <string name="rdr_edit">ویرایش</string>
+    <string name="rdr_share">اشتراک‌گذاری</string>
+    <string name="rdr_empty_title">کانفیگی وجود ندارد</string>
+    <string name="rdr_empty_sub">با دکمه + کانفیگ یا اشتراک اضافه کنید</string>
+    <string name="rdr_add_qr">اسکن QR</string>
+    <string name="rdr_add_clipboard">افزودن از کلیپ‌بورد</string>
+    <string name="rdr_add_file">افزودن از فایل</string>
+    <string name="rdr_add_sub">افزودن اشتراک</string>
+    <string name="rdr_add_manual">افزودن دستی</string>
+
+    <string name="rdr_menu_subscriptions">اشتراک‌ها</string>
+    <string name="rdr_menu_per_app">به تفکیک برنامه</string>
+    <string name="rdr_menu_routing">مسیریابی</string>
+    <string name="rdr_menu_settings">تنظیمات</string>
+    <string name="rdr_menu_geo">فایل‌های جغرافیایی</string>
+    <string name="rdr_menu_export">خروجی</string>
+    <string name="rdr_menu_smart_scan">اسکن هوشمند</string>
+    <string name="rdr_menu_logcat">Logcat</string>
+    <string name="rdr_menu_update">به‌روزرسانی</string>
+    <string name="rdr_menu_backup">پشتیبان‌گیری</string>
+
+    <string name="rdr_menu_hybrid">ترکیبی</string>
+    <string name="rdr_menu_promotion">تبلیغات</string>
+    <string name="rdr_menu_about">درباره</string>
+    <string name="rdr_update_subs">به‌روزرسانی اشتراک‌ها</string>
+
+    <string name="rdr_settings_title">تنظیمات</string>
+    <string name="rdr_interface_style">سبک رابط</string>
+    <string name="rdr_style_classic">کلاسیک</string>
+    <string name="rdr_style_glass">شیشه‌ای (iOS 26)</string>
+    <string name="rdr_style_footer">ظاهر اصلی کل برنامه را عوض می‌کند. تنظیمات و کانفیگ‌های شما تغییری نمی‌کنند.</string>
+    <string name="rdr_appearance">حالت نمایش</string>
+    <string name="rdr_mode_system">سیستم</string>
+    <string name="rdr_mode_light">روشن</string>
+    <string name="rdr_mode_dark">تیره</string>
+    <string name="rdr_effects">جلوه‌ها</string>
+    <string name="rdr_fx_radar">انیمیشن جاروب رادار</string>
+    <string name="rdr_fx_bg">پس‌زمینه‌ی متحرک</string>
+    <string name="rdr_fx_haptics">لرزش لمسی</string>
+    <string name="rdr_config_radar">رادار کانفیگ</string>
+</resources>

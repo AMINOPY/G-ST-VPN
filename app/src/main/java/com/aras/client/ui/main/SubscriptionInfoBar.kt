@@ -115,7 +115,7 @@ private fun SubscriptionActions(
     var deleteStage by remember(groupId) { mutableStateOf(0) }
     Row(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerLow),
+            .background(com.aras.client.ui.rdr.rdrOr(MaterialTheme.colorScheme.surfaceContainerLow)),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -161,7 +161,7 @@ private fun TrafficExpiryBar(sub: SubscriptionItem) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .background(com.aras.client.ui.rdr.rdrOr(MaterialTheme.colorScheme.surfaceContainerLow))
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
