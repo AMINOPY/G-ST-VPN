@@ -344,13 +344,19 @@ private fun ArcIconButton(
                 alpha = p
             }
             // Theme-aware translucent glass; preserve icon identity through a subtle tint.
-            .glass(CircleShape, strong = true, tint = item.tint, shadow = 8.dp)
+            .glass(CircleShape, strong = true, tint = item.tint, shadow = 12.dp)
+            .border(1.5.dp, item.tint.copy(alpha = 0.92f), CircleShape)
             .clickable(interactionSource = src, indication = null, role = Role.Button, onClickLabel = label) {
                 if (fx.haptics) hf.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
             },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(item.icon, label, tint = c.text, modifier = Modifier.size(size * 0.5f))
+        Icon(
+            item.icon,
+            label,
+            tint = item.tint,
+            modifier = Modifier.size(size * 0.58f),
+        )
     }
 }
