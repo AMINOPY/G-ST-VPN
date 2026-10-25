@@ -174,7 +174,7 @@ fun ArcMenu(
         // نام آیتمِ در حال لمس (وسط نیم‌دایره)
         Box(
             Modifier
-                .absoluteOffset(cx + dirX * 42.dp - 33.dp, cy - 20.dp)
+                .absoluteOffset(cx + 42.dp * dirX - 33.dp, cy - 20.dp)
                 .width(66.dp)
                 .size(width = 66.dp, height = 40.dp)
                 .graphicsLayer { alpha = master.value.coerceIn(0f, 1f) },
@@ -203,7 +203,7 @@ fun ArcMenu(
             list.mapIndexed { i, item ->
                 val deg = if (list.size == 1) 0f else -spreadDeg + 2f * spreadDeg * i / (list.size - 1)
                 val rad = Math.toRadians(deg.toDouble())
-                val x = cx + dirX * radius * cos(rad).toFloat()
+                val x = cx + radius * (dirX * cos(rad).toFloat())
                 val y = cy + radius * sin(rad).toFloat()
                 Triple(item, start + i, x to y)
             }
