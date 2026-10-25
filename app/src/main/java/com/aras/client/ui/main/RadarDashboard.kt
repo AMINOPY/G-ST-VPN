@@ -69,7 +69,8 @@ fun RadarDashboard(
     isDarkTheme: Boolean,
     serverTitle: String,
     configPings: List<RadarConfigSignal> = emptyList(),
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onRadarClick: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val dangerTransition = rememberInfiniteTransition(label = "radar-danger-blink")
@@ -255,6 +256,7 @@ fun RadarDashboard(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
+                    .then(if (onRadarClick != null) Modifier.clickable(onClick = onRadarClick) else Modifier)
                     .padding(horizontal = if (expanded) 18.dp else 42.dp)
                     .heightIn(max = if (expanded) 280.dp else 145.dp),
                 palette = if (isDarkTheme) RadarPalette.Night else RadarPalette.Day,

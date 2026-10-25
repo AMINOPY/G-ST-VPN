@@ -28,6 +28,7 @@ import java.net.URL
 import android.util.Base64
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 
 private data class RadarCandidate(
@@ -35,6 +36,10 @@ private data class RadarCandidate(
     val latency: Long?,
     val note: String,
     val dnsLatency: Long? = null,
+    val country: String? = null,
+    val serverIp: String? = null,
+    val latencySamples: Int = 0,
+    val tcpProbeApplicable: Boolean = true,
 )
 
 /** Public-source discovery. TCP reachability is not treated as proof of a working proxy tunnel. */
@@ -50,20 +55,26 @@ class RadarConfigActivity : ComponentActivity() {
                 var radar by remember { mutableStateOf<RadarScanView?>(null) }
                 var resultFilter by remember { mutableStateOf("all") }
                 var protocolFilter by remember { mutableStateOf("all") }
+                var countryFilter by remember { mutableStateOf("all") }
+                var scanLimit by remember { mutableIntStateOf(1000) }
+                val availableCountries = results.mapNotNull { it.country }.distinct().sorted()
+                val hasUnknownCountry = results.any { it.country.isNullOrBlank() }
                 val visibleResults = results.filter { candidate ->
                     val reachabilityMatches = when (resultFilter) {
                         "reachable" -> candidate.latency != null
-                        "failed" -> candidate.latency == null
+                        "failed" -> candidate.tcpProbeApplicable && candidate.latency == null
                         else -> true
                     }
-                    val protocolMatches = protocolFilter == "all" ||
-                        protocolOf(candidate.uri) == protocolFilter
-                    reachabilityMatches && protocolMatches
+                    val protocolMatches = protocolFilter == "all" || protocolOf(candidate.uri) == protocolFilter
+                    val countryMatches = when (countryFilter) {
+                        "all" -> true
+                        "__unknown__" -> candidate.country.isNullOrBlank()
+                        else -> candidate.country == countryFilter
+                    }
+                    reachabilityMatches && protocolMatches && countryMatches
                 }
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("رادار RDY هستهٔ VPN · کشف و پیش‌آزمایش شبکه", style = MaterialTheme.typography.titleMedium)
-                        Text("این رادار هیچ نتیجهٔ TCP را به‌عنوان RDY یا اتصال موفق نمایش نمی‌دهد. اسکن فعلی فقط کانفیگ‌ها و دسترسی DNS/TCP را غربال می‌کند؛ RDY معتبر فقط پس از واردکردن کانفیگ و اندازه‌گیری توسط هستهٔ VPN ثبت می‌شود.", style = MaterialTheme.typography.bodySmall)
                         AndroidView(
                             factory = { ctx -> RadarScanView(ctx).also { radar = it; it.startScan() } },
                             modifier = Modifier.fillMaxWidth().height(230.dp),
@@ -73,7 +84,18 @@ class RadarConfigActivity : ComponentActivity() {
                             Button(enabled = !scanning, onClick = { results.clear(); radar?.clearBlips(); scanning = true; message = "در حال دریافت و بررسی منابع…" }) { Text("شروع اسکن") }
                             OutlinedButton(enabled = scanning, onClick = { scanning = false }) { Text("توقف") }
                         }
+                        OutlinedButton(
+                            enabled = !scanning,
+                            onClick = { startActivity(Intent(this@RadarConfigActivity, TelegramProxyActivity::class.java)) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("پروکسی تلگرام · جست‌وجوی MTProto") }
                         if (scanning) LinearProgressIndicator(Modifier.fillMaxWidth())
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("تعداد:", modifier = Modifier.padding(top = 10.dp))
+                            listOf(100, 200, 400, 800, 1000, 2000, 4000).forEach { limit ->
+                                FilterChip(selected = scanLimit == limit, onClick = { scanLimit = limit }, enabled = !scanning, label = { Text(limit.toString()) })
+                            }
+                        }
                         Text(message, style = MaterialTheme.typography.bodyMedium)
                         Card(Modifier.fillMaxWidth()) {
                             Row(
@@ -108,7 +130,7 @@ class RadarConfigActivity : ComponentActivity() {
                             FilterChip(
                                 selected = resultFilter == "failed",
                                 onClick = { resultFilter = "failed" },
-                                label = { Text("بدون پاسخ (" + results.count { it.latency == null } + ")") }
+                                label = { Text("بدون پاسخ (" + results.count { it.tcpProbeApplicable && it.latency == null } + ")") }
                             )
                         }
                         androidx.compose.foundation.lazy.LazyRow(
@@ -133,11 +155,51 @@ class RadarConfigActivity : ComponentActivity() {
                                 FilterChip(selected = protocolFilter == "hysteria2", onClick = { protocolFilter = "hysteria2" }, label = { Text("Hysteria") })
                             }
                         }
+                        Text("کشور سرور بر اساس IP", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "کشور از IP عمومی میزبان تخمین زده می‌شود؛ برای IPهای خصوصی، نامشخص یا سرویس جغرافیایی در دسترس‌نباشد، کشور نمایش داده نمی‌شود.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            item {
+                                FilterChip(
+                                    selected = countryFilter == "all",
+                                    onClick = { countryFilter = "all" },
+                                    label = { Text("همه کشورها (${results.size})") }
+                                )
+                            }
+                            items(availableCountries.size) { index ->
+                                val country = availableCountries[index]
+                                val count = results.count { it.country == country }
+                                FilterChip(
+                                    selected = countryFilter == country,
+                                    onClick = { countryFilter = country },
+                                    label = { Text("${country} (${count})") }
+                                )
+                            }
+                            if (hasUnknownCountry) {
+                                item {
+                                    FilterChip(
+                                        selected = countryFilter == "__unknown__",
+                                        onClick = { countryFilter = "__unknown__" },
+                                        label = { Text("نامشخص (${results.count { it.country.isNullOrBlank() }})") }
+                                    )
+                                }
+                            }
+                        }
                         // The screen already owns the vertical scroll container. Use a regular
                         // Column here rather than nesting a LazyColumn inside verticalScroll;
                         // the nested lazy list received unbounded height and hid lower configs.
+                        if (visibleResults.size > 180) {
+                            Text(
+                                "۱۸۰ نتیجهٔ برتر از " + visibleResults.size + " مورد نمایش داده می‌شود؛ ترتیب بر اساس میانهٔ تأخیر TCP واقعی است.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            visibleResults.forEach { item ->
+                            visibleResults.take(180).forEach { item ->
                                 val coreRdy = RadarRdyResultStore.read(item.uri)
                                 val coreRdyLabel = when {
                                     coreRdy == "PENDING" -> "RDY هسته: تست واقعی در حال اجراست"
@@ -159,10 +221,17 @@ class RadarConfigActivity : ComponentActivity() {
                                     Column(Modifier.padding(12.dp)) {
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
                                         Text(
+                                            "کشور بر اساس IP: " + (item.country ?: "نامشخص") +
+                                                " · IP: " + (item.serverIp ?: "نامشخص") +
+                                                " · پروتکل: " + protocolOf(item.uri).uppercase(),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.secondary
+                                        )
+                                        Text(
                                             if (item.latency == null) {
                                                 (item.dnsLatency?.let { "DNS " + it + " ms · " } ?: "") + item.note
                                             } else {
-                                                "TCP: " + (item.latency?.toString() ?: "—") + " ms · DNS: " + (item.dnsLatency?.toString() ?: "—") + " ms · " + coreRdyLabel
+                                                "TCP واقعی: " + (item.latency?.toString() ?: "—") + " ms (" + item.latencySamples + "/3 نمونه) · DNS: " + (item.dnsLatency?.toString() ?: "—") + " ms · " + coreRdyLabel
                                             },
                                             color = if (item.latency == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
                                         if (item.latency != null) {
@@ -184,15 +253,16 @@ class RadarConfigActivity : ComponentActivity() {
                 LaunchedEffect(scanning) {
                     if (!scanning) return@LaunchedEffect
                     try {
+                        message = "در حال جمع‌آوری منابع؛ بعد از آن بهترین نتایج رتبه‌بندی می‌شوند…"
                         val uris = withContext(Dispatchers.IO) { discover().distinct() }
                         var reachable = 0
-                        val bounded = uris.take(180)
+                        var checked = 0
+                        val bounded = uris.take(scanLimit)
                         if (bounded.isEmpty()) {
                             message = "منابع پاسخ ندادند یا کانفیگ قابل‌خواندن پیدا نشد؛ اتصال اینترنت و دسترسی به GitHub را بررسی کن."
                         } else if (uris.size > bounded.size) {
-                            message = "تعداد زیادی نتیجه پیدا شد؛ برای حفظ سرعت، ۱۸۰ مورد اول بررسی می‌شوند."
+                            message = "نتیجه‌های زیادی پیدا شد؛ تعداد انتخاب‌شده بررسی می‌شود."
                         }
-                        var checked = 0
                         for (batch in bounded.chunked(8)) {
                             if (!scanning) break
                             val batchResults = coroutineScope {
@@ -200,19 +270,32 @@ class RadarConfigActivity : ComponentActivity() {
                             }
                             for (result in batchResults) {
                                 if (result.latency != null) reachable++
-                                // TCP/DNS are preflight diagnostics only. Never render them as RDY blips;
-                                // a real radar result must come from a VPN-core measurement.
-                                results.add(result)
+                                val savedCoreRdy = RadarRdyResultStore.read(result.uri)
+                                val corePing = savedCoreRdy?.removePrefix("RESULT:")?.substringBefore(":")?.toLongOrNull()
+                                if (corePing != null) {
+                                    radar?.addCoreRdyCandidate(corePing)
+                                } else if (result.tcpProbeApplicable) {
+                                    radar?.addDiscoveryCandidate(result.latency != null)
+                                }
                                 checked++
                             }
-                            message = "بررسی " + checked + "/" + bounded.size + " · پاسخ TCP: " + reachable
+                            // Keep every tested config for country filters and counts. The UI renders
+                            // only the best 180 at a time to avoid creating thousands of Compose cards.
+                            results.addAll(batchResults)
+                            val ranked = results
+                                .distinctBy { it.uri }
+                                .sortedWith(compareBy<RadarCandidate> { it.latency == null }
+                                    .thenBy { it.latency ?: Long.MAX_VALUE })
+                            results.clear()
+                            results.addAll(ranked)
+                            message = "بررسی " + checked + "/" + bounded.size + " · پاسخ TCP: " + reachable + " · نمایش بهترین‌ها: " + results.size
                         }
                         if (scanning) {
                             message = if (checked == 0) {
                                 "اسکن پایان یافت، اما نتیجه‌ای برای آزمایش پیدا نشد."
                             } else {
-                                "کشف تمام شد: " + checked + " کانفیگ · دسترسی اولیهٔ TCP: " + reachable +
-                                    " · RDY واقعی هنوز ثبت نشده؛ برای اندازه‌گیری هسته، «افزودن برای تست واقعی» را بزن."
+                                "پایان جست‌وجو: " + checked + " کانفیگ بررسی شد؛ " + reachable +
+                                    " پاسخ TCP داشتند. بهترین " + results.size + " مورد بر اساس تأخیر مرتب شده‌اند. TCP به‌تنهایی تأیید سلامت تونل نیست."
                             }
                         }
                     } catch (cancelled: CancellationException) {
@@ -228,71 +311,271 @@ class RadarConfigActivity : ComponentActivity() {
     }
 
     private fun discover(): List<String> {
-        val repos = listOf("barry-far/V2ray-Config", "0xRadikal/Free-v2ray-Configs", "ircfspace/tconfig", "Argh94/V2RayAutoConfig")
+        val priorityRepos = listOf(
+            "miladtahanian/V2RayScrapeByCountry",
+            "SoliSpirit/v2ray-configs",
+            "Delta-Kronecker/V2ray-Config",
+            "Danialsamadi/v2go",
+            "morpheusadam/v2ray-config",
+            "MatinGhanbari/v2ray-configs",
+            "0xRadikal/Free-v2ray-Configs",
+            "drmikecrypto/PulseConfigs",
+            "rtwo2/FastNodes"
+        )
+        val globalRepos = listOf(
+            "barry-far/V2ray-Config", "0xRadikal/Free-v2ray-Configs", "ircfspace/tconfig",
+            "Argh94/V2RayAutoConfig", "mahdibland/V2RayAggregator", "peasoft/NoMorewalls",
+            "Leon406/SubCrawler", "Pawdroid/Free-servers", "ermaozi/get_subscribe",
+            "aiboboxx/v2rayfree", "zxcvos/Free-Node", "Alvin9999/new-pac",
+            "soroushmirzaei/telegram-configs-collector", "yaney01/V2ray-Configs",
+            "morpheusadam/v2ray-config", "alexantSWE/V2ray-Config", "Delta-Kronecker/V2ray-Config",
+            "coldwater-10/V2ray-Config", "sevcator/5ubscrpt10n", "TheCrowCreature/v2rayExtractor",
+            "10Dream/sub-mod", "mheidari98/.proxy", "itsyebekhe/PSG", "Surfboardv2ray/TGParse",
+            "MatinGhanbari/v2ray-configs", "MhdiTaheri/V2rayCollector", "4n0nymous/multi-proxy-config-fetcher",
+            "Rayan-Config/C-Sub", "V2RayRoot/V2RayConfig", "free-nodes/v2rayfree",
+            "Mokafela/Config-Finder", "nodesradar/nodesradar-en", "Epodonios/v2ray-configs",
+            "TheSpeedX/PROXY-List", "hiddify/hiddify-config", "2dust/v2rayNG",
+            "barry-far/V2ray-Config", "vpn-vless-configs-russia/vpn-vless-configs-russia",
+            "Farid-Karimi/Config-Collector", "kort0881/vpn-vless-configs-russia"
+        )
+        val iranianRepos = listOf(
+            "ircfspace/tconfig", "itsyebekhe/PSG", "MatinGhanbari/v2ray-configs",
+            "MhdiTaheri/V2rayCollector", "Rayan-Config/C-Sub", "soroushmirzaei/telegram-configs-collector",
+            "Surfboardv2ray/TGParse", "mheidari98/.proxy", "V2RayRoot/V2RayConfig",
+            "4n0nymous/multi-proxy-config-fetcher"
+        )
+        // Bound sequential GitHub crawling to reduce long stalls and memory pressure on phones.
+        // Keep the original discovery set first, then append every user-requested repository.
+        val repos = (iranianRepos + globalRepos).distinct().take(12)
+        val sourceRepos = (repos.take(6) + priorityRepos).distinct()
         val found = linkedSetOf<String>()
-        for (repo in repos) try {
+
+        // Public country-split feeds; the server IP is still geolocated independently below.
+        // Missing or renamed files are skipped so one source never blocks the rest.
+        val countryCodes = listOf(
+            "IR", "DE", "US", "NL", "FR", "GB", "TR", "AE", "RU", "JP",
+            "SG", "CA", "CH", "SE", "FI", "PL", "IT", "ES", "AT", "BE",
+            "CZ", "RO", "UA", "IN", "KR", "TW", "HK", "ID", "TH", "BR",
+            "AU", "ZA", "IL", "IQ", "AM", "AZ", "GE", "KZ", "NO", "DK"
+        )
+        val countryFeeds = buildList {
+            // User-requested public source feeds; unavailable paths are skipped independently.
+            add("https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/United_States.txt")
+            add("https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Germany.txt")
+            add("https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/T%C3%BCrkiye.txt")
+            add("https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/South_Korea.txt")
+            add("https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Russia.txt")
+            add("https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/United_States.txt")
+            add("https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Germany.txt")
+            add("https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/T%C3%BCrkiye.txt")
+            add("https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/South_Korea.txt")
+            add("https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Russia.txt")
+            add("https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/us.txt")
+            add("https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/de.txt")
+            add("https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/tr.txt")
+            add("https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/kr.txt")
+            add("https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/ru.txt")
+            add("https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/US.txt")
+            add("https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/DE.txt")
+            add("https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/TR.txt")
+            add("https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/KR.txt")
+            add("https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/RU.txt")
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/reality.txt")
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/best.txt")
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/iran.txt")
+            add("https://raw.githubusercontent.com/MatinGhanbari/v2ray-configs/main/subscriptions/filtered/subs/hysteria2.txt")
+            add("https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/fast/configs.txt")
+            add("https://raw.githubusercontent.com/0xRadikal/Free-v2ray-Configs/main/verified/configs.txt")
+            add("https://raw.githubusercontent.com/drmikecrypto/PulseConfigs/main/top5.txt")
+            add("https://raw.githubusercontent.com/drmikecrypto/PulseConfigs/main/top5_speed.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/Best-Results/top100.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/Best-Results/top500.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/everything.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/verified.txt")
+            add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/curated.txt")
+            for (code in countryCodes) {
+                add("https://raw.githubusercontent.com/rtwo2/FastNodes/main/sub/countries/" + code + ".txt")
+                add("https://raw.githubusercontent.com/Au1rxx/free-vpn-subscriptions/main/output/v2ray-base64-" + code + ".txt")
+            }
+            add("https://raw.githubusercontent.com/Au1rxx/free-vpn-subscriptions/main/output/v2ray-base64.txt")
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/iran.txt")
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/all.txt")
+            add("https://raw.githubusercontent.com/morpheusadam/v2ray-config/main/subs/bundles/best.txt")
+        }.distinct()
+
+        // Fetch all configured feeds in small concurrent batches.
+        val feedResults = kotlinx.coroutines.runBlocking {
+            kotlinx.coroutines.coroutineScope {
+                countryFeeds.chunked(8).flatMap { batch ->
+                    val feedScope = this
+                    batch.map { feed ->
+                        feedScope.async(kotlinx.coroutines.Dispatchers.IO) {
+                            runCatching { extract(get(feed, 4500)) }.getOrDefault(emptyList())
+                        }
+                    }.awaitAll()
+                }
+            }
+        }
+        feedResults.forEach { batch -> batch.forEach { found.add(it) } }
+        if (found.size >= 4000) return found.toList()
+
+        for (repo in sourceRepos) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
             val branch = Regex("""default_branch"\s*:\s*"([^"]+)""").find(metadata)?.groupValues?.get(1) ?: "main"
             val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
-            val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"").findAll(tree).map { it.groupValues[1] }
+            val paths = Regex(""" "path"\s*:\s*"([^"]+)" """).findAll(tree).map { it.groupValues[1] }
                 .filter { p -> val q = p.lowercase(); (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) && (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country")) }
-                .take(10)
+                .take(12)
             for (path in paths) {
                 val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
                 extract(raw).forEach { found.add(it) }
-                if (found.size >= 250) return found.toList()
+                if (found.size >= 4000) return found.toList()
             }
         } catch (_: Exception) { /* Other sources may still work. */ }
         return found.toList()
     }
 
     private fun extract(text: String): List<String> {
-        val pattern = Regex("(?:vmess|vless|trojan|ss|hy2|hysteria2|tuic|socks)://[^\\s\"'<>]+", RegexOption.IGNORE_CASE)
-        val direct = pattern.findAll(text).map { it.value.trimEnd(',', ';', ')') }.toList()
-        if (direct.isNotEmpty()) return direct
-        val compact = text.filterNot { it.isWhitespace() }
-        if (compact.length !in 24..2_000_000) return emptyList()
-        val bytes = runCatching { Base64.decode(compact, Base64.DEFAULT) }
-            .recoverCatching { Base64.decode(compact, Base64.URL_SAFE or Base64.NO_WRAP) }
-            .getOrNull() ?: return emptyList()
-        val decoded = bytes.toString(Charsets.UTF_8)
-        return pattern.findAll(decoded).map { it.value.trimEnd(',', ';', ')') }.toList()
+        val pattern = Regex("""(?:vmess|vless|trojan|ss|hy2|hysteria2|tuic|socks)://[^\s"'<>]+""", RegexOption.IGNORE_CASE)
+        var candidate = text
+        repeat(3) {
+            val found = pattern.findAll(candidate).map { it.value.trimEnd(',', ';', ')', ']', '}') }.distinct().toList()
+            if (found.isNotEmpty()) return found
+            val compact = candidate.filterNot { it.isWhitespace() }
+            if (compact.length !in 24..2_000_000) return emptyList()
+            val bytes = runCatching { Base64.decode(compact, Base64.DEFAULT) }
+                .recoverCatching { Base64.decode(compact, Base64.URL_SAFE or Base64.NO_WRAP) }
+                .getOrNull() ?: return emptyList()
+            val decoded = bytes.toString(Charsets.UTF_8)
+            if (decoded == candidate) return emptyList()
+            candidate = decoded
+        }
+        return pattern.findAll(candidate).map { it.value.trimEnd(',', ';', ')', ']', '}') }.distinct().toList()
     }
 
     private fun testTcp(uri: String): RadarCandidate {
         val endpoint = parseEndpoint(uri)
             ?: return RadarCandidate(uri, null, "آدرس یا پورت قابل تشخیص نیست")
+        val tcpApplicable = protocolOf(uri) !in UDP_FIRST_PROTOCOLS
         val dnsStart = System.nanoTime()
         val addresses = try {
             InetAddress.getAllByName(endpoint.first)
         } catch (_: Exception) {
-            return RadarCandidate(uri, null, "DNS ناموفق بود یا میزبان در دسترس نیست")
+            return RadarCandidate(uri, null, "DNS ناموفق بود یا میزبان در دسترس نیست", tcpProbeApplicable = tcpApplicable)
         }
-        val dnsMs = (System.nanoTime() - dnsStart) / 1_000_000L
+        val dnsMs = ((System.nanoTime() - dnsStart) / 1_000_000L).coerceAtLeast(0L)
+        if (!tcpApplicable) {
+            val ip = addresses.firstOrNull()?.hostAddress?.substringBefore("%")
+            return RadarCandidate(
+                uri = uri,
+                latency = null,
+                note = "این پروتکل معمولاً UDP است؛ تست TCP معیار معتبر نیست. برای RDY واقعی، کانفیگ باید با هستهٔ VPN آزمایش شود.",
+                dnsLatency = dnsMs,
+                country = lookupCountry(ip),
+                serverIp = ip,
+                tcpProbeApplicable = false,
+            )
+        }
+
         var lastError: Exception? = null
+        var successfulAddress: InetAddress? = null
+        val samples = mutableListOf<Long>()
+
+        // Three real TCP connect samples provide a more stable median than a single attempt.
+        // This measures endpoint TCP reachability, not VPN tunnel RDY.
         for (address in addresses) {
-            val tcpStart = System.nanoTime()
-            try {
-                Socket().use { socket ->
-                    socket.connect(InetSocketAddress(address, endpoint.second), 1800)
+            repeat(TCP_LATENCY_SAMPLE_COUNT) {
+                val started = System.nanoTime()
+                try {
+                    Socket().use { socket ->
+                        socket.tcpNoDelay = true
+                        socket.connect(InetSocketAddress(address, endpoint.second), TCP_CONNECT_TIMEOUT_MS)
+                    }
+                    samples += ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(0L)
+                    successfulAddress = address
+                } catch (e: Exception) {
+                    lastError = e
                 }
-                val tcpMs = (System.nanoTime() - tcpStart) / 1_000_000L
-                return RadarCandidate(
-                    uri = uri,
-                    latency = tcpMs,
-                    note = "DNS و پورت پاسخ دادند؛ سلامت تونل تأیید نشده",
-                    dnsLatency = dnsMs,
-                )
-            } catch (e: Exception) {
-                lastError = e
             }
+            if (samples.isNotEmpty()) break
         }
+
+        // Geolocate the same resolved IP used by the successful TCP probe whenever possible.
+        // If TCP failed, show the resolved address but do not call that a latency result.
+        val ipAddress = (successfulAddress ?: addresses.firstOrNull())
+            ?.hostAddress?.substringBefore("%")
+        val country = lookupCountry(ipAddress)
+        if (samples.isNotEmpty()) {
+            return RadarCandidate(
+                uri = uri,
+                latency = RadarLatency.medianMillis(samples),
+                note = if (samples.size == TCP_LATENCY_SAMPLE_COUNT) {
+                    "میانهٔ سه اتصال TCP واقعی؛ سلامت تونل تأیید نشده"
+                } else {
+                    "اتصال TCP واقعی برقرار شد؛ نمونه‌های موفق: " + samples.size + "/" + TCP_LATENCY_SAMPLE_COUNT + "؛ سلامت تونل تأیید نشده"
+                },
+                dnsLatency = dnsMs,
+                country = country,
+                serverIp = ipAddress,
+                latencySamples = samples.size,
+            )
+        }
+
         val detail = if (lastError is java.net.SocketTimeoutException) {
             "مهلت اتصال TCP تمام شد"
         } else {
             "DNS پاسخ داد، اما پورت TCP در دسترس نیست"
         }
-        return RadarCandidate(uri, null, detail, dnsMs)
+        return RadarCandidate(
+            uri = uri,
+            latency = null,
+            note = detail,
+            dnsLatency = dnsMs,
+            country = country,
+            serverIp = ipAddress,
+            latencySamples = 0,
+        )
+    }
+
+    private val geoCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val geoAttempted = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    private fun lookupCountry(address: String?): String? = runCatching {
+        val ip = address?.substringBefore("%")?.takeIf { it.isNotBlank() } ?: return null
+        geoCache[ip]?.let { return it }
+
+        val inet = InetAddress.getByName(ip)
+        // Never send private, loopback, link-local or multicast addresses to GeoIP providers.
+        if (inet.isAnyLocalAddress || inet.isLoopbackAddress || inet.isLinkLocalAddress ||
+            inet.isSiteLocalAddress || inet.isMulticastAddress
+        ) return null
+        // Bound external lookups, including failed ones, so a large scan cannot hammer GeoIP APIs.
+        if (geoAttempted.size >= MAX_GEO_LOOKUPS || !geoAttempted.add(ip)) return geoCache[ip]
+
+        // Send only the endpoint IP, never a config URI, UUID, password, or other credential.
+        val encodedIp = java.net.URLEncoder.encode(ip, "UTF-8")
+        val primary = runCatching { get("https://ipwho.is/" + encodedIp, GEO_TIMEOUT_MS) }.getOrNull()
+        val primaryCountry = primary
+            ?.takeUnless { Regex("\"success\"\\s*:\\s*false", RegexOption.IGNORE_CASE).containsMatchIn(it) }
+            ?.let { Regex("\"country\"\\s*:\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE).find(it)?.groupValues?.get(1) }
+        val fallbackCountry = if (primaryCountry.isNullOrBlank()) {
+            runCatching {
+                val json = get("https://api.ipapi.is/?q=" + encodedIp, GEO_TIMEOUT_MS)
+                Regex("\"country\"\\s*:\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE).find(json)?.groupValues?.get(1)
+                    ?: Regex("\"country_name\"\\s*:\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE).find(json)?.groupValues?.get(1)
+            }.getOrNull()
+        } else null
+        val country = primaryCountry?.takeIf { it.isNotBlank() } ?: fallbackCountry
+        if (!country.isNullOrBlank()) geoCache.putIfAbsent(ip, country)
+        country
+    }.getOrNull()
+
+    companion object {
+        private val UDP_FIRST_PROTOCOLS = setOf("hy2", "hysteria2", "tuic")
+        private const val TCP_LATENCY_SAMPLE_COUNT = 3
+        private const val TCP_CONNECT_TIMEOUT_MS = 1_000
+        private const val GEO_TIMEOUT_MS = 3_500
+        private const val MAX_GEO_LOOKUPS = 1_000
     }
 
     private fun protocolOf(uri: String): String {
@@ -321,8 +604,27 @@ class RadarConfigActivity : ComponentActivity() {
 
     private fun get(url: String, timeout: Int): String {
         val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = timeout; c.readTimeout = timeout
+        c.connectTimeout = timeout
+        c.readTimeout = timeout
+        c.instanceFollowRedirects = true
         c.setRequestProperty("User-Agent", "G-ST-VPN-Radar/1.0")
-        return try { c.inputStream.bufferedReader().use { it.readText().take(2_000_000) } } finally { c.disconnect() }
+        c.setRequestProperty("Accept-Encoding", "identity")
+        return try {
+            val code = c.responseCode
+            if (code !in 200..299) throw java.io.IOException("HTTP $code")
+            c.inputStream.bufferedReader(Charsets.UTF_8).use { reader ->
+                val out = StringBuilder()
+                val buffer = CharArray(8192)
+                val maxChars = 1_000_000
+                while (out.length < maxChars) {
+                    val count = reader.read(buffer, 0, minOf(buffer.size, maxChars - out.length))
+                    if (count < 0) break
+                    out.append(buffer, 0, count)
+                }
+                out.toString()
+            }
+        } finally {
+            c.disconnect()
+        }
     }
 }

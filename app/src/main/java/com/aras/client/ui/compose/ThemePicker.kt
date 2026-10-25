@@ -129,6 +129,15 @@ fun ThemePicker(
             accent = Color(0xFF3DA9FF),
             foreground = Color(0xFFEAF3FF)
         ),
+        ThemeChoice(
+            value = "rdr-speedr",
+            title = "RDR SPEEDR",
+            description = "Precision Speed & Tunnel Radar",
+            background = Color(0xFF070B12),
+            surface = Color(0xFF101B29),
+            accent = Color(0xFF41F6D0),
+            foreground = Color(0xFFE8FFFC)
+        ),
     )
 
     Column(

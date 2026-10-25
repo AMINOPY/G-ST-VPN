@@ -276,6 +276,16 @@ fun MainScreen(
                             isDarkTheme = isDarkTheme,
                             serverTitle = mainViewModel.connectedServerTitle(),
                         )
+                        "rdr-speedr" -> RdrSpeedrDashboard(
+                            isRunning = isRunning,
+                            hasPing = hasPing,
+                            selectedGuid = selectedGuid,
+                            isDarkTheme = isDarkTheme,
+                            serverTitle = mainViewModel.connectedServerTitle(),
+                            onToggle = { onAction(MainAction.ToggleService) },
+                            onOpenConfigs = { showMenu = true },
+                            onOpenSettings = { onNavigate(MainDestination.Settings) }
+                        )
                         "survival" -> SurvivalFieldPanel(
                             isConnected = isRunning && hasPing,
                             serverTitle = mainViewModel.connectedServerTitle(),
