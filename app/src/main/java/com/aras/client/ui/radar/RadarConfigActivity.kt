@@ -38,6 +38,8 @@ private data class RadarCandidate(
     val dnsLatency: Long? = null,
     val country: String? = null,
     val serverIp: String? = null,
+    val latencySamples: Int = 0,
+    val tcpProbeApplicable: Boolean = true,
 )
 
 /** Public-source discovery. TCP reachability is not treated as proof of a working proxy tunnel. */
@@ -60,7 +62,7 @@ class RadarConfigActivity : ComponentActivity() {
                 val visibleResults = results.filter { candidate ->
                     val reachabilityMatches = when (resultFilter) {
                         "reachable" -> candidate.latency != null
-                        "failed" -> candidate.latency == null
+                        "failed" -> candidate.tcpProbeApplicable && candidate.latency == null
                         else -> true
                     }
                     val protocolMatches = protocolFilter == "all" || protocolOf(candidate.uri) == protocolFilter
@@ -128,7 +130,7 @@ class RadarConfigActivity : ComponentActivity() {
                             FilterChip(
                                 selected = resultFilter == "failed",
                                 onClick = { resultFilter = "failed" },
-                                label = { Text("بدون پاسخ (" + results.count { it.latency == null } + ")") }
+                                label = { Text("بدون پاسخ (" + results.count { it.tcpProbeApplicable && it.latency == null } + ")") }
                             )
                         }
                         androidx.compose.foundation.lazy.LazyRow(
@@ -191,7 +193,7 @@ class RadarConfigActivity : ComponentActivity() {
                         // the nested lazy list received unbounded height and hid lower configs.
                         if (visibleResults.size > 180) {
                             Text(
-                                "۱۸۰ نتیجهٔ برتر از " + visibleResults.size + " مورد نمایش داده می‌شود؛ ترتیب بر اساس کمترین تأخیر TCP است.",
+                                "۱۸۰ نتیجهٔ برتر از " + visibleResults.size + " مورد نمایش داده می‌شود؛ ترتیب بر اساس میانهٔ تأخیر TCP واقعی است.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.secondary
                             )
@@ -229,7 +231,7 @@ class RadarConfigActivity : ComponentActivity() {
                                             if (item.latency == null) {
                                                 (item.dnsLatency?.let { "DNS " + it + " ms · " } ?: "") + item.note
                                             } else {
-                                                "TCP: " + (item.latency?.toString() ?: "—") + " ms · DNS: " + (item.dnsLatency?.toString() ?: "—") + " ms · " + coreRdyLabel
+                                                "TCP واقعی: " + (item.latency?.toString() ?: "—") + " ms (" + item.latencySamples + "/3 نمونه) · DNS: " + (item.dnsLatency?.toString() ?: "—") + " ms · " + coreRdyLabel
                                             },
                                             color = if (item.latency == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
                                         if (item.latency != null) {
@@ -268,21 +270,24 @@ class RadarConfigActivity : ComponentActivity() {
                             }
                             for (result in batchResults) {
                                 if (result.latency != null) reachable++
-                                // Keep reachable candidates first, but retain failed candidates too so
-                                // the "بدون پاسخ" filter works and users can inspect failed sources.
-                                results.add(result)
-                                val ranked = results
-                                    .distinctBy { it.uri }
-                                    .sortedWith(compareBy<RadarCandidate> { it.latency == null }
-                                        .thenBy { it.latency ?: Long.MAX_VALUE })
-                                    .take(180)
-                                results.clear()
-                                results.addAll(ranked)
                                 val savedCoreRdy = RadarRdyResultStore.read(result.uri)
                                 val corePing = savedCoreRdy?.removePrefix("RESULT:")?.substringBefore(":")?.toLongOrNull()
-                                if (corePing != null) radar?.addCoreRdyCandidate(corePing) else radar?.addDiscoveryCandidate(result.latency != null)
+                                if (corePing != null) {
+                                    radar?.addCoreRdyCandidate(corePing)
+                                } else if (result.tcpProbeApplicable) {
+                                    radar?.addDiscoveryCandidate(result.latency != null)
+                                }
                                 checked++
                             }
+                            // Keep every tested config for country filters and counts. The UI renders
+                            // only the best 180 at a time to avoid creating thousands of Compose cards.
+                            results.addAll(batchResults)
+                            val ranked = results
+                                .distinctBy { it.uri }
+                                .sortedWith(compareBy<RadarCandidate> { it.latency == null }
+                                    .thenBy { it.latency ?: Long.MAX_VALUE })
+                            results.clear()
+                            results.addAll(ranked)
                             message = "بررسی " + checked + "/" + bounded.size + " · پاسخ TCP: " + reachable + " · نمایش بهترین‌ها: " + results.size
                         }
                         if (scanning) {
@@ -451,33 +456,71 @@ class RadarConfigActivity : ComponentActivity() {
     private fun testTcp(uri: String): RadarCandidate {
         val endpoint = parseEndpoint(uri)
             ?: return RadarCandidate(uri, null, "آدرس یا پورت قابل تشخیص نیست")
+        val tcpApplicable = protocolOf(uri) !in UDP_FIRST_PROTOCOLS
         val dnsStart = System.nanoTime()
         val addresses = try {
             InetAddress.getAllByName(endpoint.first)
         } catch (_: Exception) {
-            return RadarCandidate(uri, null, "DNS ناموفق بود یا میزبان در دسترس نیست")
+            return RadarCandidate(uri, null, "DNS ناموفق بود یا میزبان در دسترس نیست", tcpProbeApplicable = tcpApplicable)
         }
-        val dnsMs = (System.nanoTime() - dnsStart) / 1_000_000L
+        val dnsMs = ((System.nanoTime() - dnsStart) / 1_000_000L).coerceAtLeast(0L)
+        if (!tcpApplicable) {
+            val ip = addresses.firstOrNull()?.hostAddress?.substringBefore("%")
+            return RadarCandidate(
+                uri = uri,
+                latency = null,
+                note = "این پروتکل معمولاً UDP است؛ تست TCP معیار معتبر نیست. برای RDY واقعی، کانفیگ باید با هستهٔ VPN آزمایش شود.",
+                dnsLatency = dnsMs,
+                country = lookupCountry(ip),
+                serverIp = ip,
+                tcpProbeApplicable = false,
+            )
+        }
+
         var lastError: Exception? = null
+        var successfulAddress: InetAddress? = null
+        val samples = mutableListOf<Long>()
+
+        // Three real TCP connect samples provide a more stable median than a single attempt.
+        // This measures endpoint TCP reachability, not VPN tunnel RDY.
         for (address in addresses) {
-            val tcpStart = System.nanoTime()
-            try {
-                Socket().use { socket ->
-                    socket.connect(InetSocketAddress(address, endpoint.second), 1800)
+            repeat(TCP_LATENCY_SAMPLE_COUNT) {
+                val started = System.nanoTime()
+                try {
+                    Socket().use { socket ->
+                        socket.tcpNoDelay = true
+                        socket.connect(InetSocketAddress(address, endpoint.second), TCP_CONNECT_TIMEOUT_MS)
+                    }
+                    samples += ((System.nanoTime() - started) / 1_000_000L).coerceAtLeast(0L)
+                    successfulAddress = address
+                } catch (e: Exception) {
+                    lastError = e
                 }
-                val tcpMs = (System.nanoTime() - tcpStart) / 1_000_000L
-                return RadarCandidate(
-                    uri = uri,
-                    latency = tcpMs,
-                    note = "DNS و پورت پاسخ دادند؛ سلامت تونل تأیید نشده",
-                    dnsLatency = dnsMs,
-                    country = lookupCountry(uri),
-                    serverIp = resolveServerIp(uri),
-                )
-            } catch (e: Exception) {
-                lastError = e
             }
+            if (samples.isNotEmpty()) break
         }
+
+        // Geolocate the same resolved IP used by the successful TCP probe whenever possible.
+        // If TCP failed, show the resolved address but do not call that a latency result.
+        val ipAddress = (successfulAddress ?: addresses.firstOrNull())
+            ?.hostAddress?.substringBefore("%")
+        val country = lookupCountry(ipAddress)
+        if (samples.isNotEmpty()) {
+            return RadarCandidate(
+                uri = uri,
+                latency = RadarLatency.medianMillis(samples),
+                note = if (samples.size == TCP_LATENCY_SAMPLE_COUNT) {
+                    "میانهٔ سه اتصال TCP واقعی؛ سلامت تونل تأیید نشده"
+                } else {
+                    "اتصال TCP واقعی برقرار شد؛ نمونه‌های موفق: " + samples.size + "/" + TCP_LATENCY_SAMPLE_COUNT + "؛ سلامت تونل تأیید نشده"
+                },
+                dnsLatency = dnsMs,
+                country = country,
+                serverIp = ipAddress,
+                latencySamples = samples.size,
+            )
+        }
+
         val detail = if (lastError is java.net.SocketTimeoutException) {
             "مهلت اتصال TCP تمام شد"
         } else {
@@ -488,46 +531,52 @@ class RadarConfigActivity : ComponentActivity() {
             latency = null,
             note = detail,
             dnsLatency = dnsMs,
-            country = lookupCountry(uri),
-            serverIp = resolveServerIp(uri),
+            country = country,
+            serverIp = ipAddress,
+            latencySamples = 0,
         )
     }
 
     private val geoCache = java.util.concurrent.ConcurrentHashMap<String, String>()
-    private val resolvedIpCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val geoAttempted = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
-    private fun resolveServerIp(uri: String): String? = runCatching {
-        val endpoint = parseEndpoint(uri) ?: return null
-        val host = endpoint.first
-        resolvedIpCache[host]?.let { return it }
-        val ip = InetAddress.getAllByName(host).firstOrNull()?.hostAddress?.substringBefore("%")
-            ?: return null
-        if (resolvedIpCache.size < 500) resolvedIpCache.putIfAbsent(host, ip)
-        ip
-    }.getOrNull()
+    private fun lookupCountry(address: String?): String? = runCatching {
+        val ip = address?.substringBefore("%")?.takeIf { it.isNotBlank() } ?: return null
+        geoCache[ip]?.let { return it }
 
-    private fun lookupCountry(uri: String): String? = runCatching {
-        val address = resolveServerIp(uri) ?: return null
-        geoCache[address]?.let { return it }
-        if (geoCache.size >= 200) return null
-        // Query public IP-only endpoints over HTTPS. Never send the config URI or credentials.
-        // A second provider is used only when the first is unavailable or returns no country.
-        val encodedIp = java.net.URLEncoder.encode(address, "UTF-8")
-        val primary = runCatching { get("https://ipwho.is/" + encodedIp, 3500) }.getOrNull()
+        val inet = InetAddress.getByName(ip)
+        // Never send private, loopback, link-local or multicast addresses to GeoIP providers.
+        if (inet.isAnyLocalAddress || inet.isLoopbackAddress || inet.isLinkLocalAddress ||
+            inet.isSiteLocalAddress || inet.isMulticastAddress
+        ) return null
+        // Bound external lookups, including failed ones, so a large scan cannot hammer GeoIP APIs.
+        if (geoAttempted.size >= MAX_GEO_LOOKUPS || !geoAttempted.add(ip)) return geoCache[ip]
+
+        // Send only the endpoint IP, never a config URI, UUID, password, or other credential.
+        val encodedIp = java.net.URLEncoder.encode(ip, "UTF-8")
+        val primary = runCatching { get("https://ipwho.is/" + encodedIp, GEO_TIMEOUT_MS) }.getOrNull()
         val primaryCountry = primary
             ?.takeUnless { Regex("\"success\"\\s*:\\s*false", RegexOption.IGNORE_CASE).containsMatchIn(it) }
             ?.let { Regex("\"country\"\\s*:\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE).find(it)?.groupValues?.get(1) }
         val fallbackCountry = if (primaryCountry.isNullOrBlank()) {
             runCatching {
-                val json = get("https://api.ipapi.is/?q=" + encodedIp, 3500)
+                val json = get("https://api.ipapi.is/?q=" + encodedIp, GEO_TIMEOUT_MS)
                 Regex("\"country\"\\s*:\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE).find(json)?.groupValues?.get(1)
                     ?: Regex("\"country_name\"\\s*:\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE).find(json)?.groupValues?.get(1)
             }.getOrNull()
         } else null
         val country = primaryCountry?.takeIf { it.isNotBlank() } ?: fallbackCountry
-        if (!country.isNullOrBlank()) geoCache.putIfAbsent(address, country)
+        if (!country.isNullOrBlank()) geoCache.putIfAbsent(ip, country)
         country
     }.getOrNull()
+
+    companion object {
+        private val UDP_FIRST_PROTOCOLS = setOf("hy2", "hysteria2", "tuic")
+        private const val TCP_LATENCY_SAMPLE_COUNT = 3
+        private const val TCP_CONNECT_TIMEOUT_MS = 1_000
+        private const val GEO_TIMEOUT_MS = 3_500
+        private const val MAX_GEO_LOOKUPS = 1_000
+    }
 
     private fun protocolOf(uri: String): String {
         val scheme = uri.substringBefore("://", "").lowercase()
