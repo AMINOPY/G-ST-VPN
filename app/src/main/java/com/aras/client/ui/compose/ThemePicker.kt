@@ -122,12 +122,12 @@ fun ThemePicker(
         ),
         ThemeChoice(
             value = "rdrx",
-            title = "RDR X",
-            description = "Orbital Glass Radar Interface",
-            background = Color(0xFF0A0E1A),
+            title = "RADAR Glass",
+            description = "Real radar connect button · iOS 26 liquid glass · Apple Watch style menu",
+            background = Color(0xFF05070D),
             surface = Color(0xFF111A2B),
-            accent = Color(0xFF3DA9FF),
-            foreground = Color(0xFFEAF3FF)
+            accent = Color(0xFF30D158),
+            foreground = Color(0xFFF5F6FA)
         ),
     )
 

@@ -16,6 +16,7 @@ import com.aras.client.ui.compose.AuroraGlassCard
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontFamily
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.Spacer
@@ -58,9 +59,7 @@ import com.aras.client.ui.compose.CulturalRadar
 import com.aras.client.ui.compose.LocalDarkTheme
 import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.QRCodeDialog
-import com.aras.client.ui.rdrx.RdrXDashboard
-import com.aras.client.ui.rdrx.RdrXStatus
-import com.aras.client.ui.rdrx.RdrXTheme
+import com.aras.client.ui.rdr.RdrMainHost
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -99,6 +98,9 @@ fun MainScreen(
     val themeMode by ThemeManager.themeMode.collectAsStateWithLifecycle()
     val uiTheme by ThemeManager.uiTheme.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
+    // RADAR Glass theme ("rdrx"): home = radar, tapping the config card opens the normal list.
+    var rdrShowList by remember { mutableStateOf(false) }
+    BackHandler(enabled = uiTheme == "rdrx" && rdrShowList) { rdrShowList = false }
     val scope = rememberCoroutineScope()
     var showSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -191,6 +193,18 @@ fun MainScreen(
         onNavigate = onNavigate,
     )
 
+    if (uiTheme == "rdrx" && !rdrShowList) {
+        RdrMainHost(
+            uiState = uiState,
+            hasPing = hasPing,
+            isDark = isDarkTheme,
+            onAction = onAction,
+            onNavigate = onNavigate,
+            onOpenList = { rdrShowList = true },
+        )
+        return
+    }
+
     Scaffold(
             contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
             topBar = {
@@ -280,25 +294,6 @@ fun MainScreen(
                             isConnected = isRunning && hasPing,
                             serverTitle = mainViewModel.connectedServerTitle(),
                         )
-                        "rdrx" -> RdrXTheme(dark = isDarkTheme) {
-                            RdrXDashboard(
-                                status = when {
-                                    !isRunning -> RdrXStatus.OFFLINE
-                                    hasPing -> RdrXStatus.CONNECTED
-                                    else -> RdrXStatus.VERIFYING
-                                },
-                                isRunning = isRunning,
-                                hasPing = hasPing,
-                                serverTitle = mainViewModel.connectedServerTitle(),
-                                pingMs = selectedGuid?.let { guid ->
-                                    MmkvManager.decodeServerAffiliationInfo(guid)?.testDelayMillis
-                                }?.takeIf { it > 0L },
-                                onConnect = { onAction(MainAction.ToggleService) },
-                                onTest = { onAction(MainAction.TestCurrentServer) },
-                                onMenu = { showMenu = true },
-                                onImport = { onAction(MainAction.ImportManualMenu) },
-                            )
-                        }
                     }
                     updateAnnouncement?.let { announcement ->
                         UpdateAnnouncementBanner(
@@ -353,7 +348,10 @@ fun MainScreen(
                             scrollToTopTick = scrollToTopTick,
                             lazyListStates = lazyListStates,
                             lazyGridStates = lazyGridStates,
-                            onSelectServer = { guid -> onAction(MainAction.SelectServer(guid)) },
+                            onSelectServer = { guid ->
+                                onAction(MainAction.SelectServer(guid))
+                                if (uiTheme == "rdrx") rdrShowList = false
+                            },
                             onEditServer = { guid, profile -> onAction(MainAction.EditServer(guid, profile)) },
                             onShareServer = { guid, profile ->
                                 shareTarget = Triple(guid, profile, false)
