@@ -275,12 +275,34 @@ fun ThemePicker(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(42.dp)
+                                    .height(if (choice.value == "rdrx") 96.dp else 42.dp)
                                     .clip(RoundedCornerShape(9.dp))
-                                    .background(choice.background)
+                                    .background(
+                                        if (choice.value == "rdrx") androidx.compose.ui.graphics.Brush.verticalGradient(
+                                            listOf(Color(0xFF0B1B3A), Color(0xFF2A1250))
+                                        ) else androidx.compose.ui.graphics.SolidColor(choice.background)
+                                    )
                                     .padding(7.dp)
                             ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                if (choice.value == "rdrx") {
+                                    // پیش‌نمایش زنده‌ی کوچک: رادار سبز + مستطیل شیشه‌ای + کپسول
+                                    androidx.compose.foundation.Canvas(Modifier.matchParentSize()) {
+                                        val r = size.height * 0.30f
+                                        val ctr = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height * 0.40f)
+                                        drawCircle(Color(0xFF30D158).copy(alpha = 0.18f), r * 1.35f, ctr)
+                                        drawCircle(Color(0xFF30D158), r, ctr, style = androidx.compose.ui.graphics.drawscope.Stroke(2f))
+                                        drawCircle(Color(0xFF30D158).copy(alpha = 0.5f), r * 0.6f, ctr, style = androidx.compose.ui.graphics.drawscope.Stroke(1.5f))
+                                        drawCircle(Color(0xFF30D158), 3.5f, androidx.compose.ui.geometry.Offset(ctr.x + r * 0.35f, ctr.y - r * 0.25f))
+                                        drawLine(Color(0xFF30D158), ctr, androidx.compose.ui.geometry.Offset(ctr.x + r * 0.8f, ctr.y - r * 0.55f), 2f)
+                                        drawRoundRect(
+                                            Color.White.copy(alpha = 0.16f),
+                                            androidx.compose.ui.geometry.Offset(size.width * 0.12f, size.height * 0.76f),
+                                            androidx.compose.ui.geometry.Size(size.width * 0.76f, size.height * 0.15f),
+                                            androidx.compose.ui.geometry.CornerRadius(14f, 14f),
+                                        )
+                                    }
+                                }
+                                if (choice.value != "rdrx") Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Box(
                                         Modifier.fillMaxWidth(0.55f).height(4.dp)
                                             .clip(CircleShape).background(choice.accent)
