@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - feature/calculator-on-radar-restoration
+      - feature/ios-style-omni-calculator
   pull_request:
     branches:
+      - main
       - fix/radar-vpn-full-restoration
   workflow_dispatch:
 
