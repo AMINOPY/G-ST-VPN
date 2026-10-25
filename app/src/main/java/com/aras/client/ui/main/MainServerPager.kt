@@ -1,6 +1,7 @@
 package com.aras.client.ui.main
 
 import androidx.compose.foundation.background
+import com.aras.client.ui.rdr.glass
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -519,6 +520,7 @@ fun ServerListItem(
         null
     }
     val cardShape = RoundedCornerShape(16.dp)
+    val rdr = com.aras.client.ui.rdr.LocalRdrActive.current
     val cardColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer
     else MaterialTheme.colorScheme.surfaceContainerLow
     val pingColor = if (testDelayMillis < 0L) colorPingRed else colorPing
@@ -531,8 +533,15 @@ fun ServerListItem(
                     stateDescription = selectedStateDescription
                 }
             }
-            .clip(cardShape)
-            .background(cardColor)
+            .then(
+                if (rdr) Modifier.glass(
+                    cardShape,
+                    strong = isSelected,
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary
+                    else androidx.compose.ui.graphics.Color.Unspecified,
+                    shadow = 0.dp,
+                ) else Modifier.clip(cardShape).background(cardColor)
+            )
             .then(
                 if (isSelected) Modifier.border(
                     1.5.dp,

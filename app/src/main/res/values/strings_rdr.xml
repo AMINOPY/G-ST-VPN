@@ -70,4 +70,5 @@
     <string name="rdr_fx_radar">Radar sweep animation</string>
     <string name="rdr_fx_bg">Animated background</string>
     <string name="rdr_fx_haptics">Haptic feedback</string>
+    <string name="rdr_config_radar">Config Radar</string>
 </resources>

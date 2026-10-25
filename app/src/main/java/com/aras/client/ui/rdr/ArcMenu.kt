@@ -9,6 +9,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -48,7 +50,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -67,7 +74,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import com.aras.client.R
-import kotlinx.coroutines.delay
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -214,13 +220,13 @@ fun ArcMenu(
             ArcIconButton(
                 item = item,
                 index = index,
-                open = open,
                 size = size,
                 targetX = pos.first,
                 targetY = pos.second,
                 originX = originX,
                 originY = originY,
                 density = density,
+                master = { master.value },
                 onPressed = { pressedLabel = if (it) item.label else null },
                 onClick = { onSelect(item.dest) },
             )
@@ -244,25 +250,19 @@ fun ArcMenu(
 private fun ArcIconButton(
     item: ArcItem,
     index: Int,
-    open: Boolean,
     size: Dp,
     targetX: Dp,
     targetY: Dp,
     originX: Dp,
     originY: Dp,
     density: androidx.compose.ui.unit.Density,
+    master: () -> Float,
     onPressed: (Boolean) -> Unit,
     onClick: () -> Unit,
 ) {
-    val p = remember { Animatable(0f) }
-    LaunchedEffect(open) {
-        if (open) {
-            delay(45L + index * 38L)
-            p.animateTo(1f, spring(dampingRatio = 0.58f, stiffness = 420f))
-        } else {
-            p.animateTo(0f, tween(150))
-        }
-    }
+    // پیشرفت هر آیکون مستقیماً از انیمیشن اصلی مشتق می‌شود (بدون Animatable جدا)،
+    // پس نمایش آیکون‌ها به هیچ تأخیر یا افکت جانبی وابسته نیست.
+    fun progress(): Float = ((master() - index * 0.03f) / 0.64f).coerceIn(0f, 1f)
 
     val src = remember { MutableInteractionSource() }
     val pressed by src.collectIsPressedAsState()
@@ -271,32 +271,53 @@ private fun ArcIconButton(
     val fx = LocalRdrFx.current
     val label = stringResource(item.label)
 
-    val (ox, oy, tx, ty, half) = with(density) {
-        listOf(originX.toPx(), originY.toPx(), targetX.toPx(), targetY.toPx(), (size / 2).toPx())
-    }
+    val ox = with(density) { originX.toPx() }
+    val oy = with(density) { originY.toPx() }
+    val tx = with(density) { targetX.toPx() }
+    val ty = with(density) { targetY.toPx() }
+    val half = with(density) { (size / 2).toPx() }
 
     Box(
         Modifier
             .absoluteOffset {
+                val p = progress()
                 IntOffset(
-                    (lerp(ox, tx, p.value) - half).roundToInt(),
-                    (lerp(oy, ty, p.value) - half).roundToInt(),
+                    (lerp(ox, tx, p) - half).roundToInt(),
+                    (lerp(oy, ty, p) - half).roundToInt(),
                 )
             }
             .size(size)
             .graphicsLayer {
-                val s = p.value.coerceAtLeast(0f) * (if (pressed) 1.12f else 1f)
+                val p = progress()
+                val s = p * (if (pressed) 1.12f else 1f)
                 scaleX = s
                 scaleY = s
-                alpha = p.value.coerceIn(0f, 1f)
+                alpha = p
             }
-            .glass(CircleShape, strong = true, tint = item.tint, shadow = 10.dp)
+            // استیکر رنگیِ شیشه‌ای: گرادیان رنگ + هایلایت بالا + لبه‌ی روشن؛ آیکون سفید و همیشه خوانا
+            .shadow(10.dp, CircleShape, clip = false, ambientColor = item.tint, spotColor = item.tint)
+            .clip(CircleShape)
+            .background(
+                Brush.verticalGradient(
+                    listOf(item.tint.copy(alpha = 0.78f).compositeOver(Color.White), item.tint),
+                ),
+            )
+            .border(1.dp, Color.White.copy(alpha = 0.55f), CircleShape)
+            .drawWithContent {
+                drawContent()
+                drawRect(
+                    Brush.verticalGradient(
+                        0f to Color.White.copy(alpha = 0.38f),
+                        0.5f to Color.Transparent,
+                    ),
+                )
+            }
             .clickable(interactionSource = src, indication = null, role = Role.Button, onClickLabel = label) {
                 if (fx.haptics) hf.performHapticFeedback(HapticFeedbackType.LongPress)
                 onClick()
             },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(item.icon, label, tint = item.tint, modifier = Modifier.size(size * 0.48f))
+        Icon(item.icon, label, tint = Color.White, modifier = Modifier.size(size * 0.5f))
     }
 }

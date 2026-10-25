@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import com.aras.client.handler.MmkvManager
 import com.aras.client.ui.main.MainAction
 import com.aras.client.ui.main.MainDestination
+import com.aras.client.ui.main.MainMoreMenuAction
 import com.aras.client.ui.main.MainUiState
 import com.aras.client.util.ConnectionStatsManager
 import com.aras.client.util.CountryResolver
@@ -40,6 +41,8 @@ fun RdrMainHost(
     onAction: (MainAction) -> Unit,
     onNavigate: (MainDestination) -> Unit,
     onOpenList: () -> Unit,
+    onOpenSearch: () -> Unit,
+    onMoreAction: (MainMoreMenuAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val themeState = rememberRdrThemeState()
@@ -120,10 +123,6 @@ fun RdrMainHost(
     val actions = RdrHomeActions(
         onRadarClick = { onAction(MainAction.ToggleService) },
         onSmartConnect = { onAction(MainAction.SmartConnect) },
-        onAdd = { onAction(MainAction.ImportManualMenu) },
-        onSearch = onOpenList,
-        onImport = { onAction(MainAction.UpdateSubscriptions) },
-        onMore = onOpenList,
     )
 
     RdrTheme(themeState, darkOverride = isDark) {
@@ -133,6 +132,14 @@ fun RdrMainHost(
                 actions = actions,
                 onOpenConfigs = onOpenList,
                 onMenu = { menuOpen = true },
+                toolbar = {
+                    RdrToolbarCapsule(
+                        onSearch = onOpenSearch,
+                        onImportAction = onAction,
+                        onMoreAction = onMoreAction,
+                        onSync = { onAction(MainAction.UpdateSubscriptions) },
+                    )
+                },
             )
             ArcMenu(
                 open = menuOpen,

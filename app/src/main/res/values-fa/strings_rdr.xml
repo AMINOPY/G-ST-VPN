@@ -70,4 +70,5 @@
     <string name="rdr_fx_radar">انیمیشن جاروب رادار</string>
     <string name="rdr_fx_bg">پس‌زمینه‌ی متحرک</string>
     <string name="rdr_fx_haptics">لرزش لمسی</string>
+    <string name="rdr_config_radar">رادار کانفیگ</string>
 </resources>

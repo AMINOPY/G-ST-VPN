@@ -131,6 +131,9 @@ val DarkColors = RdrColors(
 val LocalRdrColors = compositionLocalOf { LightColors }
 val LocalRdrFx = compositionLocalOf { RdrFx() }
 
+/** true وقتی تم RADAR Glass فعال است؛ کامپوننت‌های مشترک با آن ظاهرشان را عوض می‌کنند. */
+val LocalRdrActive = compositionLocalOf { false }
+
 @Composable
 fun RdrTheme(
     state: RdrThemeState,
@@ -143,19 +146,31 @@ fun RdrTheme(
     val fx = remember(state.radarSweep, state.animatedBackground, state.haptics) {
         RdrFx(state.radarSweep, state.animatedBackground, state.haptics)
     }
-    val scheme = if (dark) {
-        darkColorScheme(primary = colors.accent, background = colors.bgTop, surface = colors.bgBottom,
-            onBackground = colors.text, onSurface = colors.text)
-    } else {
-        lightColorScheme(primary = colors.accent, background = colors.bgTop, surface = colors.bgBottom,
-            onBackground = colors.text, onSurface = colors.text)
-    }
+    // رنگ‌های برنامه (ThemeManager) حفظ می‌شوند؛ فقط تأکید و متن عوض می‌شود و پس‌زمینه شفاف است
+    // تا گرادیان RADAR Glass زیر همه‌ی صفحه‌ها دیده شود.
+    val base = MaterialTheme.colorScheme
+    val scheme = base.copy(
+        primary = colors.accent,
+        onPrimary = Color.White,
+        secondary = colors.accent,
+        onSecondary = Color.White,
+        background = Color.Transparent,
+        onBackground = colors.text,
+        onSurface = colors.text,
+        onSurfaceVariant = colors.textSecondary,
+    )
     MaterialTheme(colorScheme = scheme) {
         CompositionLocalProvider(
             LocalRdrColors provides colors,
             LocalRdrFx provides fx,
+            LocalRdrActive provides true,
             LocalContentColor provides colors.text,
             content = content,
         )
     }
 }
+
+/** در تم RADAR Glass به‌جای رنگ سطح مادریال، پرکننده‌ی شیشه‌ای می‌دهد. */
+@Composable
+fun rdrOr(default: Color): Color =
+    if (LocalRdrActive.current) LocalRdrColors.current.glassFillStrong else default

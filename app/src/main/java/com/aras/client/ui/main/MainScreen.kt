@@ -32,6 +32,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.runtime.Composable
@@ -59,6 +60,9 @@ import com.aras.client.ui.compose.CulturalRadar
 import com.aras.client.ui.compose.LocalDarkTheme
 import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.compose.QRCodeDialog
+import com.aras.client.ui.rdr.RdrListShell
+import com.aras.client.ui.rdr.RdrListTopBar
+import com.aras.client.ui.rdr.RdrToolbarCapsule
 import com.aras.client.ui.rdr.RdrMainHost
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -157,6 +161,30 @@ fun MainScreen(
             }
     }
 
+    val handleMore: (MainMoreMenuAction) -> Unit = { action ->
+        when (action) {
+            MainMoreMenuAction.RestartService -> onAction(MainAction.RestartService)
+            MainMoreMenuAction.DeleteAll -> showDelAllConfirm = true
+            MainMoreMenuAction.DeleteDuplicate -> showDelDuplicateConfirm = true
+            MainMoreMenuAction.DeleteInvalid -> showDelInvalidConfirm = true
+            MainMoreMenuAction.ExportAll -> onAction(MainAction.ExportAll)
+            MainMoreMenuAction.ExportSubTxt -> onAction(MainAction.ExportGroupTxt)
+            MainMoreMenuAction.LocateSelected -> onAction(MainAction.LocateSelectedServer)
+            MainMoreMenuAction.SortByTestResults -> onAction(MainAction.SortByTestResults)
+            MainMoreMenuAction.PingSelectedSubscription -> onAction(MainAction.PingSelectedSubscription)
+            MainMoreMenuAction.TestAll -> onAction(MainAction.TestAllServers)
+            MainMoreMenuAction.TestAllRealPing -> onAction(MainAction.TestRealAllServers)
+            MainMoreMenuAction.DpiDiagnostics -> context.startActivity(Intent(context, DpiTestActivity::class.java))
+            MainMoreMenuAction.UpdateSubscriptions -> onAction(MainAction.UpdateSubscriptions)
+        }
+    }
+    val rdrTheme = uiTheme == "rdrx"
+    val closeSearch: () -> Unit = {
+        searchQuery = ""
+        onAction(MainAction.Search(""))
+        showSearch = false
+    }
+
     MainDialogs(
         showDelAllConfirm = showDelAllConfirm,
         onDismissDelAll = { showDelAllConfirm = false },
@@ -201,14 +229,37 @@ fun MainScreen(
             onAction = onAction,
             onNavigate = onNavigate,
             onOpenList = { rdrShowList = true },
+            onOpenSearch = { showSearch = true; rdrShowList = true },
+            onMoreAction = handleMore,
         )
         return
     }
 
+    val listContent: @Composable () -> Unit = {
     Scaffold(
+            containerColor = if (rdrTheme) Color.Transparent else MaterialTheme.colorScheme.background,
             contentWindowInsets = ScaffoldDefaults.contentWindowInsets,
             topBar = {
-                MainTopBar(
+                if (rdrTheme) {
+                    RdrListTopBar(
+                        isLoading = isLoading,
+                        showSearch = showSearch,
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { query: String ->
+                            searchQuery = query
+                            onAction(MainAction.Search(query))
+                        },
+                        onSearchToggle = { show: Boolean -> if (show) showSearch = true else closeSearch() },
+                        onBack = { rdrShowList = false },
+                        toolbar = {
+                            RdrToolbarCapsule(
+                                onSearch = { showSearch = true },
+                                onImportAction = onAction,
+                                onMoreAction = handleMore,
+                            )
+                        },
+                    )
+                } else MainTopBar(
                     isLoading = isLoading,
                     showSearch = showSearch,
                     searchQuery = searchQuery,
@@ -229,27 +280,11 @@ fun MainScreen(
                     onSearchToggle = { show: Boolean -> showSearch = show },
                     onMenuClick = { showMenu = true },
                     onAction = onAction,
-                    onMoreMenuAction = { action ->
-                        when (action) {
-                            MainMoreMenuAction.RestartService -> onAction(MainAction.RestartService)
-                            MainMoreMenuAction.DeleteAll -> showDelAllConfirm = true
-                            MainMoreMenuAction.DeleteDuplicate -> showDelDuplicateConfirm = true
-                            MainMoreMenuAction.DeleteInvalid -> showDelInvalidConfirm = true
-                            MainMoreMenuAction.ExportAll -> onAction(MainAction.ExportAll)
-                            MainMoreMenuAction.ExportSubTxt -> onAction(MainAction.ExportGroupTxt)
-                            MainMoreMenuAction.LocateSelected -> onAction(MainAction.LocateSelectedServer)
-                            MainMoreMenuAction.SortByTestResults -> onAction(MainAction.SortByTestResults)
-                            MainMoreMenuAction.PingSelectedSubscription -> onAction(MainAction.PingSelectedSubscription)
-                            MainMoreMenuAction.TestAll -> onAction(MainAction.TestAllServers)
-                            MainMoreMenuAction.TestAllRealPing -> onAction(MainAction.TestRealAllServers)
-                            MainMoreMenuAction.DpiDiagnostics -> context.startActivity(Intent(context, DpiTestActivity::class.java))
-                            MainMoreMenuAction.UpdateSubscriptions -> onAction(MainAction.UpdateSubscriptions)
-                        }
-                    }
+                    onMoreMenuAction = handleMore
                 )
             },
             bottomBar = {
-                Column {
+                if (!rdrTheme) Column {
                     if (isRunning) {
                         com.aras.client.ui.compose.ConnectionMiniStats(
                             modifier = Modifier.padding(bottom = 4.dp)
@@ -399,8 +434,9 @@ fun MainScreen(
                 }
             }
         }
+    }
+    if (rdrTheme) RdrListShell(isDarkTheme, listContent) else listContent()
 }
-
 
 @Composable
 private fun AuroraSentinelHero(

@@ -75,16 +75,11 @@ fun RdrHomeScreen(
     actions: RdrHomeActions,
     onOpenConfigs: () -> Unit,
     onMenu: () -> Unit,
+    toolbar: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize()) {
-        RdrTopBar(
-            onMenu = onMenu,
-            onAdd = actions.onAdd,
-            onSearch = actions.onSearch,
-            onImport = actions.onImport,
-            onMore = actions.onMore,
-        )
+        RdrTopBar(onMenu = onMenu, toolbar = toolbar)
 
         BoxWithConstraints(
             Modifier
@@ -148,14 +143,10 @@ private fun Modifier.enterAnim(delayMs: Int): Modifier {
 @Composable
 fun RdrTopBar(
     onMenu: () -> Unit,
-    onAdd: () -> Unit,
-    onSearch: () -> Unit,
-    onImport: () -> Unit,
-    onMore: () -> Unit,
+    toolbar: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val c = LocalRdrColors.current
-    // طبق طرح: همبرگری سمت راست، آیکون‌ها سمت چپ؛ همیشه (فارسی و غیر فارسی)
+    // طبق طرح: همبرگری سمت راست، کپسول ابزار سمت چپ؛ همیشه (فارسی و غیر فارسی)
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Row(
             modifier
@@ -174,12 +165,7 @@ fun RdrTopBar(
             Spacer(Modifier.width(10.dp))
             Wordmark()
             Spacer(Modifier.weight(1f))
-            GlassCapsule {
-                PlainIcon(Icons.Rounded.Sync, stringResource(R.string.rdr_update_subs), onImport, tint = c.accent, size = 36.dp)
-                PlainIcon(Icons.Rounded.Search, stringResource(R.string.rdr_search_hint), onSearch, size = 36.dp)
-                PlainIcon(Icons.Rounded.Add, stringResource(R.string.rdr_add), onAdd, size = 36.dp)
-                PlainIcon(Icons.Rounded.MoreVert, stringResource(R.string.rdr_more), onMore, size = 36.dp)
-            }
+            toolbar()
         }
     }
 }

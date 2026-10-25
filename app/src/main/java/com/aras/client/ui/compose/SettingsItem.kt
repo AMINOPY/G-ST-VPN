@@ -31,14 +31,18 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import com.aras.client.R
+import com.aras.client.ui.rdr.LocalRdrActive
+import com.aras.client.ui.rdr.LocalRdrColors
+import com.aras.client.ui.rdr.glass
 
 @Composable
 fun PreferenceGroupHeader(title: String, modifier: Modifier = Modifier) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.secondary,
+        color = if (LocalRdrActive.current) LocalRdrColors.current.textSecondary else MaterialTheme.colorScheme.secondary,
         modifier = modifier
             .fillMaxWidth()
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
@@ -95,8 +99,12 @@ private fun SettingsItemRow(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .then(
+                if (LocalRdrActive.current) Modifier.glass(RoundedCornerShape(20.dp), shadow = 0.dp)
+                else Modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            )
             .then(
                 if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick)
                 else Modifier
@@ -262,11 +270,22 @@ fun SettingsSwitchItem(
         } else null,
         modifier = modifier,
         trailing = {
+            val rdr = LocalRdrActive.current
             Switch(
                 checked = checked,
                 onCheckedChange = if (enabled) onCheckedChange else null,
-                modifier = Modifier.scale(0.8f),
-                colors = SwitchDefaults.colors(
+                modifier = Modifier.scale(if (rdr) 0.9f else 0.8f),
+                colors = if (rdr) {
+                    // سوییچ iOS: ردیف سبز، دستگیره‌ی سفید، بدون حاشیه
+                    SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = Color(0xFF34C759),
+                        checkedBorderColor = Color.Transparent,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = Color(0xFF8E8E93).copy(alpha = 0.40f),
+                        uncheckedBorderColor = Color.Transparent,
+                    )
+                } else SwitchDefaults.colors(
                     checkedThumbColor = MaterialTheme.colorScheme.onSecondary,
                     checkedTrackColor = MaterialTheme.colorScheme.secondary
                 ),

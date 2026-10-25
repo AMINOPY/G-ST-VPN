@@ -29,6 +29,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.aras.client.AppConfig
 import com.aras.client.handler.MmkvManager
+import com.aras.client.ui.rdr.RdrBackground
+import com.aras.client.ui.rdr.RdrTheme
+import com.aras.client.ui.rdr.rememberRdrThemeState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -412,12 +415,23 @@ fun AppTheme(
             colorScheme = colorScheme,
             typography = AppTypography
         ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                AppSnackbarBridge(controller = snackbarController)
-                content()
-                if (isPersepolisTheme) PersepolisOverlay()
-                if (isSurvivalTheme) SurvivalOverlay()
-                AppSnackbarHost(hostState = snackbarController.hostState)
+            val body: @Composable () -> Unit = {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AppSnackbarBridge(controller = snackbarController)
+                    content()
+                    if (isPersepolisTheme) PersepolisOverlay()
+                    if (isSurvivalTheme) SurvivalOverlay()
+                    AppSnackbarHost(hostState = snackbarController.hostState)
+                }
+            }
+            if (uiTheme == "rdrx") {
+                // RADAR Glass: گرادیان متحرک زیر همه‌ی صفحه‌ها + رنگ/اجزای شیشه‌ای مشترک
+                val rdrState = rememberRdrThemeState()
+                RdrTheme(rdrState, darkOverride = darkTheme) {
+                    RdrBackground { body() }
+                }
+            } else {
+                body()
             }
         }
     }
