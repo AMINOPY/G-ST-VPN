@@ -1,5 +1,6 @@
 package com.aras.client.ui.rdr
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -60,11 +61,15 @@ fun Modifier.glass(
     shadow: Dp = 14.dp,
 ): Modifier {
     val c = LocalRdrColors.current
-    val fill = if (strong) c.glassFillStrong else c.glassFill
+    val fillTarget = if (strong) c.glassFillStrong else c.glassFill
+    val fill by animateColorAsState(fillTarget, animationSpec = tween(420), label = "glassFill")
+    val strokeHi by animateColorAsState(c.strokeHi, animationSpec = tween(420), label = "glassStrokeHi")
+    val strokeLo by animateColorAsState(c.strokeLo, animationSpec = tween(420), label = "glassStrokeLo")
+    val shadowColor by animateColorAsState(c.shadow, animationSpec = tween(420), label = "glassShadow")
     val topFill = fill.copy(alpha = (fill.alpha * 1.25f).coerceAtMost(0.9f))
     var m: Modifier = this
     if (shadow > 0.dp) {
-        m = m.shadow(shadow, shape, clip = false, ambientColor = c.shadow, spotColor = c.shadow)
+        m = m.shadow(shadow, shape, clip = false, ambientColor = shadowColor, spotColor = shadowColor)
     }
     m = m.clip(shape).background(Brush.verticalGradient(listOf(topFill, fill)))
     if (tint.isSpecified) m = m.background(tint.copy(alpha = 0.16f))
@@ -72,7 +77,7 @@ fun Modifier.glass(
         .border(
             1.dp,
             Brush.linearGradient(
-                listOf(c.strokeHi, c.strokeLo, c.strokeHi.copy(alpha = c.strokeHi.alpha * 0.55f)),
+                listOf(strokeHi, strokeLo, strokeHi.copy(alpha = strokeHi.alpha * 0.55f)),
             ),
             shape,
         )
@@ -117,6 +122,12 @@ fun Modifier.bouncyClick(
 fun RdrBackground(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
     val c = LocalRdrColors.current
     val fx = LocalRdrFx.current
+    val bgTop by animateColorAsState(c.bgTop, animationSpec = tween(520), label = "rdrBgTop")
+    val bgBottom by animateColorAsState(c.bgBottom, animationSpec = tween(520), label = "rdrBgBottom")
+    val blobA by animateColorAsState(c.blobA, animationSpec = tween(520), label = "rdrBlobA")
+    val blobB by animateColorAsState(c.blobB, animationSpec = tween(520), label = "rdrBlobB")
+    val blobC by animateColorAsState(c.blobC, animationSpec = tween(520), label = "rdrBlobC")
+    val blobAlpha by animateFloatAsState(if (c.isDark) 0.55f else 0.50f, animationSpec = tween(520), label = "rdrBlobAlpha")
     val t: State<Float> = if (fx.animatedBackground) {
         rememberInfiniteTransition(label = "bg").animateFloat(
             initialValue = 0f,
@@ -130,13 +141,13 @@ fun RdrBackground(modifier: Modifier = Modifier, content: @Composable BoxScope.(
     Box(
         modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(c.bgTop, c.bgBottom))),
+            .background(Brush.verticalGradient(listOf(bgTop, bgBottom))),
     ) {
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
             val p = t.value
-            val a = if (c.isDark) 0.55f else 0.50f
+            val a = blobAlpha
             fun blob(color: Color, cx: Float, cy: Float, r: Float) {
                 drawCircle(
                     brush = Brush.radialGradient(
@@ -148,9 +159,9 @@ fun RdrBackground(modifier: Modifier = Modifier, content: @Composable BoxScope.(
                     center = Offset(cx, cy),
                 )
             }
-            blob(c.blobA, w * (0.15f + 0.25f * p), h * (0.12f + 0.06f * p), w * 0.75f)
-            blob(c.blobB, w * (0.95f - 0.30f * p), h * (0.45f + 0.08f * p), w * 0.70f)
-            blob(c.blobC, w * (0.20f + 0.20f * p), h * (0.92f - 0.10f * p), w * 0.80f)
+            blob(blobA, w * (0.15f + 0.25f * p), h * (0.12f + 0.06f * p), w * 0.75f)
+            blob(blobB, w * (0.95f - 0.30f * p), h * (0.45f + 0.08f * p), w * 0.70f)
+            blob(blobC, w * (0.20f + 0.20f * p), h * (0.92f - 0.10f * p), w * 0.80f)
         }
         content()
     }

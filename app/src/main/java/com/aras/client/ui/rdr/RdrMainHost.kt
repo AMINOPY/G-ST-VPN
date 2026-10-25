@@ -3,6 +3,7 @@ package com.aras.client.ui.rdr
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +16,7 @@ import com.aras.client.ui.main.MainAction
 import com.aras.client.ui.main.MainDestination
 import com.aras.client.ui.main.MainMoreMenuAction
 import com.aras.client.ui.main.MainUiState
+import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.util.ConnectionStatsManager
 import com.aras.client.util.CountryResolver
 import kotlinx.coroutines.delay
@@ -46,6 +48,8 @@ fun RdrMainHost(
     modifier: Modifier = Modifier,
 ) {
     val themeState = rememberRdrThemeState()
+    val glassThemeOverride by ThemeManager.rdrGlassDarkOverride.collectAsState()
+    val effectiveDark = glassThemeOverride ?: isDark
     val isRunning = uiState.isRunning
     val selectedGuid = uiState.selectedGuid
     var menuOpen by remember { mutableStateOf(false) }
@@ -125,7 +129,7 @@ fun RdrMainHost(
         onSmartConnect = { onAction(MainAction.SmartConnect) },
     )
 
-    RdrTheme(themeState, darkOverride = isDark) {
+    RdrTheme(themeState, darkOverride = effectiveDark) {
         RdrBackground(modifier) {
             RdrHomeScreen(
                 state = home,
@@ -149,6 +153,8 @@ fun RdrMainHost(
                     onNavigate(dest.toMainDestination())
                 },
                 fromRight = true,
+                isDark = effectiveDark,
+                onToggleTheme = { ThemeManager.setRdrGlassDarkOverride(!effectiveDark) },
             )
         }
     }
