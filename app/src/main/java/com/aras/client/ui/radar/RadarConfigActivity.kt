@@ -340,7 +340,9 @@ class RadarConfigActivity : ComponentActivity() {
             "4n0nymous/multi-proxy-config-fetcher"
         )
         // Bound sequential GitHub crawling to reduce long stalls and memory pressure on phones.
-        val repos = (priorityRepos + iranianRepos + globalRepos).distinct().take(15)
+        // Keep the original discovery set first, then append every user-requested repository.
+        val repos = (iranianRepos + globalRepos).distinct().take(12)
+        val sourceRepos = (repos.take(6) + priorityRepos).distinct()
         val found = linkedSetOf<String>()
 
         // Public country-split feeds; the server IP is still geolocated independently below.
@@ -412,7 +414,7 @@ class RadarConfigActivity : ComponentActivity() {
         feedResults.forEach { batch -> batch.forEach { found.add(it) } }
         if (found.size >= 4000) return found.toList()
 
-        for (repo in repos.take(6)) try {
+        for (repo in sourceRepos) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
             val branch = Regex("""default_branch"\s*:\s*"([^"]+)""").find(metadata)?.groupValues?.get(1) ?: "main"
             val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
