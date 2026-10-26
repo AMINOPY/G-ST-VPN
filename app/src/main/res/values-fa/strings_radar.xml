@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="radar_title">رادار کانفیگ</string>
+    <string name="radar_headline">جست‌وجو در منابع عمومی و پیش‌آزمایش دسترسی شبکه</string>
+    <string name="radar_disclaimer">پاسخ TCP به‌تنهایی سلامت تونل را ثابت نمی‌کند. هیچ کانفیگی خودکار نصب یا متصل نمی‌شود؛ کانفیگ را اضافه کنید و داخل برنامه تست واقعی بگیرید.</string>
+    <string name="radar_start">شروع اسکن</string>
+    <string name="radar_stop">توقف</string>
+    <string name="radar_rescan">اسکن دوباره</string>
+
+    <string name="radar_sources">منابع</string>
+    <string name="radar_group_country">کشورها</string>
+    <string name="radar_group_antidpi">ضد DPI · Reality</string>
+    <string name="radar_group_hysteria">Hysteria2</string>
+    <string name="radar_group_fast">سریع و تأییدشده</string>
+    <string name="radar_group_top">لیست‌های برتر</string>
+    <string name="radar_group_custom">لینک‌های من</string>
+    <string name="radar_sources_detail">وضعیت منابع (%1$d از %2$d پاسخ دادند)</string>
+    <string name="radar_source_loading">در حال دریافت…</string>
+    <string name="radar_source_ok">%d کانفیگ</string>
+    <string name="radar_source_empty">خالی</string>
+    <string name="radar_source_failed">در دسترس نبود</string>
+
+    <string name="radar_limit">تعداد اسکن</string>
+    <string name="radar_geo">تشخیص کشور با IP</string>
+    <string name="radar_geo_summary">فقط IP سرور (هرگز خود کانفیگ) به سرویس GeoIP فرستاده می‌شود. فیدهای کشوری کشورشان از قبل معلوم است.</string>
+
+    <string name="radar_custom_title">لینک اشتراک من</string>
+    <string name="radar_custom_hint">https://‏… اشتراک یا لیست خام</string>
+    <string name="radar_custom_add">افزودن لینک</string>
+    <string name="radar_custom_empty">هنوز لینکی اضافه نکرده‌اید. وقتی «لینک‌های من» روشن باشد، اسکن می‌شوند.</string>
+
+    <string name="radar_stat_found">آزمایش‌شده</string>
+    <string name="radar_stat_reachable">در دسترس</string>
+    <string name="radar_stat_fast">سریع ≤۱۵۰ms</string>
+
+    <string name="radar_f_all">همه (%d)</string>
+    <string name="radar_f_reachable">در دسترس (%d)</string>
+    <string name="radar_f_udp">UDP · تأییدنشده (%d)</string>
+    <string name="radar_f_failed">بدون پاسخ (%d)</string>
+    <string name="radar_protocol_all">همه‌ی پروتکل‌ها</string>
+    <string name="radar_country_all">همه‌ی کشورها</string>
+    <string name="radar_country_unknown">نامشخص</string>
+
+    <string name="radar_add">افزودن برای تست</string>
+    <string name="radar_copy">کپی</string>
+    <string name="radar_copied">کپی شد</string>
+    <string name="radar_add_top">افزودن %d مورد برتر</string>
+    <string name="radar_add_top_none">هنوز موردی برای افزودن در دسترس نیست</string>
+
+    <string name="radar_note_tcp">TCP %1$d میلی‌ثانیه · DNS %2$d میلی‌ثانیه · %3$d/۳ نمونه</string>
+    <string name="radar_note_udp">پروتکل UDP: فقط DNS (%d میلی‌ثانیه) سنجیده شد، پس دسترسی تأیید نشده</string>
+    <string name="radar_note_unreach">پورت پاسخ نداد</string>
+    <string name="radar_note_dns">DNS ناموفق یا میزبان در دسترس نیست</string>
+    <string name="radar_note_bad">آدرس نامعتبر، محلی یا خصوصی</string>
+
+    <string name="radar_msg_idle">منابع را انتخاب کنید و اسکن را شروع کنید.</string>
+    <string name="radar_msg_fetching">دریافت منابع… %1$d/%2$d</string>
+    <string name="radar_msg_testing">بررسی %1$d/%2$d · در دسترس: %3$d</string>
+    <string name="radar_msg_done">پایان: %1$d کانفیگ آزمایش شد · %2$d در دسترس (تکراری‌ها حذف شدند)</string>
+    <string name="radar_msg_stopped">متوقف شد: %1$d آزمایش‌شده · %2$d در دسترس</string>
+    <string name="radar_msg_no_sources">هیچ منبعی پاسخ نداد. اینترنت و دسترسی به GitHub را بررسی کنید.</string>
+    <string name="radar_msg_none_selected">دست‌کم یک گروه منبع را انتخاب کنید.</string>
+    <string name="radar_msg_error">خطا در اسکن: %s</string>
+</resources>
