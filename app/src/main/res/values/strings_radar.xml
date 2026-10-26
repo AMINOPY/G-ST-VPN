@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="radar_title">Config Radar</string>
+    <string name="radar_headline">Search public sources and pre-test reachability</string>
+    <string name="radar_disclaimer">A TCP reply alone does not prove the tunnel works. Nothing is installed or connected automatically; add a config and test it inside the app.</string>
+    <string name="radar_start">Start scan</string>
+    <string name="radar_stop">Stop</string>
+    <string name="radar_rescan">Scan again</string>
+
+    <string name="radar_sources">Sources</string>
+    <string name="radar_group_country">Countries</string>
+    <string name="radar_group_antidpi">Anti-DPI · Reality</string>
+    <string name="radar_group_hysteria">Hysteria2</string>
+    <string name="radar_group_fast">Fast &amp; verified</string>
+    <string name="radar_group_top">Top lists</string>
+    <string name="radar_group_custom">My links</string>
+    <string name="radar_sources_detail">Source status (%1$d/%2$d responded)</string>
+    <string name="radar_source_loading">loading…</string>
+    <string name="radar_source_ok">%d configs</string>
+    <string name="radar_source_empty">empty</string>
+    <string name="radar_source_failed">unreachable</string>
+
+    <string name="radar_limit">Scan size</string>
+    <string name="radar_geo">Detect country by IP</string>
+    <string name="radar_geo_summary">Only the server IP (never the config) is sent to a GeoIP service. Country feeds already know their country.</string>
+
+    <string name="radar_custom_title">My subscription links</string>
+    <string name="radar_custom_hint">https://… subscription or raw list</string>
+    <string name="radar_custom_add">Add link</string>
+    <string name="radar_custom_empty">No custom links yet. Added links are scanned when "My links" is on.</string>
+
+    <string name="radar_stat_found">Tested</string>
+    <string name="radar_stat_reachable">Reachable</string>
+    <string name="radar_stat_fast">Fast ≤150ms</string>
+
+    <string name="radar_f_all">All (%d)</string>
+    <string name="radar_f_reachable">Reachable (%d)</string>
+    <string name="radar_f_udp">UDP · unverified (%d)</string>
+    <string name="radar_f_failed">No response (%d)</string>
+    <string name="radar_protocol_all">All protocols</string>
+    <string name="radar_country_all">All countries</string>
+    <string name="radar_country_unknown">Unknown</string>
+
+    <string name="radar_add">Add to test</string>
+    <string name="radar_copy">Copy</string>
+    <string name="radar_copied">Copied</string>
+    <string name="radar_add_top">Add top %d</string>
+    <string name="radar_add_top_none">Nothing reachable to add yet</string>
+
+    <string name="radar_note_tcp">TCP %1$d ms · DNS %2$d ms · %3$d/3 samples</string>
+    <string name="radar_note_udp">UDP protocol: only DNS %d ms was checked, so reachability is unverified</string>
+    <string name="radar_note_unreach">Port did not answer</string>
+    <string name="radar_note_dns">DNS failed or host unavailable</string>
+    <string name="radar_note_bad">Invalid, local or private address</string>
+
+    <string name="radar_msg_idle">Choose sources, then start the scan.</string>
+    <string name="radar_msg_fetching">Fetching sources… %1$d/%2$d</string>
+    <string name="radar_msg_testing">Testing %1$d/%2$d · reachable: %3$d</string>
+    <string name="radar_msg_done">Done: %1$d tested · %2$d reachable (duplicates removed)</string>
+    <string name="radar_msg_stopped">Stopped: %1$d tested · %2$d reachable</string>
+    <string name="radar_msg_no_sources">No source responded. Check your internet connection and GitHub access.</string>
+    <string name="radar_msg_none_selected">Select at least one source group.</string>
+    <string name="radar_msg_error">Scan error: %s</string>
+</resources>
