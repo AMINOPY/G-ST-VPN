@@ -242,6 +242,7 @@ object AppConfig {
     const val MASQUE = "masque://"
     const val AETHER = "aether://"
     const val MIERU = "mieru://"
+    const val CDN_SNI = "cdnsni://"
     const val ARASFMTS = "xrayn://"
 
     /** Where the aether core is published; the app fetches its own Android build from here. */

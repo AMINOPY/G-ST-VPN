@@ -42,7 +42,8 @@ object CoreConfigManager {
             if (configContext.isCustom) {
                 return buildXrayCustomConfig(configContext)
             }
-            return toConfigResult(configContext, buildUnifiedConfig(configContext))
+            val result = toConfigResult(configContext, buildUnifiedConfig(configContext))
+            return applyCdnSni(configContext, result)
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to get Xray config", e)
             return ConfigResult(
@@ -51,6 +52,27 @@ object CoreConfigManager {
                 errorMessage = "Failed to get Xray config: ${e.message ?: e.javaClass.simpleName}"
             )
         }
+    }
+
+    /**
+     * A CDN/SNI profile has no server of its own, so its config is the ordinary one
+     * with the local TLS-ending inbound, the re-packing outbounds and their routing
+     * rules added.
+     */
+    private fun applyCdnSni(configContext: CoreConfigContext, result: ConfigResult): ConfigResult {
+        val profile = MmkvManager.decodeServerConfig(configContext.guid) ?: return result
+        if (profile.configType != EConfigType.CDN_SNI) return result
+        val settings = com.aras.client.core.cdn.CdnSniConfig.settingsOf(profile)
+            ?: return ConfigResult(
+                status = false,
+                guid = configContext.guid,
+                errorMessage = "CDN/SNI needs at least one site and one server name"
+            )
+        val root = JsonUtil.parseString(result.content)?.takeIf { it.isJsonObject }?.asJsonObject
+            ?: return ConfigResult(status = false, guid = configContext.guid, errorMessage = "CDN/SNI could not read the base config")
+        val ca = com.aras.client.core.cdn.CdnSniCa.getOrCreate(configContext.context)
+        com.aras.client.core.cdn.CdnSniConfig.inject(root, settings, ca.certificate, ca.key)
+        return JsonUtil.toJsonPretty(root)?.let { ConfigResult(true, configContext.guid, it) } ?: result
     }
 
     /**

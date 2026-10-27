@@ -134,6 +134,11 @@ data class ProfileItem(
     var proxyChainProfiles: String? = null,
 
     var browserDialerMode: String? = null,
+
+    // CDN/SNI: "auto" or "manual"; the sites to unblock; the allowed SNI and/or edge IPs.
+    var cdnSniMode: String? = null,
+    var cdnSniTargets: String? = null,
+    var cdnSniFront: String? = null,
 ) {
 
     companion object {

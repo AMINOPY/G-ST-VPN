@@ -104,6 +104,7 @@ data class ArasShareItem(
             13 -> EConfigType.MASQUE
             14 -> EConfigType.AETHER
             15 -> EConfigType.MIERU
+            16 -> EConfigType.CDN_SNI
             101 -> EConfigType.POLICYGROUP
             102 -> EConfigType.PROXYCHAIN
             else -> error("Unknown ConfigType: $ConfigType")
