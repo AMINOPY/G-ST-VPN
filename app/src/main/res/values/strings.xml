@@ -909,14 +909,14 @@
     <string name="calculator_launcher_label">Calculator</string>
     <string name="calculator_access_code">Access code (4–12 digits; hold AC to restore icon)</string>
     <string name="menu_item_cdn_sni">CDN/SNI</string>
-    <string name="cdn_sni_intro">Needs no server. Xray ends your browser\'s TLS on this device and re-sends the request to a CDN under an allowed server name, so the listed sites open directly. It works for browser traffic and needs the certificate below to be trusted.</string>
-    <string name="cdn_sni_mode_auto">Auto</string>
-    <string name="cdn_sni_mode_manual">Manual</string>
-    <string name="cdn_sni_targets">Sites to unblock</string>
-    <string name="cdn_sni_front">Server name (SNI) and optional CDN IPs</string>
-    <string name="cdn_sni_auto_hint">Auto mode fills both fields for you (Google services).</string>
-    <string name="cdn_sni_manual_hint">Fill the fields yourself. Separate entries with Enter, a comma or a space. Sites: github.com or geosite:google. Second field: a server name such as www.google.com, and optionally CDN IPs.</string>
-    <string name="cdn_sni_invalid">Enter at least one valid site and one valid server name</string>
+    <string name="cdn_sni_intro">Enter a CDN edge IP and its SNI. Xray builds the runtime tunnel configuration locally; no imported config or UUID is needed. TLS interception requires trusting this device's local CA certificate.</string>
+    
+    
+    <string name="cdn_sni_targets">CDN edge IP address</string>
+    <string name="cdn_sni_front">SNI (server name)</string>
+    
+    
+    <string name="cdn_sni_invalid">Enter a valid IPv4 CDN edge address and a valid SNI hostname</string>
     <string name="cdn_sni_cert_hint">Browsers only accept this setup after you trust its certificate. The certificate is made on this device and its private key never leaves the app.</string>
     <string name="cdn_sni_cert_export">Save certificate to trust</string>
     <string name="cdn_sni_cert_steps">Save the file, then in Settings choose Security, Install a certificate, CA certificate</string>
