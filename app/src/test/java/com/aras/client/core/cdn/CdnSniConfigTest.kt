@@ -120,4 +120,31 @@ class CdnSniConfigTest {
         assertEquals("${CdnSniConfig.EDGE_HOST}:443", repack.getAsJsonObject("settings").get("redirect").asString)
         assertEquals("1.2.3.4", root.getAsJsonObject("dns").getAsJsonObject("hosts").get(CdnSniConfig.EDGE_HOST).asString)
     }
+    @Test
+    fun validatesGeneratedConfigAndRejectsMismatchedEdgeIp() {
+        val root = baseConfig()
+        val settings = CdnSniSettings("1.2.3.4", "front.example")
+        CdnSniConfig.inject(root, settings, "c", "k")
+
+        assertNull(CdnSniConfig.validateInjectedConfig(root, settings))
+        assertEquals(
+            "CDN/SNI edge IP mapping does not match the profile",
+            CdnSniConfig.validateInjectedConfig(root, settings.copy(edgeIp = "5.6.7.8"))
+        )
+    }
+
+    @Test
+    fun validatesGeneratedConfigAndRejectsMissingRoutingRule() {
+        val root = baseConfig()
+        val settings = CdnSniSettings("1.2.3.4", "front.example")
+        CdnSniConfig.inject(root, settings, "c", "k")
+        val rules = root.getAsJsonObject("routing").getAsJsonArray("rules")
+        rules.remove(1)
+
+        assertEquals(
+            "CDN/SNI routing rules are missing or duplicated",
+            CdnSniConfig.validateInjectedConfig(root, settings)
+        )
+    }
+
 }
