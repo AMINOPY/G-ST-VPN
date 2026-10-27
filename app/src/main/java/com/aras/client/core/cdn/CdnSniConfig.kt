@@ -6,12 +6,10 @@ import com.google.gson.JsonObject
 
 /** What a CDN/SNI profile asks for, after its two text fields are read. */
 data class CdnSniSettings(
-    /** Xray routing domain rules for the sites to unblock, e.g. `domain:github.com`. */
-    val targets: List<String>,
-    /** Allowed server names; the first is sent in the handshake. */
-    val snis: List<String>,
-    /** Optional CDN edge addresses to dial; empty means resolve the site's own name. */
-    val edgeIps: List<String>,
+    /** The single CDN edge IP to dial. */
+    val edgeIp: String,
+    /** The TLS server name sent by Xray to that edge. */
+    val sni: String,
 )
 
 /**
@@ -35,7 +33,7 @@ object CdnSniConfig {
     const val EDGE_HOST = "cdn-sni.redirect"
     const val DECRYPT_PORT = 11777
 
-    /** What "auto" fills in: Google's own services fronted under www.google.com. */
+    /** Legacy preset retained for profiles created by the earlier experimental editor. */
     const val AUTO_TARGETS = "geosite:google"
     const val AUTO_FRONT = "www.google.com"
 
@@ -49,42 +47,28 @@ object CdnSniConfig {
     fun tokens(text: String?): List<String> =
         text.orEmpty().split('\n', '\r', ',', '،', ';', ' ', '\t').map { it.trim() }.filter { it.isNotEmpty() }
 
-    /** Values a profile actually uses: the presets in auto mode, the typed fields otherwise. */
-    fun effectiveTargets(profile: ProfileItem): String =
-        if (profile.cdnSniMode == MODE_MANUAL) profile.cdnSniTargets.orEmpty() else AUTO_TARGETS
-
-    fun effectiveFront(profile: ProfileItem): String =
-        if (profile.cdnSniMode == MODE_MANUAL) profile.cdnSniFront.orEmpty() else AUTO_FRONT
-
-    fun parseTargets(text: String?): List<String> =
-        tokens(text).mapNotNull { raw ->
-            val token = raw.lowercase()
-            when {
-                ruleKinds.any { token.startsWith(it) && token.length > it.length } -> token
-                isName(token) -> "domain:$token"
-                else -> null
-            }
-        }.distinct()
-
-    fun parseFront(text: String?): Pair<List<String>, List<String>> {
-        val snis = ArrayList<String>()
-        val ips = ArrayList<String>()
-        for (raw in tokens(text)) {
-            val token = raw.lowercase()
-            when {
-                CdnIp.isIpv4(token) -> ips.add(token)
-                isName(token) -> snis.add(token)
-            }
-        }
-        return snis.distinct() to ips.distinct()
+    /** IP and SNI are the only connection values; old editor mode is ignored. */
+    fun effectiveIp(profile: ProfileItem): String {
+        val candidates = tokens(profile.cdnSniTargets) + tokens(profile.cdnSniFront)
+        return candidates.firstOrNull { CdnIp.isIpv4(it) }.orEmpty()
     }
 
-    /** Null when the profile is missing something it needs; the message says what. */
+    fun effectiveSni(profile: ProfileItem): String {
+        val candidates = tokens(profile.cdnSniFront) + tokens(profile.cdnSniTargets)
+        return candidates.firstOrNull { isName(it.lowercase()) }?.lowercase().orEmpty()
+    }
+
+    fun parseIp(text: String?): String? =
+        tokens(text).firstOrNull { CdnIp.isIpv4(it) }
+
+    fun parseSni(text: String?): String? =
+        tokens(text).firstOrNull { isName(it.lowercase()) }?.lowercase()
+
+    /** Null when either of the two required values is invalid. */
     fun settingsOf(profile: ProfileItem): CdnSniSettings? {
-        val targets = parseTargets(effectiveTargets(profile))
-        val (snis, ips) = parseFront(effectiveFront(profile))
-        if (targets.isEmpty() || snis.isEmpty()) return null
-        return CdnSniSettings(targets, snis, ips)
+        val ip = parseIp(effectiveIp(profile)) ?: return null
+        val sni = parseSni(effectiveSni(profile)) ?: return null
+        return CdnSniSettings(edgeIp = ip, sni = sni)
     }
 
     /**
@@ -123,11 +107,9 @@ object CdnSniConfig {
         outbounds.add(redirectOutbound())
         outbounds.add(repackOutbound(settings))
 
-        if (settings.edgeIps.isNotEmpty()) {
-            val dns = obj(root, "dns")
-            val hosts = obj(dns, "hosts")
-            hosts.add(EDGE_HOST, JsonArray().apply { settings.edgeIps.forEach { add(it) } })
-        }
+        val dns = obj(root, "dns")
+        val hosts = obj(dns, "hosts")
+        hosts.addProperty(EDGE_HOST, settings.edgeIp)
 
         // Rules go first so they win over the app's own routing: whatever the local
         // inbound decrypted goes out re-packed, and the target sites are sent into it.
@@ -137,9 +119,10 @@ object CdnSniConfig {
             addProperty("outboundTag", REPACK_TAG)
         })
         front.add(JsonObject().apply {
+            // This profile is a standalone connection mode: route TLS traffic through
+            // the local Xray TLS bridge, without requiring a third "target sites" field.
             addProperty("network", "tcp")
             addProperty("port", "443")
-            add("domain", JsonArray().apply { settings.targets.forEach { add(it) } })
             addProperty("outboundTag", REDIRECT_TAG)
         })
         val merged = JsonArray()
@@ -182,17 +165,14 @@ object CdnSniConfig {
     private fun repackOutbound(settings: CdnSniSettings) = JsonObject().apply {
         addProperty("tag", REPACK_TAG)
         addProperty("protocol", "freedom")
-        if (settings.edgeIps.isNotEmpty()) {
-            add("settings", JsonObject().apply { addProperty("redirect", "$EDGE_HOST:443") })
-        }
+        add("settings", JsonObject().apply { addProperty("redirect", "$EDGE_HOST:443") })
         add("streamSettings", JsonObject().apply {
             addProperty("security", "tls")
             add("tlsSettings", JsonObject().apply {
-                addProperty("serverName", settings.snis.first())
-                // "fromMitM" accepts a certificate valid for the site the browser asked
-                // for, which is what an edge serving that site presents; the allowed
-                // names are accepted too.
-                addProperty("verifyPeerCertByName", (listOf("fromMitM") + settings.snis).joinToString(","))
+                addProperty("serverName", settings.sni)
+                // The origin certificate is selected by the request's Host at the edge;
+                // Xray's local TLS bridge has already terminated the device-side TLS.
+                addProperty("verifyPeerCertByName", "fromMitM,settings.sni")
                 add("alpn", JsonArray().apply { add("fromMitM") })
                 addProperty("fingerprint", "chrome")
             })
