@@ -150,13 +150,23 @@ class RadarConfigActivity : ComponentActivity() {
                                             },
                                             color = when { item.latency == null -> MaterialTheme.colorScheme.error; item.latency <= 150 -> Color(0xFF00A86B); item.latency <= 300 -> Color(0xFFB8860B); else -> Color(0xFFC62828) })
                                         if (item.latency != null) {
-                                            Button(onClick = {
-                                                startActivity(Intent(this@RadarConfigActivity, MainActivity::class.java).apply {
-                                                    action = "com.aras.client.action.IMPORT_RADAR_CONFIG"
-                                                    putExtra("radar_config", item.uri)
-                                                })
-                                                finish()
-                                            }) { Text("افزودن برای تست واقعی") }
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Button(onClick = {
+                                                    startActivity(Intent(this@RadarConfigActivity, MainActivity::class.java).apply {
+                                                        action = "com.aras.client.action.IMPORT_RADAR_CONFIG"
+                                                        putExtra("radar_config", item.uri)
+                                                    })
+                                                    finish()
+                                                }) { Text("افزودن برای تست واقعی") }
+                                                OutlinedButton(onClick = {
+                                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                        type = "text/plain"
+                                                        putExtra(Intent.EXTRA_SUBJECT, "G-ST-VPN · کانفیگ رادار")
+                                                        putExtra(Intent.EXTRA_TEXT, item.uri)
+                                                    }
+                                                    startActivity(Intent.createChooser(shareIntent, "اشتراک‌گذاری کانفیگ"))
+                                                }) { Text("اشتراک‌گذاری") }
+                                            }
                                         }
                                     }
                                 }
