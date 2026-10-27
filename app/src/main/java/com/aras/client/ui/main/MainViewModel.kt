@@ -350,6 +350,7 @@ class MainViewModel(
             MainAction.ImportConfigLocal,
             MainAction.ImportArascFile,
             MainAction.ImportManualMenu,
+            MainAction.OpenCdnSni,
             is MainAction.ImportManually,
             MainAction.RestartService,
             MainAction.LocateSelectedServer,

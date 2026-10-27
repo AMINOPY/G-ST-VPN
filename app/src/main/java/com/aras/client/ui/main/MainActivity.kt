@@ -256,6 +256,7 @@ class MainActivity : HelperBaseComponentActivity() {
                     MainAction.ImportConfigLocal -> importConfigLocal()
                     MainAction.ImportArascFile -> importArascFile()
                     is MainAction.ImportManually -> importManually(action.type)
+                    MainAction.OpenCdnSni -> openCdnSni()
                     MainAction.RestartService -> LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
                     MainAction.LocateSelectedServer -> mainViewModel.triggerLocateSelectedServer()
                     is MainAction.SelectServer -> setSelectServer(action.guid)
@@ -445,6 +446,20 @@ class MainActivity : HelperBaseComponentActivity() {
             checkAndRequestPermission(PermissionType.ACCESS_LOCAL_NETWORK) {}
         }
         LauncherManager.startService(this)
+    }
+
+    private fun openCdnSni() {
+        val selectedGroupId = mainViewModel.uiState.value.selectedGroupId
+        profileEditorLauncher.launch(
+            Intent(this, com.aras.client.ui.cdn.CdnSniActivity::class.java).putExtra(
+                "subscriptionId",
+                if (com.aras.client.handler.FreeSubManager.isFreeSubId(selectedGroupId)) {
+                    AppConfig.DEFAULT_SUBSCRIPTION_ID
+                } else {
+                    selectedGroupId
+                }
+            )
+        )
     }
 
     private fun importManually(createConfigType: Int) {

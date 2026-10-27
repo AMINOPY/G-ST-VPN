@@ -71,6 +71,11 @@
             android:exported="false" />
 
         <activity
+            android:name=".ui.cdn.CdnSniActivity"
+            android:exported="false"
+            android:windowSoftInputMode="stateUnchanged|adjustResize" />
+
+        <activity
             android:name=".ui.main.MainActivity"
             android:exported="true"
             android:launchMode="singleTask">

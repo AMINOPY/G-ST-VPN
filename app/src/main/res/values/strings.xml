@@ -908,4 +908,24 @@
     <string name="app_icon_calculator">Calculator</string>
     <string name="calculator_launcher_label">Calculator</string>
     <string name="calculator_access_code">Access code (4–12 digits; hold AC to restore icon)</string>
+    <string name="menu_item_cdn_sni">CDN/SNI</string>
+    <string name="cdn_sni_title">CDN/SNI</string>
+    <string name="cdn_sni_intro">Pick a config that uses TLS with WebSocket, HTTPUpgrade, XHTTP, HTTP/2 or gRPC. The scan looks for CDN edge addresses that accept an allowed server name and still route your real host, then saves each one you choose as a new config. The original is not changed.</string>
+    <string name="cdn_sni_base_profile">Base config</string>
+    <string name="cdn_sni_ips">Edge IPs or ranges (one per line)</string>
+    <string name="cdn_sni_snis">Server names (SNI), one per line</string>
+    <string name="cdn_sni_vpn_off_hint">Turn the VPN off before scanning, otherwise the results measure the tunnel.</string>
+    <string name="cdn_sni_scan">Scan</string>
+    <string name="cdn_sni_stop">Stop</string>
+    <string name="cdn_sni_save">Save</string>
+    <string name="cdn_sni_saved">Saved as a new config</string>
+    <string name="cdn_sni_save_failed">Could not save the config</string>
+    <string name="cdn_sni_no_profile">No suitable config found. Add a VLESS, VMess or Trojan config with TLS and a WebSocket, HTTPUpgrade, XHTTP, HTTP/2 or gRPC transport first.</string>
+    <string name="cdn_sni_nothing_to_scan">Enter at least one valid IP or range and one server name</string>
+    <string name="cdn_sni_found">%1$d of %2$d pairs worked</string>
+    <string name="cdn_sni_none_found">No pair worked. Try other ranges or server names.</string>
+    <string name="cdn_sni_mode_auto">Auto</string>
+    <string name="cdn_sni_mode_manual">Manual</string>
+    <string name="cdn_sni_auto_hint">The fields are filled in automatically from the built-in lists.</string>
+    <string name="cdn_sni_manual_hint">Fill the fields yourself. Separate entries with Enter or a comma.</string>
 </resources>

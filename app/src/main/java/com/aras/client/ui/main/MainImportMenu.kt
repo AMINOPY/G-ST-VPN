@@ -32,6 +32,7 @@ private enum class ImportMenuAction(@StringRes val labelRes: Int, val action: Ma
     // Deliberately below the .arasc entry rather than inside the "Add manually"
     // protocol submenu.
     Aether(R.string.menu_item_import_config_manually_aether, MainAction.ImportManually(EConfigType.AETHER.value)),
+    CdnSni(R.string.menu_item_cdn_sni, MainAction.OpenCdnSni),
     Manual(R.string.menu_item_import_config_manually, MainAction.ImportManualMenu),
     PolicyGroup(R.string.menu_item_import_config_policy_group, MainAction.ImportManually(EConfigType.POLICYGROUP.value)),
     ProxyChain(R.string.menu_item_import_config_proxy_chain, MainAction.ImportManually(EConfigType.PROXYCHAIN.value))
