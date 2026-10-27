@@ -42,6 +42,10 @@ object CoreConfigManager {
             if (configContext.isCustom) {
                 return buildXrayCustomConfig(configContext)
             }
+            val selectedProfile = MmkvManager.decodeServerConfig(guid)
+            if (selectedProfile?.configType == EConfigType.CDN_SNI) {
+                return buildCdnSniRuntimeConfig(configContext)
+            }
             val result = toConfigResult(configContext, buildUnifiedConfig(configContext))
             return applyCdnSni(configContext, result)
         } catch (e: Exception) {
@@ -52,6 +56,35 @@ object CoreConfigManager {
                 errorMessage = "Failed to get Xray config: ${e.message ?: e.javaClass.simpleName}"
             )
         }
+    }
+
+    /**
+     * Build CDN/SNI from the Xray template directly. It must not pass through
+     * buildUnifiedConfig(), because that path requires a regular proxy outbound.
+     */
+    private fun buildCdnSniRuntimeConfig(configContext: CoreConfigContext): ConfigResult {
+        val profile = MmkvManager.decodeServerConfig(configContext.guid)
+            ?: return ConfigResult(false, configContext.guid, errorMessage = "CDN/SNI profile could not be loaded")
+        val settings = com.aras.client.core.cdn.CdnSniConfig.settingsOf(profile)
+            ?: return ConfigResult(
+                status = false,
+                guid = configContext.guid,
+                errorMessage = "CDN/SNI needs a valid IPv4 edge address and SNI hostname"
+            )
+
+        val base = initXrayConfig(configContext)
+        base.log.loglevel = MmkvManager.decodeSettingsString(AppConfig.PREF_LOGLEVEL) ?: "warning"
+        base.remarks = profile.remarks
+        configureInbounds(base)
+
+        val root = JsonUtil.parseString(JsonUtil.toJsonPretty(base).orEmpty())
+            ?.takeIf { it.isJsonObject }?.asJsonObject
+            ?: return ConfigResult(false, configContext.guid, errorMessage = "CDN/SNI could not create the base config")
+        val ca = com.aras.client.core.cdn.CdnSniCa.getOrCreate(configContext.context)
+        com.aras.client.core.cdn.CdnSniConfig.inject(root, settings, ca.certificate, ca.key)
+        val json = JsonUtil.toJsonPretty(root)
+            ?: return ConfigResult(false, configContext.guid, errorMessage = "CDN/SNI config serialization failed")
+        return ConfigResult(true, configContext.guid, json)
     }
 
     /**
