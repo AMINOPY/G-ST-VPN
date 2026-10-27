@@ -183,7 +183,16 @@ object CdnSniConfig {
 
 object CdnIp {
     fun isIpv4(value: String): Boolean {
+        // Accept only canonical ASCII dotted-decimal IPv4. Char.isDigit() also accepts
+        // non-ASCII numerals, which are not valid in an Xray IP literal.
         val parts = value.split('.')
-        return parts.size == 4 && parts.all { p -> p.length in 1..3 && p.all(Char::isDigit) && p.toInt() in 0..255 }
+        if (parts.size != 4) return false
+        return parts.all { part ->
+            part.isNotEmpty() &&
+                part.length <= 3 &&
+                part.all { it in '0'..'9' } &&
+                (part.length == 1 || part[0] != '0') &&
+                part.toIntOrNull()?.let { it in 0..255 } == true
+        }
     }
 }
