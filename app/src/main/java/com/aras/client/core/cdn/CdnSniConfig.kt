@@ -35,7 +35,6 @@ object CdnSniConfig {
     const val AUTO_TARGETS = "geosite:google"
     const val AUTO_FRONT = "www.google.com"
 
-    private val ruleKinds = listOf("geosite:", "domain:", "full:", "regexp:", "keyword:")
     private val hostName = Regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
 
     /** A host name, not a dotted number (which would otherwise match the name pattern). */
@@ -57,22 +56,21 @@ object CdnSniConfig {
     }
 
     fun parseIp(text: String?): String? =
-        tokens(text).firstOrNull { CdnIp.isIpv4(it) }
+        tokens(text).singleOrNull()?.takeIf { CdnIp.isIpv4(it) }
 
     fun parseSni(text: String?): String? =
-        tokens(text).firstOrNull { isName(it.lowercase()) }?.lowercase()
+        tokens(text).singleOrNull()?.lowercase()?.takeIf { isName(it) }
 
-    /** Null when either of the two required values is invalid. */
+    /** Null when either field is not exactly one valid value. */
     fun settingsOf(profile: ProfileItem): CdnSniSettings? {
-        val ip = parseIp(effectiveIp(profile)) ?: return null
-        val sni = parseSni(effectiveSni(profile)) ?: return null
+        val ip = parseIp(profile.cdnSniTargets) ?: return null
+        val sni = parseSni(profile.cdnSniFront) ?: return null
         return CdnSniSettings(edgeIp = ip, sni = sni)
     }
 
     /**
      * Adds the local TLS-ending inbound, the two outbounds and the routing rules to a
-     * finished Xray config, and makes sure traffic carries the site name so the rules
-     * can match it.
+     * finished Xray config. This mode intercepts TCP/443 traffic while this profile is active.
      *
      * @param caCertPem the device-only CA certificate, PEM
      * @param caKeyPem its private key, PEM
@@ -83,9 +81,8 @@ object CdnSniConfig {
         val routing = obj(root, "routing")
         val rules = array(routing, "rules")
 
-        // The name in the TLS handshake must come through to routing, and the
-        // connection must then be made to the name rather than to an address the
-        // application resolved itself.
+        // Enable TLS/HTTP sniffing on existing inbounds so the local bridge can inspect
+        // the original request and preserve its HTTP Host when repacking the TLS stream.
         for (element in inbounds) {
             val inbound = element.takeIf { it.isJsonObject }?.asJsonObject ?: continue
             if (inbound.get("tag")?.asString == INBOUND_TAG) continue
@@ -109,8 +106,8 @@ object CdnSniConfig {
         val hosts = obj(dns, "hosts")
         hosts.addProperty(EDGE_HOST, settings.edgeIp)
 
-        // Rules go first so they win over the app's own routing: whatever the local
-        // inbound decrypted goes out re-packed, and the target sites are sent into it.
+        // Rules go first: decrypted local traffic is re-packed; TCP/443 from the device
+        // enters the local TLS bridge before ordinary routing rules are considered.
         val front = JsonArray()
         front.add(JsonObject().apply {
             add("inboundTag", JsonArray().apply { add(INBOUND_TAG) })
