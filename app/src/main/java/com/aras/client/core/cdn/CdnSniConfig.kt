@@ -126,7 +126,7 @@ object CdnSniConfig {
         addProperty("tag", INBOUND_TAG)
         addProperty("listen", "127.0.0.1")
         addProperty("port", DECRYPT_PORT)
-        addProperty("protocol", "tunnel")
+        addProperty("protocol", "dokodemo-door")
         add("settings", JsonObject().apply {
             addProperty("network", "tcp")
             addProperty("port", 443)
