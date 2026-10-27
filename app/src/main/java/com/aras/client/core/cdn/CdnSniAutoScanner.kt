@@ -2,7 +2,6 @@ package com.aras.client.core.cdn
 
 import android.content.Context
 import android.util.Log
-import org.json.JSONArray
 import org.json.JSONObject
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -127,15 +126,17 @@ object CdnSniAutoScanner {
         }
     }
 
-    private fun readCache(prefs: android.content.SharedPreferences, mode: Mode): Result? = try {
-        val value = prefs.getString("${mode.key}_cache", null) ?: return null
-        val obj = JSONObject(value)
-        if (System.currentTimeMillis() - obj.optLong("savedAt") > CACHE_TTL_MS) return null
-        val ip = obj.optString("ip")
-        val sni = obj.optString("sni")
-        if (!CdnIp.isIpv4(ip) || CdnSniConfig.parseSni(sni) == null) null
-        else Result(ip, sni, obj.optLong("latency"), true)
-    } catch (_: Exception) { null }
+    private fun readCache(prefs: android.content.SharedPreferences, mode: Mode): Result? {
+        return try {
+            val value = prefs.getString("${mode.key}_cache", null) ?: return null
+            val obj = JSONObject(value)
+            if (System.currentTimeMillis() - obj.optLong("savedAt") > CACHE_TTL_MS) return null
+            val ip = obj.optString("ip")
+            val sni = obj.optString("sni")
+            if (!CdnIp.isIpv4(ip) || CdnSniConfig.parseSni(sni) == null) null
+            else Result(ip, sni, obj.optLong("latency"), true)
+        } catch (_: Exception) { null }
+    }
 
     private fun scoreKey(mode: Mode, ip: String, sni: String) = "${mode.key}_score_${ip}_${sni}"
 
