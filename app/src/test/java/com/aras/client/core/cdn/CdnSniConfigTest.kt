@@ -50,7 +50,7 @@ class CdnSniConfigTest {
 
     private fun baseConfig(): JsonObject = JsonParser.parseString(
         """{"inbounds":[{"tag":"tun","protocol":"tun","sniffing":{"enabled":false,"destOverride":["http"],"routeOnly":true}}],
-            "outbounds":[{"tag":"proxy","protocol":"freedom"}],
+            "outbounds":[{"tag":"proxy","protocol":"freedom"},{"tag":"direct","protocol":"freedom"}],
             "routing":{"rules":[{"outboundTag":"proxy","network":"tcp,udp"}]}}"""
     ).asJsonObject
 
