@@ -909,7 +909,7 @@
     <string name="calculator_launcher_label">Calculator</string>
     <string name="calculator_access_code">Access code (4–12 digits; hold AC to restore icon)</string>
     <string name="menu_item_cdn_sni">CDN/SNI</string>
-    <string name="cdn_sni_intro">Enter a CDN edge IP and its SNI. Xray builds the runtime tunnel configuration locally; no imported config or UUID is needed. TLS interception requires trusting this device\\'s local CA certificate.</string>
+    <string name="cdn_sni_intro">Enter a CDN edge IP and its SNI. Xray builds the runtime tunnel configuration locally; no imported config or UUID is needed. TLS interception requires trusting this device\'s local CA certificate.</string>
     
     
     <string name="cdn_sni_targets">CDN edge IP address</string>
