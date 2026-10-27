@@ -36,6 +36,12 @@ object CoreConfigContextBuilder {
             return CoreConfigContext(context = context, guid = guid, isCustom = true)
         }
 
+        // CDN/SNI has no normal proxy server/outbound. Its dedicated runtime builder
+        // starts from the Xray template and injects the IP+SNI bridge separately.
+        if (config.configType == EConfigType.CDN_SNI) {
+            return CoreConfigContext(context = context, guid = guid)
+        }
+
         // Step 1: Resolve the main outbound (always tag = TAG_PROXY).
         val primaryResolvedOutbound = resolveOutbound(AppConfig.TAG_PROXY, config) ?: run {
             LogUtil.e(AppConfig.TAG, "Failed to resolve main outbound for '${config.remarks}'")

@@ -463,6 +463,7 @@ class MainActivity : HelperBaseComponentActivity() {
             EConfigType.AMNEZIAWG.value -> Intent(this, ServerAmneziawgActivity::class.java)
             EConfigType.AETHER.value -> Intent(this, ServerAetherActivity::class.java)
             EConfigType.MIERU.value -> Intent(this, ServerMieruActivity::class.java)
+            EConfigType.CDN_SNI.value -> Intent(this, com.aras.client.ui.server.ServerCdnSniActivity::class.java)
             else -> Intent(this, ServerHttpActivity::class.java).apply {
                 putExtra("createConfigType", createConfigType)
             }
@@ -631,6 +632,7 @@ class MainActivity : HelperBaseComponentActivity() {
             EConfigType.AMNEZIAWG -> ServerAmneziawgActivity::class.java
             EConfigType.AETHER -> ServerAetherActivity::class.java
             EConfigType.MIERU -> ServerMieruActivity::class.java
+            EConfigType.CDN_SNI -> com.aras.client.ui.server.ServerCdnSniActivity::class.java
             else -> ServerHttpActivity::class.java
         }
         val intent = Intent(this, activityClass).apply {

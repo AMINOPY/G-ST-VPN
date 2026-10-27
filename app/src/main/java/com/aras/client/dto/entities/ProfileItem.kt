@@ -134,6 +134,11 @@ data class ProfileItem(
     var proxyChainProfiles: String? = null,
 
     var browserDialerMode: String? = null,
+
+    // CDN/SNI: local-only connection values (CDN edge IP + SNI); no imported config is needed.
+    var cdnSniMode: String? = null,
+    var cdnSniTargets: String? = null,
+    var cdnSniFront: String? = null,
 ) {
 
     companion object {

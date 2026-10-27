@@ -906,4 +906,23 @@
     <string name="theme_ui_aurora_summary">داشبورد شیشه‌ای آینده‌نگر با جزئیات نورانی</string>
     <string name="theme_ui_style_title">سبک رابط اصلی برنامه</string>
     <string name="menu_dpi_diagnostics">آزمایش تشخیصی DPI</string>
+    <string name="menu_item_cdn_sni">CDN/SNI</string>
+    <string name="cdn_sni_auto_ir">خودکار ایران 🇮🇷</string>
+    <string name="cdn_sni_auto_us">خودکار آمریکا 🇺🇸</string>
+    <string name="cdn_sni_auto_scanning">دارم IP و SNIهای قابل‌دسترسی رو بررسی می‌کنم و سرعت TLS رو می‌سنجم…</string>
+    <string name="cdn_sni_auto_not_found">تو این شبکه IP و SNI تأییدشده‌ای پیدا نشد. اینترنت دیگه‌ای رو امتحان کن یا دستی وارد کن.</string>
+    <string name="cdn_sni_auto_hint">حالت خودکار IP و SNIهای قابل‌دسترسی رو تست می‌کنه و سریع‌ترین نتیجهٔ تأییدشده رو ذخیره می‌کنه. اسم منطقه تضمین نمی‌کنه IP واقعاً داخل همون کشور باشه. حالت دستی همیشه در دسترسه.</string>
+    <string name="cdn_sni_intro">فقط IP سرور لبهٔ CDN و نام SNI را وارد کن. پیکربندی Xray در خود برنامه ساخته می‌شود؛ نیازی به واردکردن کانفیگ یا UUID نیست. برای رهگیری TLS باید به گواهی محلی همین دستگاه اعتماد کنی.</string>
+    
+    
+    <string name="cdn_sni_targets">آدرس IP سرور CDN</string>
+    <string name="cdn_sni_front">نام سرور (SNI)</string>
+    
+    
+    <string name="cdn_sni_invalid">یک آدرس IPv4 معتبر برای CDN و یک نام میزبان معتبر برای SNI وارد کن</string>
+    <string name="cdn_sni_cert_hint">مرورگر فقط بعد از اینکه به گواهی این روش اعتماد کنی آن را می‌پذیرد. گواهی روی همین گوشی ساخته می‌شود و کلید خصوصی‌اش هرگز از اپ خارج نمی‌شود.</string>
+    <string name="cdn_sni_cert_export">ذخیره گواهی برای اعتماد (Trust)</string>
+    <string name="cdn_sni_cert_steps">فایل را ذخیره کن، سپس در تنظیمات: امنیت ← نصب گواهی ← گواهی CA</string>
+    <string name="cdn_sni_cert_saved">گواهی ذخیره شد</string>
+    <string name="cdn_sni_cert_failed">ذخیره گواهی ممکن نشد</string>
 </resources>
