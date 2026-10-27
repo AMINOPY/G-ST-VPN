@@ -57,6 +57,22 @@ class CdnSniConfigTest {
     private fun tags(a: JsonArray) = a.map { it.asJsonObject.get("tag")?.asString }
 
     @Test
+    fun removesInvalidTemplateProxyOutboundAndItsRules() {
+        val root = baseConfig()
+        CdnSniConfig.removeTemplateProxyOutbound(root)
+
+        assertTrue(root.getAsJsonArray("outbounds").none {
+            it.isJsonObject && it.asJsonObject.get("tag")?.asString == "proxy"
+        })
+        assertTrue(root.getAsJsonObject("routing").getAsJsonArray("rules").none {
+            it.isJsonObject && it.asJsonObject.get("outboundTag")?.asString == "proxy"
+        })
+        assertTrue(root.getAsJsonArray("outbounds").any {
+            it.isJsonObject && it.asJsonObject.get("tag")?.asString == "direct"
+        })
+    }
+
+    @Test
     fun injectAddsBridgeAndRoutesTlsBeforeExistingRules() {
         val root = baseConfig()
         val settings = CdnSniSettings("151.101.1.1", "www.python.org")
