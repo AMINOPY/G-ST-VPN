@@ -135,7 +135,7 @@ data class ProfileItem(
 
     var browserDialerMode: String? = null,
 
-    // CDN/SNI: "auto" or "manual"; the sites to unblock; the allowed SNI and/or edge IPs.
+    // CDN/SNI: local-only connection values (CDN edge IP + SNI); no imported config is needed.
     var cdnSniMode: String? = null,
     var cdnSniTargets: String? = null,
     var cdnSniFront: String? = null,
