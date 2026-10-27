@@ -89,7 +89,7 @@ class CdnSniConfigTest {
         assertEquals("issue", cert.get("usage").asString)
         assertEquals(3, cert.getAsJsonArray("certificate").size())
         assertEquals("-----BEGIN PRIVATE KEY-----", cert.getAsJsonArray("key")[0].asString)
-        assertEquals("tunnel", inbound.get("protocol").asString)
+        assertEquals("dokodemo-door", inbound.get("protocol").asString)
         assertTrue(inbound.getAsJsonObject("settings").get("followRedirect").asBoolean)
     }
 
