@@ -30,6 +30,7 @@ import com.aras.client.extension.toastInfo
 import com.aras.client.extension.toastSuccess
 import com.aras.client.handler.MmkvManager
 import com.aras.client.ui.compose.FormTextField
+import com.aras.client.ui.radar.RadarConfigActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -128,6 +129,17 @@ class ServerCdnSniActivity : BaseServerActivity() {
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        startActivity(Intent(this@ServerCdnSniActivity, RadarConfigActivity::class.java))
+                    },
+                    enabled = !scanning,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("پیدا کردن تونل واقعی بدون ورود دستی کانفیگ") }
             }
             FormTextField(
                 label = stringResource(R.string.cdn_sni_targets),
