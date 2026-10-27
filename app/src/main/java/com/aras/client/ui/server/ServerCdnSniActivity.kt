@@ -3,11 +3,7 @@ package com.aras.client.ui.server
 import android.content.Intent
 import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -54,28 +50,24 @@ class ServerCdnSniActivity : BaseServerActivity() {
 
     @Composable
     override fun ScreenContent() {
-        var remarks by rememberSaveable { mutableStateOf(initialConfig.remarks) }
-        var auto by rememberSaveable { mutableStateOf(initialConfig.cdnSniMode != CdnSniConfig.MODE_MANUAL) }
-        var manualTargets by rememberSaveable { mutableStateOf(initialConfig.cdnSniTargets.orEmpty()) }
-        var manualFront by rememberSaveable { mutableStateOf(initialConfig.cdnSniFront.orEmpty()) }
+        var edgeIp by rememberSaveable { mutableStateOf(CdnSniConfig.effectiveIp(initialConfig)) }
+        var sni by rememberSaveable { mutableStateOf(CdnSniConfig.effectiveSni(initialConfig)) }
 
-        val targets = if (auto) CdnSniConfig.AUTO_TARGETS else manualTargets
-        val front = if (auto) CdnSniConfig.AUTO_FRONT else manualFront
         val badInput = stringResource(R.string.cdn_sni_invalid)
-        val noName = stringResource(R.string.server_lab_remarks)
 
         ServerEditorScaffold(
             title = stringResource(R.string.menu_item_cdn_sni),
             onSaveClick = {
-                if (remarks.isBlank()) {
-                    toastError(noName)
+                val draft = initialConfig.copy().also {
+                    it.cdnSniMode = CdnSniConfig.MODE_MANUAL
+                    it.cdnSniTargets = edgeIp.trim()
+                    it.cdnSniFront = sni.trim()
+                }
+                if (CdnSniConfig.settingsOf(draft) == null) {
+                    toastError(badInput)
                 } else {
-                    val draft = initialConfig.copy().also {
-                        it.cdnSniMode = if (auto) CdnSniConfig.MODE_AUTO else CdnSniConfig.MODE_MANUAL
-                        it.cdnSniTargets = targets
-                        it.cdnSniFront = front
-                    }
-                    if (CdnSniConfig.settingsOf(draft) == null) toastError(badInput) else save(draft, remarks.trim())
+                    val generatedName = "CDN/SNI · ${sni.trim()}"
+                    save(draft, initialConfig.remarks.takeIf { it.isNotBlank() } ?: generatedName)
                 }
             }
         ) {
@@ -84,32 +76,17 @@ class ServerCdnSniActivity : BaseServerActivity() {
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
-            FormTextField(stringResource(R.string.server_lab_remarks), remarks, { remarks = it })
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterChip(selected = auto, onClick = { auto = true }, label = { Text(stringResource(R.string.cdn_sni_mode_auto)) })
-                FilterChip(selected = !auto, onClick = { auto = false }, label = { Text(stringResource(R.string.cdn_sni_mode_manual)) })
-            }
             FormTextField(
                 label = stringResource(R.string.cdn_sni_targets),
-                value = targets,
-                onValueChange = { manualTargets = it },
-                enabled = !auto,
-                maxLines = 8,
+                value = edgeIp,
+                onValueChange = { edgeIp = it },
+                maxLines = 1,
             )
             FormTextField(
                 label = stringResource(R.string.cdn_sni_front),
-                value = front,
-                onValueChange = { manualFront = it },
-                enabled = !auto,
-                maxLines = 8,
-            )
-            Text(
-                stringResource(if (auto) R.string.cdn_sni_auto_hint else R.string.cdn_sni_manual_hint),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                value = sni,
+                onValueChange = { sni = it },
+                maxLines = 1,
             )
             Text(
                 stringResource(R.string.cdn_sni_cert_hint),
