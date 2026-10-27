@@ -13,14 +13,12 @@ data class CdnSniSettings(
 )
 
 /**
- * CDN/SNI as a standalone profile: no server, only the sites to unblock and the
- * server name (and optionally edge IPs) to present to the CDN.
+ * CDN/SNI as a standalone profile: only a CDN edge IP and the TLS server name.
  *
  * It follows the MITM domain-fronting setup for Xray. The browser's TLS to a target
  * site is ended locally with a CA that exists only on this device, the plain HTTP
- * request (with its real Host header) is read, and a new TLS connection is made to a
- * CDN edge under the allowed server name. The CDN routes on the Host header; the
- * network only sees the allowed name.
+ * request (with its real Host header) is read, and a new TLS connection is made to
+ * the configured CDN edge under the configured server name.
  */
 object CdnSniConfig {
 
@@ -172,7 +170,7 @@ object CdnSniConfig {
                 addProperty("serverName", settings.sni)
                 // The origin certificate is selected by the request's Host at the edge;
                 // Xray's local TLS bridge has already terminated the device-side TLS.
-                addProperty("verifyPeerCertByName", "fromMitM,settings.sni")
+                addProperty("verifyPeerCertByName", "fromMitM,${settings.sni}")
                 add("alpn", JsonArray().apply { add("fromMitM") })
                 addProperty("fingerprint", "chrome")
             })
