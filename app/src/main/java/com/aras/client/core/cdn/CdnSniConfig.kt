@@ -31,10 +31,6 @@ object CdnSniConfig {
     const val EDGE_HOST = "cdn-sni.redirect"
     const val DECRYPT_PORT = 11777
 
-    /** Legacy preset retained for profiles created by the earlier experimental editor. */
-    const val AUTO_TARGETS = "geosite:google"
-    const val AUTO_FRONT = "www.google.com"
-
     private val hostName = Regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
 
     /** A host name, not a dotted number (which would otherwise match the name pattern). */
