@@ -94,7 +94,7 @@ object CoreConfigManager {
             val xrayConfig = buildUnifiedConfig(configContext)
             postProcessForSpeedtest(xrayConfig)
 
-            return applyCdnSni(configContext, toConfigResult(configContext, xrayConfig))
+            return toConfigResult(configContext, xrayConfig)
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to get Xray config for speedtest", e)
             return ConfigResult(
