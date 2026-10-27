@@ -65,6 +65,28 @@ object CdnSniConfig {
     }
 
     /**
+     * Remove the template's sample `proxy` outbound for standalone IP+SNI profiles.
+     * The shipped Xray template contains a placeholder VMess outbound (xray.cool with
+     * sample credentials); it is not a real connection and its settings are invalid for
+     * the current core. Leaving it in the generated JSON makes Xray fail while parsing
+     * outbound tag `proxy`, before the CDN/SNI bridge can start.
+     */
+    fun removeTemplateProxyOutbound(root: JsonObject) {
+        root.get("outbounds")?.takeIf { it.isJsonArray }?.asJsonArray?.removeAll { element ->
+            element.isJsonObject && element.asJsonObject.get("tag")?.let { tag ->
+                tag.isJsonPrimitive && tag.asString == "proxy"
+            } == true
+        }
+        val rules = root.getAsJsonObject("routing")?.get("rules")
+            ?.takeIf { it.isJsonArray }?.asJsonArray ?: return
+        rules.removeAll { element ->
+            if (!element.isJsonObject) return@removeAll false
+            val rule = element.asJsonObject
+            rule.get("outboundTag")?.let { tag -> tag.isJsonPrimitive && tag.asString == "proxy" } == true
+        }
+    }
+
+    /**
      * Adds the local TLS-ending inbound, the two outbounds and the routing rules to a
      * finished Xray config. This mode intercepts TCP/443 traffic while this profile is active.
      *
