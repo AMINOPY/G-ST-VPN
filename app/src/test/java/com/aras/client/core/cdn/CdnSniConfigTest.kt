@@ -39,7 +39,9 @@ class CdnSniConfigTest {
     fun rejectsMissingOrInvalidIpAndSni() {
         assertNull(CdnSniConfig.settingsOf(profile("", "www.google.com")))
         assertNull(CdnSniConfig.settingsOf(profile("999.1.1.1", "www.google.com")))
+        assertNull(CdnSniConfig.settingsOf(profile("104.16.1.2 104.16.1.3", "www.google.com")))
         assertNull(CdnSniConfig.settingsOf(profile("104.16.1.2", "not_a_hostname")))
+        assertNull(CdnSniConfig.settingsOf(profile("104.16.1.2", "www.google.com other.example")))
         assertNotNull(CdnSniConfig.settingsOf(profile("104.16.1.2", "www.google.com")))
     }
 
