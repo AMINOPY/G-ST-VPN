@@ -131,6 +131,14 @@ object CoreConfigManager {
             if (configContext.isCustom) {
                 return buildXrayCustomConfig(configContext)
             }
+            // CDN/SNI profiles deliberately have no resolved proxy outbound. Reusing
+            // buildUnifiedConfig() here throws "resolvedOutbounds must not be empty",
+            // which made the speed-test/config-validation path reject this profile even
+            // though it has its own standalone runtime builder.
+            val selectedProfile = MmkvManager.decodeServerConfig(guid)
+            if (selectedProfile?.configType == EConfigType.CDN_SNI) {
+                return buildCdnSniRuntimeConfig(configContext)
+            }
             val xrayConfig = buildUnifiedConfig(configContext)
             postProcessForSpeedtest(xrayConfig)
 
