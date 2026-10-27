@@ -72,18 +72,20 @@ object CdnSniConfig {
      * outbound tag `proxy`, before the CDN/SNI bridge can start.
      */
     fun removeTemplateProxyOutbound(root: JsonObject) {
-        root.get("outbounds")?.takeIf { it.isJsonArray }?.asJsonArray?.removeAll { element ->
+        val outbounds = root.get("outbounds")?.takeIf { it.isJsonArray }?.asJsonArray
+        outbounds?.toList()?.filter { element ->
             element.isJsonObject && element.asJsonObject.get("tag")?.let { tag ->
                 tag.isJsonPrimitive && tag.asString == "proxy"
             } == true
-        }
+        }?.forEach { outbounds.remove(it) }
+
         val rules = root.getAsJsonObject("routing")?.get("rules")
             ?.takeIf { it.isJsonArray }?.asJsonArray ?: return
-        rules.removeAll { element ->
-            if (!element.isJsonObject) return@removeAll false
-            val rule = element.asJsonObject
-            rule.get("outboundTag")?.let { tag -> tag.isJsonPrimitive && tag.asString == "proxy" } == true
-        }
+        rules.toList().filter { element ->
+            element.isJsonObject && element.asJsonObject.get("outboundTag")?.let { tag ->
+                tag.isJsonPrimitive && tag.asString == "proxy"
+            } == true
+        }.forEach { rules.remove(it) }
     }
 
     /**
