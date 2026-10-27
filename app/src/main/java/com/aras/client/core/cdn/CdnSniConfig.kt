@@ -122,6 +122,56 @@ object CdnSniConfig {
         routing.add("rules", merged)
     }
 
+    /**
+     * Structural sanity check after injection. This catches incomplete or conflicting
+     * generated JSON before it is handed to the native core; it does not claim that the
+     * remote CDN accepts the configured SNI or that a live VPN connection works.
+     *
+     * @return a diagnostic when a required generated component is missing or inconsistent.
+     */
+    fun validateInjectedConfig(root: JsonObject, settings: CdnSniSettings): String? {
+        val inbounds = root.get("inbounds")?.takeIf { it.isJsonArray }?.asJsonArray
+            ?: return "Missing Xray inbounds"
+        val outbounds = root.get("outbounds")?.takeIf { it.isJsonArray }?.asJsonArray
+            ?: return "Missing Xray outbounds"
+        val rules = root.getAsJsonObject("routing")?.get("rules")?.takeIf { it.isJsonArray }?.asJsonArray
+            ?: return "Missing Xray routing rules"
+
+        fun countTag(items: JsonArray, tag: String) = items.count {
+            it.isJsonObject && it.asJsonObject.get("tag")?.let { value ->
+                value.isJsonPrimitive && value.asString == tag
+            } == true
+        }
+        if (countTag(inbounds, INBOUND_TAG) != 1) return "CDN/SNI local TLS inbound is missing or duplicated"
+        if (countTag(outbounds, REDIRECT_TAG) != 1 || countTag(outbounds, REPACK_TAG) != 1) {
+            return "CDN/SNI outbound is missing or duplicated"
+        }
+
+        val repack = outbounds.firstOrNull {
+            it.isJsonObject && it.asJsonObject.get("tag")?.asString == REPACK_TAG
+        }?.asJsonObject ?: return "CDN/SNI outbound is missing"
+        val tls = repack.getAsJsonObject("streamSettings")?.getAsJsonObject("tlsSettings")
+            ?: return "CDN/SNI TLS settings are missing"
+        if (tls.get("serverName")?.asString != settings.sni) return "CDN/SNI hostname does not match the profile"
+        val hosts = root.getAsJsonObject("dns")?.getAsJsonObject("hosts")
+            ?: return "CDN/SNI DNS mapping is missing"
+        if (hosts.get(EDGE_HOST)?.asString != settings.edgeIp) return "CDN/SNI edge IP mapping does not match the profile"
+
+        val inboundRule = rules.count {
+            it.isJsonObject &&
+                it.asJsonObject.get("outboundTag")?.asString == REPACK_TAG &&
+                it.asJsonObject.getAsJsonArray("inboundTag")?.any { tag -> tag.asString == INBOUND_TAG } == true
+        }
+        val tlsRule = rules.count {
+            it.isJsonObject &&
+                it.asJsonObject.get("outboundTag")?.asString == REDIRECT_TAG &&
+                it.asJsonObject.get("network")?.asString == "tcp" &&
+                it.asJsonObject.get("port")?.asString == "443"
+        }
+        if (inboundRule != 1 || tlsRule != 1) return "CDN/SNI routing rules are missing or duplicated"
+        return null
+    }
+
     private fun decryptInbound(certPem: String, keyPem: String) = JsonObject().apply {
         addProperty("tag", INBOUND_TAG)
         addProperty("listen", "127.0.0.1")
