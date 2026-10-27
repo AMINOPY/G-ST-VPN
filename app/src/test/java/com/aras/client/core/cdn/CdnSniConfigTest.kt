@@ -14,9 +14,10 @@ import org.junit.Test
 
 class CdnSniConfigTest {
 
-    private fun profile(mode: String?, targets: String? = null, front: String? = null) =
+    private fun profile(ip: String?, sni: String?) =
         ProfileItem.create(EConfigType.CDN_SNI).apply {
-            cdnSniMode = mode; cdnSniTargets = targets; cdnSniFront = front
+            cdnSniTargets = ip
+            cdnSniFront = sni
         }
 
     @Test
@@ -28,34 +29,18 @@ class CdnSniConfigTest {
     }
 
     @Test
-    fun targetsAreNormalisedAndInvalidOnesDropped() {
-        assertEquals(
-            listOf("domain:github.com", "geosite:google", "full:x.example", "domain:y.example"),
-            CdnSniConfig.parseTargets("GitHub.com, geosite:google\nfull:x.example y.example bad_name geosite:")
-        )
+    fun parsesOneIpAndSniWithoutImportedConfig() {
+        val settings = CdnSniConfig.settingsOf(profile("104.16.1.2", "WWW.Google.com"))!!
+        assertEquals("104.16.1.2", settings.edgeIp)
+        assertEquals("www.google.com", settings.sni)
     }
 
     @Test
-    fun frontSplitsNamesFromEdgeIps() {
-        val (snis, ips) = CdnSniConfig.parseFront("www.google.com 104.16.1.2,\n104.16.1.2 999.1.1.1 WWW.Google.com")
-        assertEquals(listOf("www.google.com"), snis)
-        assertEquals(listOf("104.16.1.2"), ips)
-    }
-
-    @Test
-    fun autoModeIgnoresStoredTextAndUsesThePreset() {
-        val s = CdnSniConfig.settingsOf(profile(CdnSniConfig.MODE_AUTO, "ignored.com", "ignored.com"))!!
-        assertEquals(listOf("geosite:google"), s.targets)
-        assertEquals(listOf("www.google.com"), s.snis)
-        assertTrue(s.edgeIps.isEmpty())
-    }
-
-    @Test
-    fun manualModeNeedsBothFields() {
-        assertNull(CdnSniConfig.settingsOf(profile(CdnSniConfig.MODE_MANUAL, "github.com", "")))
-        assertNull(CdnSniConfig.settingsOf(profile(CdnSniConfig.MODE_MANUAL, "", "www.python.org")))
-        assertNull(CdnSniConfig.settingsOf(profile(CdnSniConfig.MODE_MANUAL, "github.com", "1.2.3.4")))
-        assertNotNull(CdnSniConfig.settingsOf(profile(CdnSniConfig.MODE_MANUAL, "github.com", "www.python.org")))
+    fun rejectsMissingOrInvalidIpAndSni() {
+        assertNull(CdnSniConfig.settingsOf(profile("", "www.google.com")))
+        assertNull(CdnSniConfig.settingsOf(profile("999.1.1.1", "www.google.com")))
+        assertNull(CdnSniConfig.settingsOf(profile("104.16.1.2", "not_a_hostname")))
+        assertNotNull(CdnSniConfig.settingsOf(profile("104.16.1.2", "www.google.com")))
     }
 
     private fun baseConfig(): JsonObject = JsonParser.parseString(
@@ -67,9 +52,9 @@ class CdnSniConfigTest {
     private fun tags(a: JsonArray) = a.map { it.asJsonObject.get("tag")?.asString }
 
     @Test
-    fun injectAddsInboundOutboundsAndPutsItsRulesFirst() {
+    fun injectAddsBridgeAndRoutesTlsBeforeExistingRules() {
         val root = baseConfig()
-        val settings = CdnSniSettings(listOf("domain:github.com"), listOf("www.python.org"), listOf("151.101.1.1"))
+        val settings = CdnSniSettings("151.101.1.1", "www.python.org")
         CdnSniConfig.inject(root, settings, "-----BEGIN CERTIFICATE-----\nAAA\n-----END CERTIFICATE-----\n", "-----BEGIN PRIVATE KEY-----\nBBB\n-----END PRIVATE KEY-----\n")
 
         assertTrue(CdnSniConfig.INBOUND_TAG in tags(root.getAsJsonArray("inbounds")))
@@ -81,19 +66,22 @@ class CdnSniConfigTest {
         assertEquals(3, rules.size())
         assertEquals(CdnSniConfig.REPACK_TAG, rules[0].asJsonObject.get("outboundTag").asString)
         assertEquals(CdnSniConfig.REDIRECT_TAG, rules[1].asJsonObject.get("outboundTag").asString)
+        assertEquals("tcp", rules[1].asJsonObject.get("network").asString)
+        assertEquals("443", rules[1].asJsonObject.get("port").asString)
+        assertFalse(rules[1].asJsonObject.has("domain"))
         assertEquals("proxy", rules[2].asJsonObject.get("outboundTag").asString)
-        assertEquals("domain:github.com", rules[1].asJsonObject.getAsJsonArray("domain")[0].asString)
     }
 
     @Test
-    fun injectKeepsTheCertificateAsPemLinesAndTheKeyOutOfRouting() {
+    fun injectKeepsCertificateAsPemLinesAndPrivateKeyInInboundOnly() {
         val root = baseConfig()
         CdnSniConfig.inject(
-            root, CdnSniSettings(listOf("domain:a.com"), listOf("b.com"), emptyList()),
+            root, CdnSniSettings("1.2.3.4", "b.com"),
             "-----BEGIN CERTIFICATE-----\nAAA\n-----END CERTIFICATE-----\n",
             "-----BEGIN PRIVATE KEY-----\nBBB\n-----END PRIVATE KEY-----\n"
         )
-        val inbound = root.getAsJsonArray("inbounds").map { it.asJsonObject }.first { it.get("tag")?.asString == CdnSniConfig.INBOUND_TAG }
+        val inbound = root.getAsJsonArray("inbounds").map { it.asJsonObject }
+            .first { it.get("tag")?.asString == CdnSniConfig.INBOUND_TAG }
         val cert = inbound.getAsJsonObject("streamSettings").getAsJsonObject("tlsSettings")
             .getAsJsonArray("certificates")[0].asJsonObject
         assertEquals("issue", cert.get("usage").asString)
@@ -104,9 +92,9 @@ class CdnSniConfigTest {
     }
 
     @Test
-    fun injectMakesExistingInboundsSniffTheNameAndDialByIt() {
+    fun injectMakesExistingInboundsSniffTheName() {
         val root = baseConfig()
-        CdnSniConfig.inject(root, CdnSniSettings(listOf("domain:a.com"), listOf("b.com"), emptyList()), "c", "k")
+        CdnSniConfig.inject(root, CdnSniSettings("1.2.3.4", "b.com"), "c", "k")
         val tun = root.getAsJsonArray("inbounds")[0].asJsonObject.getAsJsonObject("sniffing")
         assertTrue(tun.get("enabled").asBoolean)
         assertFalse(tun.get("routeOnly").asBoolean)
@@ -116,24 +104,15 @@ class CdnSniConfigTest {
     }
 
     @Test
-    fun repackUsesTheFirstNameAndAcceptsTheSitesOwnCertificate() {
+    fun repackUsesConfiguredSniAndEdgeIp() {
         val root = baseConfig()
-        CdnSniConfig.inject(root, CdnSniSettings(listOf("domain:a.com"), listOf("front.example", "other.example"), listOf("1.2.3.4", "5.6.7.8")), "c", "k")
-        val repack = root.getAsJsonArray("outbounds").map { it.asJsonObject }.first { it.get("tag").asString == CdnSniConfig.REPACK_TAG }
+        CdnSniConfig.inject(root, CdnSniSettings("1.2.3.4", "front.example"), "c", "k")
+        val repack = root.getAsJsonArray("outbounds").map { it.asJsonObject }
+            .first { it.get("tag").asString == CdnSniConfig.REPACK_TAG }
         val tls = repack.getAsJsonObject("streamSettings").getAsJsonObject("tlsSettings")
         assertEquals("front.example", tls.get("serverName").asString)
-        assertEquals("fromMitM,front.example,other.example", tls.get("verifyPeerCertByName").asString)
+        assertEquals("fromMitM,front.example", tls.get("verifyPeerCertByName").asString)
         assertEquals("${CdnSniConfig.EDGE_HOST}:443", repack.getAsJsonObject("settings").get("redirect").asString)
-        val hosts = root.getAsJsonObject("dns").getAsJsonObject("hosts").getAsJsonArray(CdnSniConfig.EDGE_HOST)
-        assertEquals(listOf("1.2.3.4", "5.6.7.8"), hosts.map { it.asString })
-    }
-
-    @Test
-    fun withoutEdgeIpsTheRepackOutboundResolvesTheSiteItself() {
-        val root = baseConfig()
-        CdnSniConfig.inject(root, CdnSniSettings(listOf("domain:a.com"), listOf("b.com"), emptyList()), "c", "k")
-        val repack = root.getAsJsonArray("outbounds").map { it.asJsonObject }.first { it.get("tag").asString == CdnSniConfig.REPACK_TAG }
-        assertFalse(repack.has("settings"))
-        assertFalse(root.has("dns"))
+        assertEquals("1.2.3.4", root.getAsJsonObject("dns").getAsJsonObject("hosts").get(CdnSniConfig.EDGE_HOST).asString)
     }
 }
