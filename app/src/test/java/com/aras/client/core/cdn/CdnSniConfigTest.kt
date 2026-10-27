@@ -84,14 +84,14 @@ class CdnSniConfigTest {
             tags(root.getAsJsonArray("outbounds"))
         )
         val rules = root.getAsJsonObject("routing").getAsJsonArray("rules")
-        assertEquals(4, rules.size())
+        assertEquals(3, rules.size())
         assertEquals(CdnSniConfig.REPACK_TAG, rules[0].asJsonObject.get("outboundTag").asString)
         assertEquals(CdnSniConfig.REDIRECT_TAG, rules[1].asJsonObject.get("outboundTag").asString)
         assertEquals("tcp", rules[1].asJsonObject.get("network").asString)
         assertEquals("443", rules[1].asJsonObject.get("port").asString)
         assertFalse(rules[1].asJsonObject.has("domain"))
         assertEquals("proxy", rules[2].asJsonObject.get("outboundTag").asString)
-        assertEquals("tcp,udp", rules[3].asJsonObject.get("network").asString)
+        assertEquals("tcp,udp", rules[2].asJsonObject.get("network").asString)
     }
 
     @Test
