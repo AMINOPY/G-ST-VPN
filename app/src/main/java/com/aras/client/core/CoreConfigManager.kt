@@ -66,7 +66,7 @@ object CoreConfigManager {
             ?: return ConfigResult(
                 status = false,
                 guid = configContext.guid,
-                errorMessage = "CDN/SNI needs at least one site and one server name"
+                errorMessage = "CDN/SNI needs a valid IPv4 edge address and SNI hostname"
             )
         val root = JsonUtil.parseString(result.content)?.takeIf { it.isJsonObject }?.asJsonObject
             ?: return ConfigResult(status = false, guid = configContext.guid, errorMessage = "CDN/SNI could not read the base config")
@@ -94,7 +94,7 @@ object CoreConfigManager {
             val xrayConfig = buildUnifiedConfig(configContext)
             postProcessForSpeedtest(xrayConfig)
 
-            return toConfigResult(configContext, xrayConfig)
+            return applyCdnSni(configContext, toConfigResult(configContext, xrayConfig))
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to get Xray config for speedtest", e)
             return ConfigResult(
