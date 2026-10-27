@@ -43,6 +43,28 @@ object CdnSniAutoScanner {
         Candidate("www.telewebion.com"),
         Candidate("bmi.ir"),
         Candidate("www.bmi.ir"),
+        Candidate("bankmellat.ir"),
+        Candidate("www.bankmellat.ir"),
+        Candidate("bsi.ir"),
+        Candidate("www.bsi.ir"),
+        Candidate("shaparak.ir"),
+        Candidate("www.shaparak.ir"),
+        Candidate("irancell.ir"),
+        Candidate("www.irancell.ir"),
+        Candidate("mci.ir"),
+        Candidate("www.mci.ir"),
+        Candidate("hamrahaval.ir"),
+        Candidate("www.hamrahaval.ir"),
+        Candidate("divar.ir"),
+        Candidate("www.divar.ir"),
+        Candidate("torob.com"),
+        Candidate("www.torob.com"),
+        Candidate("zoomit.ir"),
+        Candidate("www.zoomit.ir"),
+        Candidate("isna.ir"),
+        Candidate("www.isna.ir"),
+        Candidate("irib.ir"),
+        Candidate("www.irib.ir"),
         Candidate("google.com"),
         Candidate("www.google.com"),
     )
@@ -56,6 +78,15 @@ object CdnSniAutoScanner {
         Candidate("www.wikipedia.org"),
         Candidate("www.github.com"),
         Candidate("www.python.org"),
+        Candidate("www.mozilla.org"),
+        Candidate("www.nytimes.com"),
+        Candidate("www.bbc.com"),
+        Candidate("www.cisco.com"),
+        Candidate("www.adobe.com"),
+        Candidate("www.salesforce.com"),
+        Candidate("www.fastly.com"),
+        Candidate("www.akamai.com"),
+        Candidate("www.amazonaws.com"),
     )
 
     /**
@@ -74,28 +105,33 @@ object CdnSniAutoScanner {
         for (candidate in candidates) {
             try {
                 val addresses = java.net.InetAddress.getAllByName(candidate.sni)
-                    .take(3)
+                    .take(8)
                 for (address in addresses) {
                     val ip = address.hostAddress?.substringBefore('%') ?: continue
                     if (!CdnIp.isIpv4(ip)) continue
                     val result = probe(ip, candidate.sni) ?: continue
-                    val historical = readScore(prefs, mode, ip, candidate.sni)
-                    val adjusted = (result.latencyMs * (1.0 - (historical.coerceAtMost(20) * 0.005))).toLong()
-                    ranked += result.copy(latencyMs = adjusted)
+                    ranked += result
                 }
             } catch (e: Exception) {
                 Log.d(TAG, "Candidate lookup failed: ${candidate.sni}", e)
             }
         }
 
-        val best = ranked.distinctBy { "${it.ip}|${it.sni}" }.minByOrNull { it.latencyMs }
-            ?: return null
-        recordSuccess(prefs, mode, best)
+        val unique = ranked.distinctBy { "${it.ip}|${it.sni}" }
+        if (unique.isEmpty()) return null
+
+        // Learn successful pairs separately per mode, without letting history outweigh latency.
+        unique.forEach { recordSuccess(prefs, mode, it) }
+        val best = unique.minByOrNull { result ->
+            val successes = readScore(prefs, mode, result.ip, result.sni).coerceAtMost(20)
+            result.latencyMs - (successes * 3L)
+        } ?: return null
         prefs.edit().putString("${mode.key}_cache", JSONObject().apply {
             put("ip", best.ip)
             put("sni", best.sni)
             put("latency", best.latencyMs)
             put("savedAt", System.currentTimeMillis())
+            put("mode", mode.key)
         }.toString()).apply()
         return best
     }
