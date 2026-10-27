@@ -907,14 +907,14 @@
     <string name="theme_ui_style_title">سبک رابط اصلی برنامه</string>
     <string name="menu_dpi_diagnostics">آزمایش تشخیصی DPI</string>
     <string name="menu_item_cdn_sni">CDN/SNI</string>
-    <string name="cdn_sni_intro">به سرور نیاز ندارد. Xray در همین گوشی TLS مرورگر را باز می‌کند و درخواست را با یک نام سرور مجاز به CDN می‌فرستد تا سایت‌های فهرست‌شده مستقیم باز شوند. فقط برای ترافیک مرورگر کار می‌کند و باید گواهی زیر را معتبر (Trust) کنی.</string>
-    <string name="cdn_sni_mode_auto">خودکار</string>
-    <string name="cdn_sni_mode_manual">دستی</string>
-    <string name="cdn_sni_targets">سایت‌هایی که باید باز شوند</string>
-    <string name="cdn_sni_front">نام سرور (SNI) و در صورت نیاز آی‌پی‌های CDN</string>
-    <string name="cdn_sni_auto_hint">در حالت خودکار هر دو فیلد خودشان پر می‌شوند (سرویس‌های گوگل).</string>
-    <string name="cdn_sni_manual_hint">فیلدها را خودت پر کن. موارد را با Enter، ویرگول یا فاصله جدا کن. سایت: github.com یا geosite:google. فیلد دوم: یک نام سرور مثل www.google.com و در صورت نیاز آی‌پی‌های CDN.</string>
-    <string name="cdn_sni_invalid">دست‌کم یک سایت معتبر و یک نام سرور معتبر وارد کن</string>
+    <string name="cdn_sni_intro">فقط IP سرور لبهٔ CDN و نام SNI را وارد کن. پیکربندی Xray در خود برنامه ساخته می‌شود؛ نیازی به واردکردن کانفیگ یا UUID نیست. برای رهگیری TLS باید به گواهی محلی همین دستگاه اعتماد کنی.</string>
+    
+    
+    <string name="cdn_sni_targets">آدرس IP سرور CDN</string>
+    <string name="cdn_sni_front">نام سرور (SNI)</string>
+    
+    
+    <string name="cdn_sni_invalid">یک آدرس IPv4 معتبر برای CDN و یک نام میزبان معتبر برای SNI وارد کن</string>
     <string name="cdn_sni_cert_hint">مرورگر فقط بعد از اینکه به گواهی این روش اعتماد کنی آن را می‌پذیرد. گواهی روی همین گوشی ساخته می‌شود و کلید خصوصی‌اش هرگز از اپ خارج نمی‌شود.</string>
     <string name="cdn_sni_cert_export">ذخیره گواهی برای اعتماد (Trust)</string>
     <string name="cdn_sni_cert_steps">فایل را ذخیره کن، سپس در تنظیمات: امنیت ← نصب گواهی ← گواهی CA</string>
