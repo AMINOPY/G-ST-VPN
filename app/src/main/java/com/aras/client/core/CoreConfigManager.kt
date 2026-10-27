@@ -82,6 +82,9 @@ object CoreConfigManager {
             ?: return ConfigResult(false, configContext.guid, errorMessage = "CDN/SNI could not create the base config")
         val ca = com.aras.client.core.cdn.CdnSniCa.getOrCreate(configContext.context)
         com.aras.client.core.cdn.CdnSniConfig.inject(root, settings, ca.certificate, ca.key)
+        com.aras.client.core.cdn.CdnSniConfig.validateInjectedConfig(root, settings)?.let { error ->
+            return ConfigResult(false, configContext.guid, errorMessage = error)
+        }
         val json = JsonUtil.toJsonPretty(root)
             ?: return ConfigResult(false, configContext.guid, errorMessage = "CDN/SNI config serialization failed")
         return ConfigResult(true, configContext.guid, json)
@@ -105,7 +108,11 @@ object CoreConfigManager {
             ?: return ConfigResult(status = false, guid = configContext.guid, errorMessage = "CDN/SNI could not read the base config")
         val ca = com.aras.client.core.cdn.CdnSniCa.getOrCreate(configContext.context)
         com.aras.client.core.cdn.CdnSniConfig.inject(root, settings, ca.certificate, ca.key)
-        return JsonUtil.toJsonPretty(root)?.let { ConfigResult(true, configContext.guid, it) } ?: result
+        com.aras.client.core.cdn.CdnSniConfig.validateInjectedConfig(root, settings)?.let { error ->
+            return ConfigResult(false, configContext.guid, errorMessage = error)
+        }
+        return JsonUtil.toJsonPretty(root)?.let { ConfigResult(true, configContext.guid, it) }
+            ?: ConfigResult(status = false, guid = configContext.guid, errorMessage = "CDN/SNI config serialization failed")
     }
 
     /**
