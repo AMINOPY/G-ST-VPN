@@ -80,6 +80,10 @@ object CoreConfigManager {
         val root = JsonUtil.parseString(JsonUtil.toJsonPretty(base).orEmpty())
             ?.takeIf { it.isJsonObject }?.asJsonObject
             ?: return ConfigResult(false, configContext.guid, errorMessage = "CDN/SNI could not create the base config")
+        // The base template ships with a sample VMess outbound tagged "proxy". CDN/SNI
+        // is standalone and has no VMess credentials, so remove that invalid placeholder
+        // (and any rule targeting it) before injecting the dedicated bridge.
+        com.aras.client.core.cdn.CdnSniConfig.removeTemplateProxyOutbound(root)
         val ca = com.aras.client.core.cdn.CdnSniCa.getOrCreate(configContext.context)
         com.aras.client.core.cdn.CdnSniConfig.inject(root, settings, ca.certificate, ca.key)
         com.aras.client.core.cdn.CdnSniConfig.validateInjectedConfig(root, settings)?.let { error ->
