@@ -360,8 +360,13 @@ class RadarConfigActivity : ComponentActivity() {
         if (network == "ws") setParam("host", sni)
         val authorityPattern = Regex("^((?:vless|trojan)://(?:[^@/?#]+@)?)([^:/?#]+)(:\\d+)?", RegexOption.IGNORE_CASE)
         if (!authorityPattern.containsMatchIn(base)) return null
-        val rewrittenBase = authorityPattern.replaceFirst(base) { match ->
-            match.groupValues[1] + edgeIp + match.groupValues[3]
+        val authorityMatch = authorityPattern.find(base) ?: return null
+        val rewrittenBase = buildString {
+            append(base.substring(0, authorityMatch.range.first))
+            append(authorityMatch.groupValues[1])
+            append(edgeIp)
+            append(authorityMatch.groupValues[3])
+            append(base.substring(authorityMatch.range.last + 1))
         }
         val rewrittenQuery = params.joinToString("&") {
             java.net.URLEncoder.encode(it.first, "UTF-8") + "=" +
