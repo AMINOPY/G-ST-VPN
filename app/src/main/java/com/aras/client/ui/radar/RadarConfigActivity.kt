@@ -63,8 +63,9 @@ class RadarConfigActivity : ComponentActivity() {
                 )
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("جست‌وجو در منابع عمومی و پیش‌آزمایش دسترسی شبکه", style = MaterialTheme.typography.titleMedium)
-                        Text("پاسخ TCP به‌تنهایی سلامت تونل را ثابت نمی‌کند. هیچ کانفیگی خودکار نصب یا متصل نمی‌شود.", style = MaterialTheme.typography.bodySmall)
+                        Text("اتصال خودکار Xray بدون ورود دستی کانفیگ", style = MaterialTheme.typography.titleMedium)
+                        Text("رادار کانفیگ‌های سازگار را از منابع عمومی پیدا می‌کند و دسترسی شبکه را پیش‌آزمایش می‌کند. پاسخ TCP فقط مرحلهٔ اول است؛ اتصال موفق باید با اجرای Xray و عبور ترافیک واقعی تأیید شود. IP و SNI به‌تنهایی برای ساخت تونل عمومی Xray کافی نیستند.", style = MaterialTheme.typography.bodySmall)
+                        Text("حالت فعلی: کشف و بررسی TCP؛ انتخاب و اتصال خودکار هنوز به تأیید واقعی تونل نیاز دارد.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
                         AndroidView(
                             factory = { ctx -> RadarScanView(ctx).also { radar = it; it.startScan() } },
                             modifier = Modifier.fillMaxWidth().height(230.dp),
