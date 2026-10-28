@@ -125,13 +125,6 @@ class ServerCdnSniActivity : BaseServerActivity() {
                     modifier = Modifier.weight(1f)
                 ) { Text(stringResource(R.string.cdn_sni_auto_us)) }
             }
-            autoResult?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
             if (scanning) {
                 Text(
                     stringResource(R.string.cdn_sni_auto_scanning),
