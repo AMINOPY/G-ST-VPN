@@ -136,6 +136,13 @@ object CdnSniAutoScanner {
         return best
     }
 
+    /** Performs a fresh TCP connect + certificate-validated TLS handshake for the entered pair. */
+    fun test(ip: String, sni: String): Result? {
+        val validIp = CdnSniConfig.parseIp(ip) ?: return null
+        val validSni = CdnSniConfig.parseSni(sni) ?: return null
+        return probe(validIp, validSni)
+    }
+
     private fun probe(ip: String, sni: String): Result? {
         val start = System.nanoTime()
         var raw: Socket? = null
