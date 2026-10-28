@@ -60,6 +60,8 @@ class ServerCdnSniActivity : BaseServerActivity() {
         var edgeIp by rememberSaveable { mutableStateOf(CdnSniConfig.effectiveIp(initialConfig)) }
         var sni by rememberSaveable { mutableStateOf(CdnSniConfig.effectiveSni(initialConfig)) }
         var scanning by rememberSaveable { mutableStateOf(false) }
+        var testingPing by rememberSaveable { mutableStateOf(false) }
+        var pingResult by rememberSaveable { mutableStateOf<String?>(null) }
 
         val badInput = stringResource(R.string.cdn_sni_invalid)
 
@@ -153,6 +155,26 @@ class ServerCdnSniActivity : BaseServerActivity() {
                 onValueChange = { sni = it },
                 maxLines = 1,
             )
+            OutlinedButton(
+                onClick = {
+                    if (testingPing) return@OutlinedButton
+                    testingPing = true
+                    pingResult = null
+                    lifecycleScope.launch {
+                        val result = withContext(Dispatchers.IO) {
+                            CdnSniAutoScanner.test(edgeIp.trim(), sni.trim())
+                        }
+                        testingPing = false
+                        pingResult = result?.let { "پاسخ TLS واقعی: ${it.latencyMs} میلی‌ثانیه (TCP + TLS؛ نه تأیید تونل VPN)" }
+                            ?: "اتصال TCP/TLS ناموفق بود؛ IP و SNI را بررسی کن."
+                    }
+                },
+                enabled = !scanning && !testingPing,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+            ) { Text(if (testingPing) "در حال سنجش واقعی…" else "سنجش واقعی IP/SNI") }
+            pingResult?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(horizontal = 16.dp))
+            }
             Text(
                 stringResource(R.string.cdn_sni_auto_hint),
                 style = MaterialTheme.typography.bodySmall,
