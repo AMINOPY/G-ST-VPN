@@ -45,6 +45,7 @@ class RadarConfigActivity : ComponentActivity() {
             AppTheme {
                 val requestedEdgeIp = intent.getStringExtra("cdn_edge_ip").orEmpty().trim()
                 val requestedSni = intent.getStringExtra("cdn_sni_host").orEmpty().trim()
+                val hasAnyCdnSni = requestedEdgeIp.isNotBlank() || requestedSni.isNotBlank()
                 val hasCdnSni = CdnSniConfig.parseIp(requestedEdgeIp) != null &&
                     CdnSniConfig.parseSni(requestedSni) != null
                 var scanning by remember { mutableStateOf(false) }
@@ -160,14 +161,20 @@ class RadarConfigActivity : ComponentActivity() {
                                                 "DNS " + (item.dnsLatency?.toString() ?: "—") + " ms · TCP " + item.latency + " ms · " + item.note
                                             },
                                             color = when { item.latency == null -> MaterialTheme.colorScheme.error; item.latency <= 150 -> Color(0xFF00A86B); item.latency <= 300 -> Color(0xFFB8860B); else -> Color(0xFFC62828) })
-                                        if (item.latency != null) {
+                                        if (item.latency != null || hasAnyCdnSni) {
                                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 Button(onClick = {
-                                                    val configToImport = if (hasCdnSni) {
-                                                        rewriteTlsConfig(item.uri, requestedEdgeIp, requestedSni)
-                                                    } else item.uri
+                                                    val configToImport = when {
+                                                        hasAnyCdnSni && hasCdnSni -> rewriteTlsConfig(item.uri, requestedEdgeIp, requestedSni)
+                                                        hasAnyCdnSni -> null
+                                                        else -> item.uri
+                                                    }
                                                     if (configToImport == null) {
-                                                        message = "این نتیجه کانفیگ TLS سازگار برای اعمال CDN/SNI ندارد؛ کانفیگ اصلی تغییر نکرد."
+                                                        message = if (hasAnyCdnSni && !hasCdnSni) {
+                                                            "IP یا SNI نامعتبر است؛ به صفحهٔ قبل برگرد و هر دو مقدار را بررسی کن."
+                                                        } else {
+                                                            "این نتیجه کانفیگ VLESS/Trojan با TLS سازگار برای اعمال CDN/SNI ندارد؛ کانفیگ اصلی تغییر نکرد."
+                                                        }
                                                     } else {
                                                         startActivity(Intent(this@RadarConfigActivity, MainActivity::class.java).apply {
                                                             action = "com.aras.client.action.IMPORT_RADAR_CONFIG"
