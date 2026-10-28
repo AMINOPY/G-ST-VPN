@@ -222,7 +222,22 @@ class RadarConfigActivity : ComponentActivity() {
     }
 
     private fun discover(): List<String> {
-        val repos = listOf("barry-far/V2ray-Config", "0xRadikal/Free-v2ray-Configs", "ircfspace/tconfig", "Argh94/V2RayAutoConfig")
+        // Multi-source discovery: retain existing sources and add the repositories requested for Radar Config.
+        // Repository names are not treated as proof of an endpoint country.
+        val repos = listOf(
+            "barry-far/V2ray-Config",
+            "0xRadikal/Free-v2ray-Configs",
+            "ircfspace/tconfig",
+            "Argh94/V2RayAutoConfig",
+            "miladtahanian/V2RayScrapeByCountry",
+            "SoliSpirit/v2ray-configs",
+            "Delta-Kronecker/V2ray-Config",
+            "Danialsamadi/v2go",
+            "morpheusadam/v2ray-config",
+            "MatinGhanbari/v2ray-configs",
+            "drmikecrypto/PulseConfigs",
+            "rtwo2/FastNodes"
+        )
         val found = linkedSetOf<String>()
         for (repo in repos) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
