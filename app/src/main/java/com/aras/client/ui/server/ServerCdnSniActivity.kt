@@ -85,7 +85,7 @@ class ServerCdnSniActivity : BaseServerActivity() {
                     it.cdnSniTargets = result.ip
                     it.cdnSniFront = result.sni
                 }
-                save(draft, "$label · ${result.sni} · ${result.latencyMs} ms TLS")
+                pingResult = "$label پیدا شد: ${result.ip} · ${result.sni} · ${result.latencyMs} ms TLS. حالا «یافتن کانفیگ» را بزن تا فقط پروفایل‌های سازگار بررسی شوند."
             }
         }
 
@@ -137,11 +137,14 @@ class ServerCdnSniActivity : BaseServerActivity() {
             ) {
                 OutlinedButton(
                     onClick = {
-                        startActivity(Intent(this@ServerCdnSniActivity, RadarConfigActivity::class.java))
+                        startActivity(Intent(this@ServerCdnSniActivity, RadarConfigActivity::class.java).apply {
+                            putExtra("cdn_edge_ip", edgeIp.trim())
+                            putExtra("cdn_sni_host", sni.trim())
+                        })
                     },
                     enabled = !scanning,
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("پیدا کردن تونل واقعی بدون ورود دستی کانفیگ") }
+                ) { Text("یافتن کانفیگ سازگار و اعمال CDN/SNI") }
             }
             FormTextField(
                 label = stringResource(R.string.cdn_sni_targets),
