@@ -62,14 +62,12 @@ class ServerCdnSniActivity : BaseServerActivity() {
         var scanning by rememberSaveable { mutableStateOf(false) }
         var testingPing by rememberSaveable { mutableStateOf(false) }
         var pingResult by rememberSaveable { mutableStateOf<String?>(null) }
-        var autoResult by rememberSaveable { mutableStateOf<String?>(null) }
 
         val badInput = stringResource(R.string.cdn_sni_invalid)
 
         fun startAuto(mode: CdnSniAutoScanner.Mode) {
             if (scanning) return
             scanning = true
-            autoResult = null
             lifecycleScope.launch {
                 val result = withContext(Dispatchers.IO) {
                     CdnSniAutoScanner.scan(applicationContext, mode)
@@ -82,13 +80,12 @@ class ServerCdnSniActivity : BaseServerActivity() {
                 edgeIp = result.ip
                 sni = result.sni
                 val label = if (mode == CdnSniAutoScanner.Mode.IR) "AUTO IR" else "AUTO US"
-                autoResult = "$label · ${result.ip} · ${result.latencyMs} ms TLS. موقعیت کشور تضمین‌شده نیست و این آزمون به‌تنهایی تونل VPN را تأیید نمی‌کند."
                 val draft = initialConfig.copy().also {
                     it.cdnSniMode = mode.key
                     it.cdnSniTargets = result.ip
                     it.cdnSniFront = result.sni
                 }
-                save(draft, "$label · ${result.sni}")
+                save(draft, "$label · ${result.sni} · ${result.latencyMs} ms TLS")
             }
         }
 
