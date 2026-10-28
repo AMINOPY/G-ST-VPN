@@ -214,7 +214,30 @@ class RadarConfigActivity : ComponentActivity() {
                         for (batch in bounded.chunked(8)) {
                             if (!scanning) break
                             val batchResults = coroutineScope {
-                                batch.map { uri -> async(Dispatchers.IO) { testTcp(uri) } }.map { it.await() }
+                                batch.map { uri ->
+                                    async(Dispatchers.IO) {
+                                        val original = testTcp(uri)
+                                        if (original.latency != null || !hasCdnSni) {
+                                            original
+                                        } else {
+                                            val recoveredUri = rewriteTlsConfig(uri, requestedEdgeIp, requestedSni)
+                                            if (recoveredUri == null) {
+                                                original.copy(note = original.note + " · CDN/SNI روی این نوع کانفیگ قابل‌اعمال نیست")
+                                            } else {
+                                                val retry = testTcp(recoveredUri)
+                                                if (retry.latency != null) {
+                                                    retry.copy(
+                                                        note = "CDN/SNI recovery · پاسخ TCP؛ سلامت تونل هنوز تأیید نشده"
+                                                    )
+                                                } else {
+                                                    original.copy(
+                                                        note = original.note + " · تلاش CDN/SNI هم پاسخ نداد"
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }.map { it.await() }
                             }
                             for (result in batchResults) {
                                 if (result.latency != null) reachable++
