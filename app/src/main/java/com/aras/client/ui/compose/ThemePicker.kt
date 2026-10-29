@@ -121,6 +121,15 @@ fun ThemePicker(
             foreground = Color(0xFFF1F8F4)
         ),
         ThemeChoice(
+            value = "rdrn",
+            title = "RADAR VPN",
+            description = "Neon radar · six tabs · speed test with SIM and network info · animated bottom bar",
+            background = Color(0xFF040B07),
+            surface = Color(0xFF0A2216),
+            accent = Color(0xFF22E07A),
+            foreground = Color(0xFFE9F3EC)
+        ),
+        ThemeChoice(
             value = "rdrx",
             title = "RADAR Glass",
             description = "Real radar connect button · iOS 26 liquid glass · Apple Watch style menu",
