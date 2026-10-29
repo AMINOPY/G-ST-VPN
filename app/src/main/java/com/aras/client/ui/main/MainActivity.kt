@@ -144,8 +144,13 @@ class MainActivity : HelperBaseComponentActivity() {
         intent.removeExtra("radar_config")
         intent.action = null
         if (rawConfig.isNotBlank()) {
-            mainViewModel.onAction(MainAction.ImportBatchConfig(rawConfig))
-            mainViewModel.onAction(MainAction.RefreshGroups)
+            val autoConnect = intent.getBooleanExtra("radar_auto_connect", false)
+            if (autoConnect) {
+                mainViewModel.importRadarConfigAndConnect(rawConfig)
+            } else {
+                mainViewModel.onAction(MainAction.ImportBatchConfig(rawConfig))
+                mainViewModel.onAction(MainAction.RefreshGroups)
+            }
         }
     }
 
