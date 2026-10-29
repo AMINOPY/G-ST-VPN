@@ -908,4 +908,23 @@
     <string name="app_icon_calculator">Calculator</string>
     <string name="calculator_launcher_label">Calculator</string>
     <string name="calculator_access_code">Access code (4–12 digits; hold AC to restore icon)</string>
+    <string name="menu_item_cdn_sni">CDN/SNI</string>
+    <string name="cdn_sni_auto_ir">AUTO IR 🇮🇷</string>
+    <string name="cdn_sni_auto_us">AUTO US 🇺🇸</string>
+    <string name="cdn_sni_auto_scanning">Checking reachable IP/SNI pairs and measuring TLS handshake speed…</string>
+    <string name="cdn_sni_auto_not_found">No verified IP/SNI pair was found on this network. Try another network or enter values manually.</string>
+    <string name="cdn_sni_auto_hint">AUTO tests reachable IP/SNI pairs and saves the fastest verified result. Region labels are preferences, not a guarantee of the physical CDN location. Manual entry is always available.</string>
+    <string name="cdn_sni_intro">Enter a CDN edge IP and its SNI. Xray builds the runtime tunnel configuration locally; no imported config or UUID is needed. TLS interception requires trusting this device\'s local CA certificate.</string>
+    
+    
+    <string name="cdn_sni_targets">CDN edge IP address</string>
+    <string name="cdn_sni_front">SNI (server name)</string>
+    
+    
+    <string name="cdn_sni_invalid">Enter a valid IPv4 CDN edge address and a valid SNI hostname</string>
+    <string name="cdn_sni_cert_hint">Browsers only accept this setup after you trust its certificate. The certificate is made on this device and its private key never leaves the app.</string>
+    <string name="cdn_sni_cert_export">Save certificate to trust</string>
+    <string name="cdn_sni_cert_steps">Save the file, then in Settings choose Security, Install a certificate, CA certificate</string>
+    <string name="cdn_sni_cert_saved">Certificate saved</string>
+    <string name="cdn_sni_cert_failed">Could not save the certificate</string>
 </resources>

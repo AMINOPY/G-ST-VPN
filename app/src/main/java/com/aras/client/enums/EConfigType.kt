@@ -27,6 +27,9 @@ enum class EConfigType(val value: Int, val protocolScheme: String) {
     AETHER(14, AppConfig.AETHER),
     // Mieru: a separate client process serving a local SOCKS, like Aether.
     MIERU(15, AppConfig.MIERU),
+    // CDN/SNI: no server of its own. Xray terminates the browser's TLS locally with a
+    // device-only CA and re-sends it to a CDN edge under an allowed server name.
+    CDN_SNI(16, AppConfig.CDN_SNI),
     POLICYGROUP(101, AppConfig.CUSTOM),
     PROXYCHAIN(102, AppConfig.CUSTOM);
 

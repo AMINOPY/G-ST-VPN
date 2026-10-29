@@ -16,6 +16,7 @@ import com.aras.client.radar.ui.RadarScanView
 import com.aras.client.ui.compose.AppTheme
 import android.content.Intent
 import com.aras.client.ui.main.MainActivity
+import com.aras.client.core.cdn.CdnSniConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
@@ -42,6 +43,11 @@ class RadarConfigActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
+                val requestedEdgeIp = intent.getStringExtra("cdn_edge_ip").orEmpty().trim()
+                val requestedSni = intent.getStringExtra("cdn_sni_host").orEmpty().trim()
+                val hasAnyCdnSni = requestedEdgeIp.isNotBlank() || requestedSni.isNotBlank()
+                val hasCdnSni = CdnSniConfig.parseIp(requestedEdgeIp) != null &&
+                    CdnSniConfig.parseSni(requestedSni) != null
                 var scanning by remember { mutableStateOf(false) }
                 var message by remember { mutableStateOf("برای شروع، اسکن را اجرا کن.") }
                 val results = remember { mutableStateListOf<RadarCandidate>() }
@@ -63,8 +69,14 @@ class RadarConfigActivity : ComponentActivity() {
                 )
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("جست‌وجو در منابع عمومی و پیش‌آزمایش دسترسی شبکه", style = MaterialTheme.typography.titleMedium)
-                        Text("پاسخ TCP به‌تنهایی سلامت تونل را ثابت نمی‌کند. هیچ کانفیگی خودکار نصب یا متصل نمی‌شود.", style = MaterialTheme.typography.bodySmall)
+                        Text("اتصال خودکار Xray بدون ورود دستی کانفیگ", style = MaterialTheme.typography.titleMedium)
+                        Text("رادار کانفیگ‌های سازگار را از منابع عمومی پیدا می‌کند و دسترسی شبکه را پیش‌آزمایش می‌کند. پاسخ TCP فقط مرحلهٔ اول است؛ اتصال موفق باید با اجرای Xray و عبور ترافیک واقعی تأیید شود. IP و SNI به‌تنهایی برای ساخت تونل عمومی Xray کافی نیستند.", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            if (hasCdnSni) "حالت تطبیق CDN/SNI: $requestedEdgeIp · $requestedSni. فقط لینک‌های TLS سازگار قابل بازنویسی‌اند؛ نتیجهٔ TCP به‌تنهایی تونل را تأیید نمی‌کند."
+                            else "حالت فعلی: کشف و بررسی TCP؛ انتخاب و اتصال خودکار هنوز به تأیید واقعی تونل نیاز دارد.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
                         AndroidView(
                             factory = { ctx -> RadarScanView(ctx).also { radar = it; it.startScan() } },
                             modifier = Modifier.fillMaxWidth().height(230.dp),
@@ -149,14 +161,38 @@ class RadarConfigActivity : ComponentActivity() {
                                                 "DNS " + (item.dnsLatency?.toString() ?: "—") + " ms · TCP " + item.latency + " ms · " + item.note
                                             },
                                             color = when { item.latency == null -> MaterialTheme.colorScheme.error; item.latency <= 150 -> Color(0xFF00A86B); item.latency <= 300 -> Color(0xFFB8860B); else -> Color(0xFFC62828) })
-                                        if (item.latency != null) {
-                                            Button(onClick = {
-                                                startActivity(Intent(this@RadarConfigActivity, MainActivity::class.java).apply {
-                                                    action = "com.aras.client.action.IMPORT_RADAR_CONFIG"
-                                                    putExtra("radar_config", item.uri)
-                                                })
-                                                finish()
-                                            }) { Text("افزودن برای تست واقعی") }
+                                        if (item.latency != null || hasAnyCdnSni) {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Button(onClick = {
+                                                    val configToImport = when {
+                                                        hasAnyCdnSni && hasCdnSni -> rewriteTlsConfig(item.uri, requestedEdgeIp, requestedSni)
+                                                        hasAnyCdnSni -> null
+                                                        else -> item.uri
+                                                    }
+                                                    if (configToImport == null) {
+                                                        message = if (hasAnyCdnSni && !hasCdnSni) {
+                                                            "IP یا SNI نامعتبر است؛ به صفحهٔ قبل برگرد و هر دو مقدار را بررسی کن."
+                                                        } else {
+                                                            "این نتیجه کانفیگ VLESS/Trojan با TLS سازگار برای اعمال CDN/SNI ندارد؛ کانفیگ اصلی تغییر نکرد."
+                                                        }
+                                                    } else {
+                                                        startActivity(Intent(this@RadarConfigActivity, MainActivity::class.java).apply {
+                                                            action = "com.aras.client.action.IMPORT_RADAR_CONFIG"
+                                                            putExtra("radar_config", configToImport)
+                                                            putExtra("radar_auto_connect", true)
+                                                        })
+                                                        finish()
+                                                    }
+                                                }) { Text(if (hasCdnSni) "اعمال CDN/SNI و افزودن" else "افزودن برای تست واقعی") }
+                                                OutlinedButton(onClick = {
+                                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                        type = "text/plain"
+                                                        putExtra(Intent.EXTRA_SUBJECT, "G-ST-VPN · کانفیگ رادار")
+                                                        putExtra(Intent.EXTRA_TEXT, item.uri)
+                                                    }
+                                                    startActivity(Intent.createChooser(shareIntent, "اشتراک‌گذاری کانفیگ"))
+                                                }) { Text("اشتراک‌گذاری") }
+                                            }
                                         }
                                     }
                                 }
@@ -179,7 +215,30 @@ class RadarConfigActivity : ComponentActivity() {
                         for (batch in bounded.chunked(8)) {
                             if (!scanning) break
                             val batchResults = coroutineScope {
-                                batch.map { uri -> async(Dispatchers.IO) { testTcp(uri) } }.map { it.await() }
+                                batch.map { uri ->
+                                    async(Dispatchers.IO) {
+                                        val original = testTcp(uri)
+                                        if (original.latency != null || !hasCdnSni) {
+                                            original
+                                        } else {
+                                            val recoveredUri = rewriteTlsConfig(uri, requestedEdgeIp, requestedSni)
+                                            if (recoveredUri == null) {
+                                                original.copy(note = original.note + " · CDN/SNI روی این نوع کانفیگ قابل‌اعمال نیست")
+                                            } else {
+                                                val retry = testTcp(recoveredUri)
+                                                if (retry.latency != null) {
+                                                    retry.copy(
+                                                        note = "CDN/SNI recovery · پاسخ TCP؛ سلامت تونل هنوز تأیید نشده"
+                                                    )
+                                                } else {
+                                                    original.copy(
+                                                        note = original.note + " · تلاش CDN/SNI هم پاسخ نداد"
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }.map { it.await() }
                             }
                             for (result in batchResults) {
                                 if (result.latency != null) reachable++
@@ -212,7 +271,22 @@ class RadarConfigActivity : ComponentActivity() {
     }
 
     private fun discover(): List<String> {
-        val repos = listOf("barry-far/V2ray-Config", "0xRadikal/Free-v2ray-Configs", "ircfspace/tconfig", "Argh94/V2RayAutoConfig")
+        // Multi-source discovery: retain existing sources and add the repositories requested for Radar Config.
+        // Repository names are not treated as proof of an endpoint country.
+        val repos = listOf(
+            "barry-far/V2ray-Config",
+            "0xRadikal/Free-v2ray-Configs",
+            "ircfspace/tconfig",
+            "Argh94/V2RayAutoConfig",
+            "miladtahanian/V2RayScrapeByCountry",
+            "SoliSpirit/v2ray-configs",
+            "Delta-Kronecker/V2ray-Config",
+            "Danialsamadi/v2go",
+            "morpheusadam/v2ray-config",
+            "MatinGhanbari/v2ray-configs",
+            "drmikecrypto/PulseConfigs",
+            "rtwo2/FastNodes"
+        )
         val found = linkedSetOf<String>()
         for (repo in repos) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
@@ -277,6 +351,52 @@ class RadarConfigActivity : ComponentActivity() {
             "DNS پاسخ داد، اما پورت TCP در دسترس نیست"
         }
         return RadarCandidate(uri, null, detail, dnsMs)
+    }
+
+
+    /**
+     * Apply CDN/SNI only to VLESS/Trojan links that already explicitly use TLS.
+     * This preserves credentials and does not pretend arbitrary dead servers can be repaired.
+     */
+    private fun rewriteTlsConfig(raw: String, edgeIp: String, sni: String): String? {
+        if (CdnSniConfig.parseIp(edgeIp) == null || CdnSniConfig.parseSni(sni) == null) return null
+        val scheme = raw.substringBefore("://", "").lowercase()
+        if (scheme != "vless" && scheme != "trojan") return null
+        val beforeFragment = raw.substringBefore("#")
+        val fragment = raw.substringAfter("#", "").let { if (raw.contains("#")) "#$it" else "" }
+        if (!beforeFragment.contains("?")) return null
+        val base = beforeFragment.substringBefore("?")
+        val query = beforeFragment.substringAfter("?")
+        val params = query.split("&").filter { it.isNotBlank() }.map { part ->
+            val key = java.net.URLDecoder.decode(part.substringBefore("="), "UTF-8")
+            val value = java.net.URLDecoder.decode(part.substringAfter("=", ""), "UTF-8")
+            key to value
+        }.toMutableList()
+        val security = params.lastOrNull { it.first.equals("security", true) }?.second?.lowercase()
+        if (security != "tls") return null
+        if (params.any { it.first.equals("type", true) && it.second.equals("reality", true) }) return null
+        fun setParam(key: String, value: String) {
+            params.removeAll { it.first.equals(key, true) }
+            params.add(key to value)
+        }
+        setParam("sni", sni)
+        val network = params.lastOrNull { it.first.equals("type", true) }?.second?.lowercase()
+        if (network == "ws") setParam("host", sni)
+        val authorityPattern = Regex("^((?:vless|trojan)://(?:[^@/?#]+@)?)([^:/?#]+)(:\\d+)?", RegexOption.IGNORE_CASE)
+        if (!authorityPattern.containsMatchIn(base)) return null
+        val authorityMatch = authorityPattern.find(base) ?: return null
+        val rewrittenBase = buildString {
+            append(base.substring(0, authorityMatch.range.first))
+            append(authorityMatch.groupValues[1])
+            append(edgeIp)
+            append(authorityMatch.groupValues[3])
+            append(base.substring(authorityMatch.range.last + 1))
+        }
+        val rewrittenQuery = params.joinToString("&") {
+            java.net.URLEncoder.encode(it.first, "UTF-8") + "=" +
+                java.net.URLEncoder.encode(it.second, "UTF-8")
+        }
+        return "$rewrittenBase?$rewrittenQuery$fragment"
     }
 
     private fun protocolOf(uri: String): String {

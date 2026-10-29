@@ -40,6 +40,7 @@ object CoreOutboundBuilder {
             EConfigType.MASQUE -> toOutboundMasque(profileItem)
             EConfigType.AETHER -> toOutboundAether(profileItem)
             EConfigType.MIERU -> toOutboundMieru(profileItem)
+            EConfigType.CDN_SNI -> toOutboundCdnSni()
             else -> null
         }
 
@@ -490,6 +491,13 @@ object CoreOutboundBuilder {
         }
         return outbound
     }
+
+    /**
+     * A CDN/SNI profile has no server. Its "proxy" outbound is the plain direct one;
+     * the fronting itself is injected into the finished config by [CdnSniConfig].
+     */
+    private fun toOutboundCdnSni(): OutboundBean =
+        OutboundBean(protocol = AppConfig.PROTOCOL_FREEDOM, settings = OutboundBean.OutSettingsBean(), mux = null)
 
     private fun toOutboundHysteria2(profileItem: ProfileItem): OutboundBean? {
         val outboundBean = createInitOutbound(EConfigType.HYSTERIA2) ?: return null

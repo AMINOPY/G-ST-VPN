@@ -578,7 +578,12 @@ class MainViewModel(
     }
 
     // ---------- Business actions (coroutine-based) ----------
-    private fun importBatchConfig(configText: String) {
+    /** Imports a Radar result and optionally selects that exact new profile before starting Xray. */
+    fun importRadarConfigAndConnect(configText: String) {
+        importBatchConfig(configText, autoConnect = true)
+    }
+
+    private fun importBatchConfig(configText: String, autoConnect: Boolean = false) {
         launchLoading {
             withContext(ioDispatcher) {
                 try {
@@ -588,6 +593,7 @@ class MainViewModel(
                     } else {
                         selectedGroupId
                     }
+                    val beforeGuids = if (autoConnect) dataSource.getServerGuidList(targetGroupId).toSet() else emptySet()
                     val imported = dataSource.importBatchConfig(configText, targetGroupId, true)
                     val firstNewSubscriptionId = imported.newSubscriptionIds.firstOrNull()
                     if (firstNewSubscriptionId != null) {
@@ -611,6 +617,19 @@ class MainViewModel(
                         showSubscriptionUpdateResult(updateResult)
                     } else if (imported.totalCount == 0) {
                         toastError(R.string.toast_failure)
+                    }
+
+                    if (autoConnect && imported.configCount > 0) {
+                        val targetGroup = firstNewSubscriptionId ?: targetGroupId
+                        val newGuid = dataSource.getServerGuidList(targetGroup)
+                            .firstOrNull { it !in beforeGuids && dataSource.decodeServerConfig(it) != null }
+                        if (newGuid != null) {
+                            updateSelectedGuid(newGuid)
+                            _uiState.update { it.copy(requestServiceStart = true) }
+                        } else {
+                            LogUtil.w(AppConfig.TAG, "Radar config imported, but the new profile GUID could not be resolved")
+                            toastError(R.string.toast_failure)
+                        }
                     }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
