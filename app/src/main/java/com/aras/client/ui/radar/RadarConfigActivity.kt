@@ -179,6 +179,7 @@ class RadarConfigActivity : ComponentActivity() {
                                                         startActivity(Intent(this@RadarConfigActivity, MainActivity::class.java).apply {
                                                             action = "com.aras.client.action.IMPORT_RADAR_CONFIG"
                                                             putExtra("radar_config", configToImport)
+                                                            putExtra("radar_auto_connect", true)
                                                         })
                                                         finish()
                                                     }
