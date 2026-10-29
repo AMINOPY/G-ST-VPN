@@ -2,7 +2,7 @@ name: Android validation
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feat/cdn-sni-auto-ir-us]
   push:
     branches: [main, feature/cultural-theme-picker]
   workflow_dispatch:
