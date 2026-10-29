@@ -623,8 +623,6 @@ class MainViewModel(
                         val targetGroup = firstNewSubscriptionId ?: targetGroupId
                         val newGuid = dataSource.getServerGuidList(targetGroup)
                             .firstOrNull { it !in beforeGuids && dataSource.decodeServerConfig(it) != null }
-                            ?: dataSource.getServerGuidList(targetGroup)
-                                .firstOrNull { dataSource.decodeServerConfig(it)?.remarks?.contains("Radar", true) == true }
                         if (newGuid != null) {
                             updateSelectedGuid(newGuid)
                             _uiState.update { it.copy(requestServiceStart = true) }
