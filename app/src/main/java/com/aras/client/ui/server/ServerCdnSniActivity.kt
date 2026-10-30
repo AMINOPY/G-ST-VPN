@@ -162,6 +162,11 @@ class ServerCdnSniActivity : BaseServerActivity() {
                 onValueChange = { sni = it; selectedMode = CdnSniConfig.MODE_MANUAL },
                 maxLines = 3,
             )
+            Text(
+                stringResource(R.string.cdn_sni_manual_list_hint),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
             OutlinedButton(
                 onClick = {
                     if (testingPing) return@OutlinedButton
