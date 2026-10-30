@@ -174,7 +174,8 @@ object CoreServiceManager {
         // anywhere in the chain, not just the selected profile: an entry proxy is the
         // outermost hop of every profile in its subscription, so its daemon is what
         // the whole subscription depends on.
-        val helpers = HelperProcessSupport.acquire(service, CoreConfigContextBuilder.resolveChainProfiles(service, guid))
+        val helperProfiles = HelperProcessSupport.profilesForXraySession(CoreConfigContextBuilder.resolveChainProfiles(service, guid))
+        val helpers = HelperProcessSupport.acquire(service, helperProfiles)
         helpers.error?.let { reason ->
             LogUtil.e(AppConfig.TAG, "StartCore-Manager: $reason")
             HelperProcessSupport.reset()
