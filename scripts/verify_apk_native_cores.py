@@ -6,6 +6,7 @@ import sys
 
 APKS = sorted(Path("app/build/outputs/apk").rglob("*.apk"))
 REQUIRED = ("libaether.so", "libpsiphon-tunnel-core.so", "liblyrebird.so")
+REQUIRED_ABIS = {"arm64-v8a", "armeabi-v7a", "x86_64"}
 
 def main() -> int:
     if not APKS:
@@ -14,6 +15,7 @@ def main() -> int:
 
     errors = []
     seen_aether = False
+    seen_abis = set()
     for apk in APKS:
         try:
             with ZipFile(apk) as archive:
@@ -29,6 +31,7 @@ def main() -> int:
                     if aether not in names:
                         continue
                     seen_aether = True
+                    seen_abis.add(abi)
                     missing = [f"lib/{abi}/{name}" for name in REQUIRED if f"lib/{abi}/{name}" not in names]
                     if missing:
                         errors.append(f"{apk}: incomplete {abi} Aether payload: {', '.join(missing)}")
@@ -39,6 +42,9 @@ def main() -> int:
 
     if not seen_aether:
         errors.append("No APK contains libaether.so; the Aether runtime was not packaged.")
+    missing_abis = sorted(REQUIRED_ABIS - seen_abis)
+    if missing_abis:
+        errors.append("Aether/Psiphon/Lyrebird are missing from APK ABI splits: " + ", ".join(missing_abis))
     if errors:
         for error in errors:
             print(f"ERROR {error}", file=sys.stderr)
