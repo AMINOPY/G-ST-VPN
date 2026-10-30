@@ -155,7 +155,7 @@ object CdnSniConfig {
             } else {
                 null
             }
-            !address.isNullOrBlank() && address != "fakedns"
+            address?.isNotBlank() == true && address != "fakedns"
         }
         if (!hasRoutedResolver) {
             normalized.add("tcp://1.1.1.1")
@@ -249,8 +249,7 @@ object CdnSniConfig {
                 } else if (element.isJsonObject) {
                     element.asJsonObject.get("address")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
                 } else null
-                address != "fakedns" &&
-                    (address.isNullOrBlank() || !(address.startsWith("tcp://") || address.startsWith("https://")))
+                address?.let { it != "fakedns" && !(it.startsWith("tcp://") || it.startsWith("https://")) } ?: true
             }
         ) return "A DNS server would bypass the Psiphon TCP transport"
 
