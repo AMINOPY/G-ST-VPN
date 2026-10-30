@@ -343,63 +343,116 @@ class RadarConfigActivity : ComponentActivity() {
     }
 
     private fun discover(): List<Triple<String, String?, String?>> {
-        // Country labels describe the source feed only; they are not verified endpoint geolocation.
-        val found = linkedMapOf<String, Pair<String?, String?>>()
-        val countryFeedPool = java.util.concurrent.Executors.newFixedThreadPool(4)
+        // Every configured country feed and every repository is queried. Do not stop
+        // after the first popular feed: that used to silently skip the other requested sources.
+        val buckets = ArrayList<List<Triple<String, String?, String?>>>()
+
+        val countryPool = java.util.concurrent.Executors.newFixedThreadPool(4)
         try {
-            radarCountrySources.map { source ->
-                countryFeedPool.submit<Pair<RadarSource, List<String>>> {
-                    source to runCatching { extract(get(source.url, 12000)) }.getOrDefault(emptyList())
-                }
-            }.forEach { future ->
-                val (source, links) = runCatching { future.get() }.getOrNull() ?: return@forEach
-                links.forEach { link ->
-                    val current = found[link]
-                    if (current == null || current.first == null) {
-                        found[link] = source.country to source.name
-                    }
+            val futures = radarCountrySources.map { source ->
+                countryPool.submit<List<Triple<String, String?, String?>>> {
+                    runCatching {
+                        extract(get(source.url, 12000))
+                            .distinct()
+                            .take(120)
+                            .map { uri -> Triple(uri, source.country, source.name) }
+                    }.getOrDefault(emptyList())
                 }
             }
+            futures.forEach { future ->
+                runCatching { future.get() }.getOrNull()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let(buckets::add)
+            }
         } finally {
-            countryFeedPool.shutdownNow()
+            countryPool.shutdownNow()
         }
-        if (found.size >= 500) return found.entries.take(500).map { Triple(it.key, it.value.first, it.value.second) }
-        // Keep the existing repository-tree fallback for additional repositories not covered by country feeds.
+
+        // Keep all nine user-requested repositories, plus the original discovery fallbacks.
+        // Each repository contributes its own bounded bucket so one large feed cannot starve
+        // the rest. Repository-tree failures are isolated and do not abort the scan.
         val repos = listOf(
-            "barry-far/V2ray-Config",
-            "0xRadikal/Free-v2ray-Configs",
-            "ircfspace/tconfig",
-            "Argh94/V2RayAutoConfig",
             "miladtahanian/V2RayScrapeByCountry",
             "SoliSpirit/v2ray-configs",
             "Delta-Kronecker/V2ray-Config",
             "Danialsamadi/v2go",
             "morpheusadam/v2ray-config",
             "MatinGhanbari/v2ray-configs",
+            "0xRadikal/Free-v2ray-Configs",
             "drmikecrypto/PulseConfigs",
-            "rtwo2/FastNodes"
+            "rtwo2/FastNodes",
+            "barry-far/V2ray-Config",
+            "ircfspace/tconfig",
+            "Argh94/V2RayAutoConfig",
         )
-        for (repo in repos) try {
-            val metadata = get("https://api.github.com/repos/" + repo, 10000)
-            val branch = Regex("""default_branch"\s*:\s*"([^"]+)""").find(metadata)?.groupValues?.get(1) ?: "main"
-            val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
-            val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"").findAll(tree).map { it.groupValues[1] }
-                .filter { p -> val q = p.lowercase(); (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) && (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country")) }
-                .sortedBy { p -> if (p.contains("country", ignoreCase = true)) 0 else 1 }
-                .take(20)
-            for (path in paths) {
-                val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
-                val country = countryFromPath(path)
-                extract(raw).forEach { uri ->
-                    val current = found[uri]
-                    if (current == null || (current.first == null && country != null)) {
-                        found[uri] = country to repo
-                    }
+        val repoPool = java.util.concurrent.Executors.newFixedThreadPool(4)
+        try {
+            val futures = repos.map { repo ->
+                repoPool.submit<List<Triple<String, String?, String?>>> {
+                    runCatching {
+                        val metadata = get("https://api.github.com/repos/" + repo, 10000)
+                        val branch = Regex("""default_branch"\s*:\s*"([^"]+)""")
+                            .find(metadata)?.groupValues?.get(1) ?: "main"
+                        val tree = get(
+                            "https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1",
+                            10000,
+                        )
+                        val paths = Regex("\\"path\\"\\s*:\\s*\\"([^\\"]+)\\\"")
+                            .findAll(tree)
+                            .map { it.groupValues[1] }
+                            .filter { p ->
+                                val q = p.lowercase()
+                                (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) &&
+                                    (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country") || q.contains("best") || q.contains("top"))
+                            }
+                            .sortedBy { p -> if (p.contains("country", ignoreCase = true)) 0 else 1 }
+                            .take(10)
+
+                        val repoFound = linkedMapOf<String, Triple<String, String?, String?>>()
+                        for (path in paths) {
+                            val encoded = path.split("/").joinToString("/") {
+                                java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20")
+                            }
+                            val raw = get(
+                                "https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + encoded,
+                                8000,
+                            )
+                            val country = countryFromPath(path)
+                            for (uri in extract(raw)) {
+                                repoFound.putIfAbsent(uri, Triple(uri, country, repo))
+                                if (repoFound.size >= 120) break
+                            }
+                            if (repoFound.size >= 120) break
+                        }
+                        repoFound.values.toList()
+                    }.getOrDefault(emptyList())
                 }
-                if (found.size >= 500) return found.entries.take(500).map { Triple(it.key, it.value.first, it.value.second) }
             }
-        } catch (_: Exception) { /* Other sources may still work. */ }
-        return found.entries.take(500).map { Triple(it.key, it.value.first, it.value.second) }
+            futures.forEach { future ->
+                runCatching { future.get() }.getOrNull()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let(buckets::add)
+            }
+        } finally {
+            repoPool.shutdownNow()
+        }
+
+        // Fair round-robin merge, deduplicated by the full share URI.
+        val unique = linkedMapOf<String, Triple<String, String?, String?>>()
+        var round = 0
+        while (unique.size < 500) {
+            var added = false
+            for (bucket in buckets) {
+                if (round < bucket.size && unique.size < 500) {
+                    val candidate = bucket[round]
+                    unique.putIfAbsent(candidate.first, candidate)
+                    added = true
+                }
+            }
+            if (!added) break
+            round++
+        }
+        return unique.values.toList()
     }
 
     private fun countryFromPath(path: String): String? {
