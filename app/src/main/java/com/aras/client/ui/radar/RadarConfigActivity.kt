@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -34,6 +35,7 @@ private data class RadarCandidate(
     val latency: Long?,
     val note: String,
     val dnsLatency: Long? = null,
+    val country: String? = null,
 )
 
 /** Public-source discovery. TCP reachability is not treated as proof of a working proxy tunnel. */
@@ -54,7 +56,10 @@ class RadarConfigActivity : ComponentActivity() {
                 var radar by remember { mutableStateOf<RadarScanView?>(null) }
                 var resultFilter by remember { mutableStateOf("all") }
                 var protocolFilter by remember { mutableStateOf("all") }
+                var countryFilter by remember { mutableStateOf("all") }
+                val availableCountries = results.mapNotNull { it.country }.distinct().sorted()
                 val visibleResults = results.filter { candidate ->
+                    val countryMatches = countryFilter == "all" || candidate.country == countryFilter
                     val reachabilityMatches = when (resultFilter) {
                         "reachable" -> candidate.latency != null
                         "failed" -> candidate.latency == null
@@ -62,7 +67,7 @@ class RadarConfigActivity : ComponentActivity() {
                     }
                     val protocolMatches = protocolFilter == "all" ||
                         protocolOf(candidate.uri) == protocolFilter
-                    reachabilityMatches && protocolMatches
+                    reachabilityMatches && protocolMatches && countryMatches
                 }.sortedWith(
                     compareBy<RadarCandidate> { it.latency == null }
                         .thenBy { it.latency ?: Long.MAX_VALUE }
@@ -124,6 +129,26 @@ class RadarConfigActivity : ComponentActivity() {
                                 label = { Text("بدون پاسخ (" + results.count { it.latency == null } + ")") }
                             )
                         }
+                        if (availableCountries.isNotEmpty()) {
+                            androidx.compose.foundation.lazy.LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                item {
+                                    FilterChip(
+                                        selected = countryFilter == "all",
+                                        onClick = { countryFilter = "all" },
+                                        label = { Text("همه کشورها") }
+                                    )
+                                }
+                                items(availableCountries) { country ->
+                                    FilterChip(
+                                        selected = countryFilter == country,
+                                        onClick = { countryFilter = country },
+                                        label = { Text(country) }
+                                    )
+                                }
+                            }
+                        }
                         androidx.compose.foundation.lazy.LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -153,6 +178,7 @@ class RadarConfigActivity : ComponentActivity() {
                             visibleResults.forEach { item ->
                                 Card(Modifier.fillMaxWidth()) {
                                     Column(Modifier.padding(12.dp)) {
+                                        item.country?.let { Text("کشور: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
                                         Text(
                                             if (item.latency == null) {
@@ -203,21 +229,23 @@ class RadarConfigActivity : ComponentActivity() {
                 LaunchedEffect(scanning) {
                     if (!scanning) return@LaunchedEffect
                     try {
-                        val uris = withContext(Dispatchers.IO) { discover().distinct() }
+                        val discovered = withContext(Dispatchers.IO) { discover().distinctBy { it.first } }
                         var reachable = 0
-                        val bounded = uris.take(180)
+                        val bounded = discovered.take(180)
                         if (bounded.isEmpty()) {
                             message = "منابع پاسخ ندادند یا کانفیگ قابل‌خواندن پیدا نشد؛ اتصال اینترنت و دسترسی به GitHub را بررسی کن."
-                        } else if (uris.size > bounded.size) {
+                        } else if (discovered.size > bounded.size) {
                             message = "تعداد زیادی نتیجه پیدا شد؛ برای حفظ سرعت، ۱۸۰ مورد اول بررسی می‌شوند."
                         }
                         var checked = 0
                         for (batch in bounded.chunked(8)) {
                             if (!scanning) break
                             val batchResults = coroutineScope {
-                                batch.map { uri ->
+                                batch.map { candidate ->
                                     async(Dispatchers.IO) {
-                                        val original = testTcp(uri)
+                                        val uri = candidate.first
+                                        val country = candidate.second
+                                        val original = testTcp(uri).copy(country = country)
                                         if (original.latency != null || !hasCdnSni) {
                                             original
                                         } else {
@@ -225,7 +253,7 @@ class RadarConfigActivity : ComponentActivity() {
                                             if (recoveredUri == null) {
                                                 original.copy(note = original.note + " · CDN/SNI روی این نوع کانفیگ قابل‌اعمال نیست")
                                             } else {
-                                                val retry = testTcp(recoveredUri)
+                                                val retry = testTcp(recoveredUri).copy(country = country)
                                                 if (retry.latency != null) {
                                                     retry.copy(
                                                         note = "CDN/SNI recovery · پاسخ TCP؛ سلامت تونل هنوز تأیید نشده"
@@ -270,7 +298,7 @@ class RadarConfigActivity : ComponentActivity() {
         }
     }
 
-    private fun discover(): List<String> {
+    private fun discover(): List<Pair<String, String?>> {
         // Multi-source discovery: retain existing sources and add the repositories requested for Radar Config.
         // Repository names are not treated as proof of an endpoint country.
         val repos = listOf(
@@ -287,7 +315,7 @@ class RadarConfigActivity : ComponentActivity() {
             "drmikecrypto/PulseConfigs",
             "rtwo2/FastNodes"
         )
-        val found = linkedSetOf<String>()
+        val found = linkedMapOf<String, String?>()
         for (repo in repos) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
             val branch = Regex("""default_branch"\s*:\s*"([^"]+)""").find(metadata)?.groupValues?.get(1) ?: "main"
@@ -297,11 +325,29 @@ class RadarConfigActivity : ComponentActivity() {
                 .take(10)
             for (path in paths) {
                 val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
-                extract(raw).forEach { found.add(it) }
-                if (found.size >= 250) return found.toList()
+                val country = countryFromPath(path)
+                extract(raw).forEach { uri -> found.putIfAbsent(uri, country) }
+                if (found.size >= 500) return found.entries.map { it.key to it.value }
             }
         } catch (_: Exception) { /* Other sources may still work. */ }
-        return found.toList()
+        return found.entries.map { it.key to it.value }
+    }
+
+    private fun countryFromPath(path: String): String? {
+        val normalized = path.lowercase().replace('-', '_')
+        return when {
+            normalized.contains("united_states") || normalized.contains("/us.") || normalized.contains("_us.") -> "آمریکا"
+            normalized.contains("germany") || normalized.contains("/de.") || normalized.contains("_de.") -> "آلمان"
+            normalized.contains("turkiye") || normalized.contains("türkiye") || normalized.contains("turkey") || normalized.contains("/tr.") -> "ترکیه"
+            normalized.contains("south_korea") || normalized.contains("korea") || normalized.contains("/kr.") -> "کره جنوبی"
+            normalized.contains("russia") || normalized.contains("/ru.") -> "روسیه"
+            normalized.contains("france") || normalized.contains("/fr.") -> "فرانسه"
+            normalized.contains("netherlands") || normalized.contains("/nl.") -> "هلند"
+            normalized.contains("japan") || normalized.contains("/jp.") -> "ژاپن"
+            normalized.contains("singapore") || normalized.contains("/sg.") -> "سنگاپور"
+            normalized.contains("iran") || normalized.contains("/ir.") -> "ایران"
+            else -> null
+        }
     }
 
     private fun extract(text: String): List<String> {
