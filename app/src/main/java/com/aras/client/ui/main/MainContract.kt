@@ -81,6 +81,7 @@ sealed interface MainAction {
     data object ImportClipboard : MainAction
     data object ImportConfigLocal : MainAction
     data object ImportArascFile : MainAction
+    data object ImportPsiphon : MainAction
     data object ImportManualMenu : MainAction
     data class ImportManually(val type: Int) : MainAction
     data object RestartService : MainAction
