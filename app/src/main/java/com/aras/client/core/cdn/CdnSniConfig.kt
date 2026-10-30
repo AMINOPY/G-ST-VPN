@@ -140,9 +140,7 @@ object CdnSniConfig {
                     val server = element.asJsonObject
                     val address = server.get("address")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }
                         ?.asString
-                    if (address == null) {
-                        normalized.add(server)
-                    } else {
+                    if (address != null) {
                         normalizeDnsAddress(address)?.let { normalized.add(server.apply { addProperty("address", it) }) }
                     }
                 }
@@ -169,7 +167,6 @@ object CdnSniConfig {
             outbounds.add(JsonObject().apply {
                 addProperty("tag", "dns-out")
                 addProperty("protocol", "dns")
-                add("settings", JsonObject())
             })
         }
 
@@ -252,7 +249,8 @@ object CdnSniConfig {
                 } else if (element.isJsonObject) {
                     element.asJsonObject.get("address")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
                 } else null
-                address?.let { it.startsWith("quic") || it.startsWith("udp://") || it.contains("+local://") } == true
+                address != "fakedns" &&
+                    (address.isNullOrBlank() || !(address.startsWith("tcp://") || address.startsWith("https://")))
             }
         ) return "A DNS server would bypass the Psiphon TCP transport"
 
