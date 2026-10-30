@@ -272,16 +272,15 @@ object AetherCoreManager {
                 val shape = AetherPsiphonMode.fromString(profile.aetherPsiphonMode)
                 addAll(listOf("--psiphon-mode", shape.type))
                 // The CDN lists feed the fronted transports alone, which direct never uses.
-                val cdnIps = profile.aetherPsiphonCdnIps
+                        val cdnIps = profile.aetherPsiphonCdnIps
                     ?.takeIf { it.isNotBlank() && shape != AetherPsiphonMode.DIRECT }
                 cdnIps?.let { addAll(listOf("--psiphon-cdn-ips", it)) }
-                if (cdnIps != null) {
+                if (shape != AetherPsiphonMode.DIRECT) {
                     profile.aetherPsiphonCdnSni?.takeIf { it.isNotBlank() }
                         ?.let { addAll(listOf("--psiphon-cdn-sni", it)) }
+                    AetherPsiphonCdnSet.join(AetherPsiphonCdnSet.parse(profile.aetherPsiphonCdnSets))
+                        ?.let { addAll(listOf("--psiphon-cdn-sets", it)) }
                 }
-                // aether 2.1 has no --psiphon-cdn-sets: which edge lists the client
-                // tries is decided by --psiphon-mode and its own list. The profile
-                // still carries the field so a link from a newer client round-trips.
                 profile.aetherPsiphonRegion?.takeIf { it.isNotBlank() }
                     ?.let { addAll(listOf("--psiphon-region", it)) }
 
@@ -340,10 +339,14 @@ object AetherCoreManager {
         File(context.applicationInfo.nativeLibraryDir, BINARY_NAME)
 
     fun isAvailable(context: Context): Boolean =
-        isExecutableForDevice(binary(context), "Aether")
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            isExecutableForDevice(binary(context), "Aether")
 
     /** A human-readable report used by diagnostics and connection error paths. */
     fun nativeBinaryReport(context: Context): String = buildList {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            add("Android=requires_api_29_current_${Build.VERSION.SDK_INT}")
+        }
         add(report(binary(context), "Aether"))
         add(report(psiphonBinary(context), "Psiphon"))
         add(report(transportBinary(context), "Lyrebird"))
@@ -381,6 +384,10 @@ object AetherCoreManager {
         onOutput: (String) -> Unit,
         ready: (String) -> Boolean,
     ): String? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            LogUtil.e(AppConfig.TAG, "AetherCore: Android 10 (API 29) or newer is required by the installed core")
+            return null
+        }
         reapStale()
         val exe = binary(context)
         if (!isExecutableForDevice(exe, "Aether")) {
@@ -566,6 +573,10 @@ object AetherCoreManager {
         onOutput: (String) -> Unit,
     ): Boolean {
         stop()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            LogUtil.e(AppConfig.TAG, "AetherCore: Android 10 (API 29) or newer is required by the installed core")
+            return false
+        }
         reapStale()
         val exe = binary(context)
         if (!isExecutableForDevice(exe, "Aether")) {
