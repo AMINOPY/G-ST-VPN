@@ -925,4 +925,8 @@
     <string name="cdn_sni_cert_steps">فایل را ذخیره کن، سپس در تنظیمات: امنیت ← نصب گواهی ← گواهی CA</string>
     <string name="cdn_sni_cert_saved">گواهی ذخیره شد</string>
     <string name="cdn_sni_cert_failed">ذخیره گواهی ممکن نشد</string>
+
+    <string name="radar_config_title">رادار کانفیگ</string>
+    <string name="radar_config_summary">کشف و آزمایش کانفیگ‌های عمومی</string>
+    <string name="menu_section_network_tools">ابزارهای شبکه</string>
 </resources>
