@@ -236,6 +236,7 @@ object ThemeManager {
     private const val PREF_CULTURAL_PATTERN_INTENSITY = "cultural_pattern_intensity"
     private const val PREF_CULTURAL_REDUCED_MOTION = "cultural_reduced_motion"
     private const val PREF_CULTURAL_PERSIAN_DIGITS = "cultural_persian_digits"
+    private const val PREF_RDRX_APPEARANCE = "pref_rdrx_appearance"
 
     private val _persianDigitsEnabled = MutableStateFlow(
         MmkvManager.decodeSettingsBool(PREF_CULTURAL_PERSIAN_DIGITS, true)
@@ -288,6 +289,19 @@ object ThemeManager {
         } ?: "default"
     )
     val uiTheme: StateFlow<String> = _uiTheme.asStateFlow()
+
+    private val _rdrxAppearance = MutableStateFlow(
+        MmkvManager.decodeSettingsString(PREF_RDRX_APPEARANCE, "system")
+            ?.takeIf { it in setOf("system", "light", "dark") } ?: "system"
+    )
+    val rdrxAppearance: StateFlow<String> = _rdrxAppearance.asStateFlow()
+
+    /** Appearance override belongs only to RADAR Glass; other app themes stay unchanged. */
+    fun toggleRdrxAppearance(currentDark: Boolean) {
+        val next = if (currentDark) "light" else "dark"
+        MmkvManager.encodeSettings(PREF_RDRX_APPEARANCE, next)
+        _rdrxAppearance.value = next
+    }
 
     fun setUiTheme(value: String) {
         val safeValue = value.takeIf { it in setOf("default", "radar", "survival", "aurora", "rdrx") } ?: "default"
@@ -351,7 +365,10 @@ val AppTypography = Typography(
 fun resolveDarkTheme(): Boolean {
     val mode by ThemeManager.themeMode.collectAsState()
     val uiTheme by ThemeManager.uiTheme.collectAsState()
+    val rdrxAppearance by ThemeManager.rdrxAppearance.collectAsState()
     return when {
+        uiTheme == "rdrx" && rdrxAppearance == "dark" -> true
+        uiTheme == "rdrx" && rdrxAppearance == "light" -> false
         uiTheme == "radar" || uiTheme == "survival" || uiTheme == "aurora" -> true
         mode == "1" || mode == "4" -> false
         mode in setOf("2", "3") -> true
@@ -369,19 +386,24 @@ fun AppTheme(
     val dynamicColor by ThemeManager.dynamicColorEnabled.collectAsState()
     val themeMode by ThemeManager.themeMode.collectAsState()
     val uiTheme by ThemeManager.uiTheme.collectAsState()
+    val rdrxAppearance by ThemeManager.rdrxAppearance.collectAsState()
     val context = LocalContext.current
+    val isRdrxTheme = uiTheme == "rdrx"
     val isRadarTheme = uiTheme == "radar"
     val isSurvivalTheme = uiTheme == "survival"
     val isAuroraTheme = uiTheme == "aurora"
     val isPersepolisTheme = themeMode == "4"
     // Persepolis uses a light parchment palette; keep system-bar icons dark there.
     val effectiveDarkTheme = when {
+        isRdrxTheme && rdrxAppearance == "dark" -> true
+        isRdrxTheme && rdrxAppearance == "light" -> false
         isPersepolisTheme -> false
         isRadarTheme || isSurvivalTheme || isAuroraTheme || themeMode == "3" -> true
         else -> darkTheme
     }
     // Ordinary system appearance is the default; special themes are opt-in.
     val colorScheme = when {
+        isRdrxTheme -> if (darkTheme) DarkColor else LightColor
         isRadarTheme -> RadarColorScheme
         isSurvivalTheme -> SurvivalColorScheme
         isPersepolisTheme -> PersepolisColorScheme
