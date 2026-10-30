@@ -1,10 +1,18 @@
 package com.aras.client.ui.main
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -96,6 +104,81 @@ internal fun serverMenuActions(
     // saves the profile back as a different protocol.
     if (!editable && action == ServerMenuAction.Edit) return@filter false
     (includeManagementActions || action.isShareAction) && (!isComplexProfile || action.supportsComplexProfiles)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddServerSheet(
+    onDismiss: () -> Unit,
+    onAction: (MainAction) -> Unit,
+    onOpenRadarConfig: () -> Unit,
+) {
+    var showProtocolMenu by remember { mutableStateOf(false) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = androidx.compose.ui.Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                stringResource(R.string.add_server_sheet_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = androidx.compose.ui.Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+            ImportMenuAction.entries.forEach { item ->
+                if (item == ImportMenuAction.Manual) {
+                    DropdownMenuItem(
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(stringResource(item.labelRes))
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    "❯",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        },
+                        onClick = { showProtocolMenu = true },
+                    )
+                } else {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(item.labelRes)) },
+                        onClick = {
+                            onDismiss()
+                            onAction(item.action)
+                        },
+                    )
+                }
+            }
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.radar_config_title)) },
+                onClick = {
+                    onDismiss()
+                    onOpenRadarConfig()
+                },
+            )
+        }
+    }
+
+    if (showProtocolMenu) {
+        SelectListDialog(
+            options = ImportManualProtocolMenuAction.entries,
+            optionText = { stringResource(it.labelRes) },
+            onSelected = { selected ->
+                showProtocolMenu = false
+                onDismiss()
+                onAction(selected.action)
+            },
+            onDismiss = { showProtocolMenu = false },
+            title = stringResource(R.string.menu_item_import_config_manually),
+        )
+    }
 }
 
 @Composable
