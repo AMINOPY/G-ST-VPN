@@ -350,6 +350,7 @@ class MainViewModel(
             MainAction.ImportConfigLocal,
             MainAction.ImportArascFile,
             MainAction.ImportPsiphon,
+            MainAction.OpenSubscriptions,
             MainAction.ImportManualMenu,
             is MainAction.ImportManually,
             MainAction.RestartService,
