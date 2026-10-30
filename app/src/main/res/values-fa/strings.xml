@@ -944,4 +944,6 @@
     <string name="radar_config_title">رادار کانفیگ</string>
     <string name="radar_config_summary">کشف و آزمایش کانفیگ‌های عمومی</string>
     <string name="menu_section_network_tools">ابزارهای شبکه</string>
+    <string name="rdr_theme_switch_to_light">تغییر به حالت روشن</string>
+    <string name="rdr_theme_switch_to_dark">تغییر به حالت تاریک</string>
 </resources>
