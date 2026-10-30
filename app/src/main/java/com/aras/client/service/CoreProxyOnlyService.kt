@@ -43,7 +43,7 @@ class CoreProxyOnlyService : Service(), ServiceControl {
             return START_STICKY
         }
 
-        val selected = MmkvManager.getSelectServer()?.let(MmkvManager::decodeServerConfig)
+        val selected = MmkvManager.getSelectServer()?.let { MmkvManager.decodeServerConfig(it) }
         if (selected?.configType == EConfigType.CDN_SNI) {
             // Psiphon may need a long time to establish its carrier. Do not block
             // Service.onStartCommand's main thread while the dedicated CDN profile starts.
