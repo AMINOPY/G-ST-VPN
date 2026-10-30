@@ -65,8 +65,7 @@ import com.aras.client.ui.compose.FormToggleField
  *
  * gool and mim are the core's two-hop tunnels and lower to a WireGuard profile here;
  * Psiphon and Tor are optional native helper processes managed by AetherCoreManager.
- * The dedicated Psiphon-only editor offers a no-import profile while this editor keeps
- * the full gateway/carrier controls.
+ * The same editor handles ordinary Aether profiles and Psiphon-only profiles.
  */
 class ServerAetherActivity : BaseServerActivity() {
 
