@@ -131,6 +131,10 @@ object CdnSniConfig {
             server.get("port")?.asInt != socksPort
         ) return "Psiphon SOCKS listener does not match the configured port"
 
+        if (rules.any { it.isJsonObject && it.asJsonObject.get("outboundTag")?.asString == "direct" }) {
+            return "CDN/SNI direct bypass rule is present"
+        }
+
         val tcpRule = rules.count {
             it.isJsonObject &&
                 it.asJsonObject.get("network")?.asString == "tcp" &&
