@@ -1,5 +1,6 @@
 package com.aras.client.core.cdn
 
+import com.aras.client.AppConfig
 import com.aras.client.dto.entities.ProfileItem
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
@@ -148,7 +149,17 @@ object CdnSniConfig {
                 else -> Unit
             }
         }
-        if (normalized.size() == 0) {
+        val hasRoutedResolver = normalized.any { element ->
+            val address = if (element.isJsonPrimitive && element.asJsonPrimitive.isString) {
+                element.asString
+            } else if (element.isJsonObject) {
+                element.asJsonObject.get("address")?.asString
+            } else {
+                null
+            }
+            !address.isNullOrBlank() && address != "fakedns"
+        }
+        if (!hasRoutedResolver) {
             normalized.add("tcp://1.1.1.1")
             normalized.add("tcp://8.8.8.8")
         }
@@ -159,6 +170,18 @@ object CdnSniConfig {
                 addProperty("tag", "dns-out")
                 addProperty("protocol", "dns")
                 add("settings", JsonObject())
+            })
+        }
+
+        val dnsRuleExists = rules.any { rule ->
+            rule.isJsonObject &&
+                rule.asJsonObject.get("outboundTag")?.asString == PROXY_TAG &&
+                rule.asJsonObject.getAsJsonArray("inboundTag")?.any { it.asString == AppConfig.TAG_DNS } == true
+        }
+        if (!dnsRuleExists) {
+            rules.add(JsonObject().apply {
+                add("inboundTag", JsonArray().apply { add(AppConfig.TAG_DNS) })
+                addProperty("outboundTag", PROXY_TAG)
             })
         }
 
