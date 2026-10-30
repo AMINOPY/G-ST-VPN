@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalContext
 import android.content.Intent
-import androidx.compose.material3.TextButton
 import com.aras.client.ui.radar.RadarConfigActivity
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.text.font.FontWeight
@@ -39,25 +38,17 @@ fun MainTopBar(
     onMoreMenuAction: (MainMoreMenuAction) -> Unit
 ) {
     val context = LocalContext.current
-    var showImportMenu by remember { mutableStateOf(false) }
+    var showAddSheet by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
 
-    AnchoredDropdown(
-        expanded = showImportMenu,
-        onDismiss = { showImportMenu = false }
-    ) {
-        ImportMenuContent(
-            onAction = { action ->
-                showImportMenu = false
-                onAction(action)
-            }
+    if (showAddSheet) {
+        AddServerSheet(
+            onDismiss = { showAddSheet = false },
+            onAction = onAction,
+            onOpenRadarConfig = {
+                context.startActivity(Intent(context, RadarConfigActivity::class.java))
+            },
         )
-        TextButton(onClick = {
-            showImportMenu = false
-            context.startActivity(Intent(context, RadarConfigActivity::class.java))
-        }) {
-            Text("رادار کانفیگ")
-        }
     }
     AnchoredDropdown(
         expanded = showMenu,
@@ -119,7 +110,7 @@ fun MainTopBar(
                     Icon(painterResource(R.drawable.ic_search_24dp), contentDescription = stringResource(R.string.acc_search))
                 }
             }
-            IconButton(onClick = { showImportMenu = true }) {
+            IconButton(onClick = { showAddSheet = true }) {
                 Icon(painterResource(R.drawable.ic_add_24dp), contentDescription = stringResource(R.string.acc_add))
             }
             IconButton(onClick = { showMenu = true }) {
