@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Reinstall the pinned upstream Aether runtime into the Android jniLibs payload.
-# v2.4.0 is built for Android API 29+, so the app gates Aether on Android 10+.
+# v2.3.0 keeps compatibility with the app minimum of Android 7 (API 24).
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VERSION="v2.3.0"
 BASE="https://github.com/CluvexStudio/Aether/releases/download/$VERSION"
