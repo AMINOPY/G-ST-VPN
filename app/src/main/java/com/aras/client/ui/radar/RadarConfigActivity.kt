@@ -716,7 +716,21 @@ class RadarConfigActivity : ComponentActivity() {
             val port = Regex("\"port\"\\s*:\\s*\"?(\\d+)").find(raw)?.groupValues?.get(1)?.toIntOrNull() ?: return null
             return host to port
         }
-        val authority = uri.substringAfter("://").substringBefore('/').substringBefore('?').substringBefore('#').substringAfterLast('@')
+        val scheme = uri.substringBefore("://").lowercase()
+        var payload = uri.substringAfter("://").substringBefore('#')
+        // Legacy Shadowsocks shares encode method:password@host:port as one Base64 blob.
+        // Decode it before extracting the endpoint; SIP002 links with a visible @ stay intact.
+        if (scheme == "ss" && !payload.substringBefore('?').contains('@')) {
+            val encoded = payload.substringBefore('?')
+            val decoded = runCatching { Base64.decode(encoded, Base64.DEFAULT) }
+                .recoverCatching { Base64.decode(encoded, Base64.URL_SAFE or Base64.NO_WRAP) }
+                .getOrNull()?.toString(Charsets.UTF_8)
+            if (!decoded.isNullOrBlank()) {
+                val query = payload.substringAfter('?', "")
+                payload = decoded + if (query.isNotBlank()) "?$query" else ""
+            }
+        }
+        val authority = payload.substringBefore('/').substringBefore('?').substringAfterLast('@')
         val host = authority.substringBeforeLast(':').trim('[', ']')
         val port = authority.substringAfterLast(':').toIntOrNull()
         if (host.isBlank() || port == null || port !in 1..65535) null else host to port
