@@ -496,7 +496,7 @@ class RadarConfigActivity : ComponentActivity() {
             Thread(task, "radar-source-discovery").apply { isDaemon = true }
         }
         val completion = ExecutorCompletionService<List<Triple<String, String?, String?>>>(executor)
-        val futures = tasks.map { task -> completion.submit<List<Triple<String, String?, String?>>> { task() } }
+        val futures = tasks.map { task -> completion.submit(java.util.concurrent.Callable { task() }) }
         val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs)
         try {
             var remaining = futures.size
