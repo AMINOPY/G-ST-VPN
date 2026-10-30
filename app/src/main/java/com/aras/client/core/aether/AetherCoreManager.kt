@@ -563,8 +563,8 @@ object AetherCoreManager {
         stop()
         reapStale()
         val exe = binary(context)
-        if (!exe.canExecute()) {
-            LogUtil.e(AppConfig.TAG, "AetherCore: ${exe.name} is not present or not executable")
+        if (!isExecutableForDevice(exe, "Aether")) {
+            LogUtil.e(AppConfig.TAG, "AetherCore: ${exe.name} is not present, executable, or ABI-compatible")
             return false
         }
         val builder = ProcessBuilder(listOf(exe.absolutePath) + core.arguments)
