@@ -946,4 +946,6 @@
     <string name="radar_config_title">Radar Config</string>
     <string name="radar_config_summary">Discover and test public server configs</string>
     <string name="menu_section_network_tools">Network tools</string>
+    <string name="rdr_theme_switch_to_light">Switch to light appearance</string>
+    <string name="rdr_theme_switch_to_dark">Switch to dark appearance</string>
 </resources>
