@@ -198,7 +198,7 @@ class RadarConfigActivity : ComponentActivity() {
                         val bounded = discovered.take(180)
                         if (bounded.isEmpty()) {
                             message = "منابع پاسخ ندادند یا کانفیگ قابل‌خواندن پیدا نشد؛ اتصال اینترنت و دسترسی به GitHub را بررسی کن."
-                        } else if (uris.size > bounded.size) {
+                        } else if (discovered.size > bounded.size) {
                             message = "تعداد زیادی نتیجه پیدا شد؛ برای حفظ سرعت، ۱۸۰ مورد اول بررسی می‌شوند."
                         }
                         var checked = 0
