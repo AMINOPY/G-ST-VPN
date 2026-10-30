@@ -44,7 +44,8 @@ private enum class ImportMenuAction(@StringRes val labelRes: Int, val action: Ma
     CdnSni(R.string.menu_item_cdn_sni, MainAction.ImportManually(EConfigType.CDN_SNI.value)),
     Manual(R.string.menu_item_import_config_manually, MainAction.ImportManualMenu),
     PolicyGroup(R.string.menu_item_import_config_policy_group, MainAction.ImportManually(EConfigType.POLICYGROUP.value)),
-    ProxyChain(R.string.menu_item_import_config_proxy_chain, MainAction.ImportManually(EConfigType.PROXYCHAIN.value))
+    ProxyChain(R.string.menu_item_import_config_proxy_chain, MainAction.ImportManually(EConfigType.PROXYCHAIN.value)),
+    Subscriptions(R.string.add_server_subscription, MainAction.OpenSubscriptions)
 }
 
 private enum class ImportManualProtocolMenuAction(@StringRes val labelRes: Int, val action: MainAction) {
@@ -130,32 +131,46 @@ fun AddServerSheet(
                 fontWeight = FontWeight.Bold,
                 modifier = androidx.compose.ui.Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             )
-            ImportMenuAction.entries.forEach { item ->
-                if (item == ImportMenuAction.Manual) {
-                    DropdownMenuItem(
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(stringResource(item.labelRes))
-                                Spacer(Modifier.width(6.dp))
-                                Text(
-                                    "❯",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
-                        },
-                        onClick = { showProtocolMenu = true },
-                    )
-                } else {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(item.labelRes)) },
-                        onClick = {
-                            onDismiss()
-                            onAction(item.action)
-                        },
-                    )
+            AddServerGroup(R.string.add_server_group_import)
+            listOf(
+                ImportMenuAction.QRCode,
+                ImportMenuAction.Clipboard,
+                ImportMenuAction.LocalFile,
+                ImportMenuAction.ArascFile,
+            ).forEach { item ->
+                AddServerMenuItem(item) {
+                    onDismiss()
+                    onAction(item.action)
                 }
             }
+
+            AddServerGroup(R.string.add_server_group_tunnels)
+            listOf(
+                ImportMenuAction.Psiphon,
+                ImportMenuAction.Aether,
+                ImportMenuAction.CdnSni,
+            ).forEach { item ->
+                AddServerMenuItem(item) {
+                    onDismiss()
+                    onAction(item.action)
+                }
+            }
+
+            AddServerGroup(R.string.add_server_group_chains)
+            AddServerMenuItem(ImportMenuAction.Manual, trailingArrow = true) {
+                showProtocolMenu = true
+            }
+            listOf(
+                ImportMenuAction.PolicyGroup,
+                ImportMenuAction.ProxyChain,
+            ).forEach { item ->
+                AddServerMenuItem(item) {
+                    onDismiss()
+                    onAction(item.action)
+                }
+            }
+
+            AddServerGroup(R.string.add_server_group_discovery)
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.radar_config_title)) },
                 onClick = {
@@ -163,6 +178,12 @@ fun AddServerSheet(
                     onOpenRadarConfig()
                 },
             )
+
+            AddServerGroup(R.string.add_server_group_subscriptions)
+            AddServerMenuItem(ImportMenuAction.Subscriptions) {
+                onDismiss()
+                onAction(MainAction.OpenSubscriptions)
+            }
         }
     }
 
@@ -179,6 +200,38 @@ fun AddServerSheet(
             title = stringResource(R.string.menu_item_import_config_manually),
         )
     }
+}
+
+@Composable
+private fun AddServerGroup(labelRes: Int) {
+    Text(
+        stringResource(labelRes),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 4.dp),
+    )
+}
+
+@Composable
+private fun AddServerMenuItem(
+    item: ImportMenuAction,
+    trailingArrow: Boolean = false,
+    onClick: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = {
+            if (trailingArrow) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(item.labelRes))
+                    Spacer(Modifier.width(6.dp))
+                    Text("❯", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                }
+            } else {
+                Text(stringResource(item.labelRes))
+            }
+        },
+        onClick = onClick,
+    )
 }
 
 @Composable
