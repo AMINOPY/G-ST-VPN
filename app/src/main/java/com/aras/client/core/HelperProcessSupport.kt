@@ -7,6 +7,8 @@ import com.aras.client.core.aether.AetherCoreManager
 import com.aras.client.core.mieru.MieruProcessManager
 import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.enums.EConfigType
+import com.aras.client.enums.AetherPsiphon
+import com.aras.client.enums.AetherTor
 import com.aras.client.fmt.AetherFmt
 import com.aras.client.util.LogUtil
 
@@ -145,7 +147,22 @@ object HelperProcessSupport {
     }
 
     private fun startAether(context: Context, profile: ProfileItem): String? {
-        if (!AetherCoreManager.isAvailable(context)) return "This build does not carry the aether core"
+        if (!AetherCoreManager.isAvailable(context)) {
+            return "Aether core is unavailable or incompatible with this ABI: " +
+                AetherCoreManager.nativeBinaryReport(context)
+        }
+        if (AetherPsiphon.fromString(profile.aetherPsiphon) != AetherPsiphon.OFF &&
+            !AetherCoreManager.psiphonAvailable(context)
+        ) {
+            return "Aether Psiphon helper is missing or incompatible: " +
+                AetherCoreManager.nativeBinaryReport(context)
+        }
+        if (AetherTor.fromString(profile.aetherTor) != AetherTor.OFF &&
+            !AetherCoreManager.torTransportAvailable(context)
+        ) {
+            return "Aether Tor transport helper is missing or incompatible: " +
+                AetherCoreManager.nativeBinaryReport(context)
+        }
         val core = AetherCore.of(profile)
         LogUtil.i(AppConfig.TAG, "HelperProcess: aether core: ${core.command}")
         val started = AetherCoreManager.start(context, core) { line ->
