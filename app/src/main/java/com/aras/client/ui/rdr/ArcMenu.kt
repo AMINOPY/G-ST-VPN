@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -108,6 +110,8 @@ fun ArcMenu(
     open: Boolean,
     onDismiss: () -> Unit,
     onSelect: (RdrDest) -> Unit,
+    isDark: Boolean,
+    onToggleTheme: () -> Unit,
     modifier: Modifier = Modifier,
     fromRight: Boolean = true,
     items: List<ArcItem> = RdrMenuDefaults.items,
@@ -220,6 +224,18 @@ fun ArcMenu(
                     onClick = { onSelect(item.dest) },
                 )
             }
+
+            // تغییر روز/شب کنار دکمه‌ی بستن؛ انتخاب فقط برای RADAR Glass ذخیره می‌شود.
+            val themeX = if (fromRight) btnX - 50.dp else btnX + RdrDims.menuButton + 6.dp
+            GlassIconButton(
+                icon = if (isDark) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+                contentDescription = if (isDark) "روشن کردن تم" else "تیره کردن تم",
+                onClick = onToggleTheme,
+                modifier = Modifier.absoluteOffset(themeX, btnY),
+                size = 40.dp,
+                tint = c.accent,
+                strong = true,
+            )
 
             // دکمه‌ی بستن دقیقاً روی همبرگری
             GlassIconButton(
