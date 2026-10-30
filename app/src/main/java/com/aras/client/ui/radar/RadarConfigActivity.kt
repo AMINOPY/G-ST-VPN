@@ -26,6 +26,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
 import java.net.URLDecoder
+import java.util.concurrent.TimeUnit
 import java.security.cert.CertificateException
 import javax.net.ssl.SNIHostName
 import javax.net.ssl.SSLSocket
@@ -543,19 +544,20 @@ class RadarConfigActivity : ComponentActivity() {
         val (usesTls, sni) = tlsTarget(uri, host)
         var lastError: Exception? = null
         for (address in addresses.take(4)) {
-            val tcpStart = System.nanoTime()
             try {
+                var tcpMs = 0L
                 var tlsLatency: Long? = null
                 var tlsNote: String? = null
                 Socket().use { socket ->
+                    val tcpStart = System.nanoTime()
                     socket.connect(InetSocketAddress(address, port), 1800)
+                    tcpMs = (System.nanoTime() - tcpStart) / 1_000_000L
                     if (usesTls) {
                         val result = probeTls(socket, sni ?: host, port)
                         tlsLatency = result.first
                         tlsNote = result.second
                     }
                 }
-                val tcpMs = (System.nanoTime() - tcpStart) / 1_000_000L
                 return RadarCandidate(
                     uri = uri,
                     latency = tcpMs,
