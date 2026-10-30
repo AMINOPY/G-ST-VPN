@@ -28,6 +28,7 @@ import com.aras.client.handler.MmkvManager
 import com.aras.client.ui.compose.FormTextField
 import com.aras.client.ui.radar.RadarConfigActivity
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -41,13 +42,13 @@ class ServerCdnSniActivity : BaseServerActivity() {
 
     @Composable
     override fun ScreenContent() {
-        var edgeIp by rememberSaveable { mutableStateOf(CdnSniConfig.effectiveIp(initialConfig)) }
-        var sni by rememberSaveable { mutableStateOf(CdnSniConfig.effectiveSni(initialConfig)) }
+        var edgeIp by rememberSaveable { mutableStateOf(initialConfig.cdnSniTargets.orEmpty().ifBlank { CdnSniConfig.effectiveIp(initialConfig) }) }
+        var sni by rememberSaveable { mutableStateOf(initialConfig.cdnSniFront.orEmpty().ifBlank { CdnSniConfig.effectiveSni(initialConfig) }) }
         var selectedMode by rememberSaveable {
             mutableStateOf(initialConfig.cdnSniMode?.takeIf { it == "auto_ir" || it == "auto_us" } ?: CdnSniConfig.MODE_MANUAL)
         }
-        var scanning by rememberSaveable { mutableStateOf(false) }
-        var testingPing by rememberSaveable { mutableStateOf(false) }
+        var scanning by androidx.compose.runtime.remember { mutableStateOf(false) }
+        var testingPing by androidx.compose.runtime.remember { mutableStateOf(false) }
         var pingResult by rememberSaveable { mutableStateOf<String?>(null) }
 
         val badInput = stringResource(R.string.cdn_sni_invalid)
@@ -56,10 +57,17 @@ class ServerCdnSniActivity : BaseServerActivity() {
             if (scanning) return
             scanning = true
             lifecycleScope.launch {
-                val result = withContext(Dispatchers.IO) {
-                    CdnSniAutoScanner.scan(applicationContext, mode)
+                val result = try {
+                    withContext(Dispatchers.IO) {
+                        CdnSniAutoScanner.scan(applicationContext, mode)
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    null
+                } finally {
+                    scanning = false
                 }
-                scanning = false
                 if (result == null) {
                     toastError(R.string.cdn_sni_auto_not_found)
                     return@launch
@@ -134,8 +142,8 @@ class ServerCdnSniActivity : BaseServerActivity() {
                 OutlinedButton(
                     onClick = {
                         startActivity(Intent(this@ServerCdnSniActivity, RadarConfigActivity::class.java).apply {
-                            putExtra("cdn_edge_ip", edgeIp.trim())
-                            putExtra("cdn_sni_host", sni.trim())
+                            putExtra("cdn_edge_ip", CdnSniConfig.firstIp(edgeIp).orEmpty())
+                            putExtra("cdn_sni_host", CdnSniConfig.firstSni(sni).orEmpty())
                         })
                     },
                     enabled = !scanning,
@@ -152,7 +160,7 @@ class ServerCdnSniActivity : BaseServerActivity() {
                 label = stringResource(R.string.cdn_sni_front),
                 value = sni,
                 onValueChange = { sni = it; selectedMode = CdnSniConfig.MODE_MANUAL },
-                maxLines = 1,
+                maxLines = 3,
             )
             OutlinedButton(
                 onClick = {
@@ -160,10 +168,17 @@ class ServerCdnSniActivity : BaseServerActivity() {
                     testingPing = true
                     pingResult = null
                     lifecycleScope.launch {
-                        val result = withContext(Dispatchers.IO) {
-                            CdnSniAutoScanner.test(edgeIp.trim(), sni.trim())
+                        val result = try {
+                            withContext(Dispatchers.IO) {
+                                CdnSniAutoScanner.test(edgeIp.trim(), sni.trim())
+                            }
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (_: Exception) {
+                            null
+                        } finally {
+                            testingPing = false
                         }
-                        testingPing = false
                         pingResult = result?.let { "پاسخ TLS واقعی: ${it.latencyMs} میلی‌ثانیه (TCP + TLS؛ نه تأیید تونل VPN)" }
                             ?: "اتصال TCP/TLS ناموفق بود؛ IP و SNI را بررسی کن."
                     }
