@@ -585,15 +585,45 @@ object AetherCoreManager {
         session.set(core)
 
         // The session core runs until it is stopped, so its output is drained in the
-        // background; reading it here would block the start forever.
-        pumpOutput(started, LinkedBlockingQueue(), onOutput)
+        // background; reading it here would block the start forever. A Psiphon-only
+        // carrier is not ready merely because its local SOCKS socket has bound: wait
+        // for Psiphon itself to report that its proxy is running before Xray can start.
+        val needsPsiphonReady = "--psiphon-only" in core.arguments
+        val psiphonReadySeen = AtomicBoolean(!needsPsiphonReady)
+        pumpOutput(started, LinkedBlockingQueue()) { line ->
+            if (needsPsiphonReady && psiphonReady.containsMatchIn(line)) {
+                psiphonReadySeen.set(true)
+            }
+            onOutput(line)
+        }
 
-        val ready = awaitListener(core.port)
+        val listenerReady = awaitListener(core.port)
+        val ready = listenerReady && awaitPsiphonReady(psiphonReadySeen)
         if (!ready) {
-            LogUtil.e(AppConfig.TAG, "AetherCore: listener on ${core.port} never came up")
+            LogUtil.e(
+                AppConfig.TAG,
+                if (!listenerReady) "AetherCore: listener on ${core.port} never came up"
+                else "AetherCore: Psiphon did not report a ready proxy"
+            )
             stop()
         }
         return ready
+    }
+
+    private fun awaitPsiphonReady(ready: AtomicBoolean): Boolean {
+        if (ready.get()) return true
+        val deadline = System.currentTimeMillis() + MAX_READY_WAIT_MS
+        while (System.currentTimeMillis() < deadline) {
+            if (ready.get()) return true
+            if (process?.isAlive == false) return false
+            try {
+                Thread.sleep(READY_POLL_MS)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+                return false
+            }
+        }
+        return ready.get()
     }
 
     private fun awaitListener(port: Int): Boolean {
