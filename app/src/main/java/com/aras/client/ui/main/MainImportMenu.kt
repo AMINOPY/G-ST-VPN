@@ -29,6 +29,7 @@ private enum class ImportMenuAction(@StringRes val labelRes: Int, val action: Ma
     Clipboard(R.string.menu_item_import_config_clipboard, MainAction.ImportClipboard),
     LocalFile(R.string.menu_item_import_config_local, MainAction.ImportConfigLocal),
     ArascFile(R.string.menu_item_import_config_arasc, MainAction.ImportArascFile),
+    Psiphon(R.string.menu_item_import_config_psiphon, MainAction.ImportPsiphon),
     // Deliberately below the .arasc entry rather than inside the "Add manually"
     // protocol submenu.
     Aether(R.string.menu_item_import_config_manually_aether, MainAction.ImportManually(EConfigType.AETHER.value)),
