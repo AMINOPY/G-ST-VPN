@@ -77,6 +77,10 @@ object CoreConfigManager {
         base.log.loglevel = MmkvManager.decodeSettingsString(AppConfig.PREF_LOGLEVEL) ?: "warning"
         base.remarks = profile.remarks
         configureInbounds(base)
+        configureDns(configContext, base, emptyMap())
+        configureFakeDns(base)
+        configureLocalDns(configContext, base)
+        configureRootModeDns(base)
 
         val root = JsonUtil.parseString(JsonUtil.toJsonPretty(base).orEmpty())
             ?.takeIf { it.isJsonObject }?.asJsonObject
