@@ -228,6 +228,11 @@ object CoreConfigContextBuilder {
      * When no chain is available, return a single-node result.
      */
     private fun resolveProxyChainProfilesFromGroup(config: ProfileItem): List<ProfileItem> {
+        // A Psiphon-only Aether profile is itself the Xray exit; subscription neighbours
+        // must not wrap it in another hop, but the profile can still live in its chosen group.
+        if (config.configType == EConfigType.AETHER && config.aetherPsiphon == "only") {
+            return listOf(config)
+        }
         if (config.subscriptionId.isEmpty()) {
             return listOf(config)
         }
