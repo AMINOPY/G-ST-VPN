@@ -1,6 +1,7 @@
 package com.aras.client.core.aether
 
 import android.content.Context
+import android.os.Build
 import com.aras.client.AppConfig
 import com.aras.client.dto.AetherEndpoint
 import com.aras.client.dto.AetherRange
@@ -338,7 +339,28 @@ object AetherCoreManager {
     fun binary(context: Context): File =
         File(context.applicationInfo.nativeLibraryDir, BINARY_NAME)
 
-    fun isAvailable(context: Context): Boolean = binary(context).canExecute()
+    fun isAvailable(context: Context): Boolean =
+        isExecutableForDevice(binary(context), "Aether")
+
+    /** A human-readable report used by diagnostics and connection error paths. */
+    fun nativeBinaryReport(context: Context): String = buildList {
+        add(report(binary(context), "Aether"))
+        add(report(psiphonBinary(context), "Psiphon"))
+        add(report(transportBinary(context), "Lyrebird"))
+    }.joinToString("; ")
+
+    private fun isExecutableForDevice(file: File, label: String): Boolean {
+        val check = AetherNativeBinary.inspect(file, Build.SUPPORTED_ABIS.toList())
+        if (!check.available) {
+            LogUtil.e(AppConfig.TAG, "AetherCore: $label binary check failed (${check.reason}) at ${file.absolutePath}")
+        }
+        return check.available
+    }
+
+    private fun report(file: File, label: String): String {
+        val check = AetherNativeBinary.inspect(file, Build.SUPPORTED_ABIS.toList())
+        return "$label=${if (check.available) "ready/${check.abi}" else check.reason}"
+    }
 
     private fun workDir(context: Context): File =
         File(context.filesDir, WORK_DIR).apply { mkdirs() }
@@ -361,8 +383,8 @@ object AetherCoreManager {
     ): String? {
         reapStale()
         val exe = binary(context)
-        if (!exe.canExecute()) {
-            LogUtil.e(AppConfig.TAG, "AetherCore: ${exe.name} is not present or not executable")
+        if (!isExecutableForDevice(exe, "Aether")) {
+            LogUtil.e(AppConfig.TAG, "AetherCore: ${exe.name} is not present, executable, or ABI-compatible")
             return null
         }
         val process = try {
@@ -432,9 +454,9 @@ object AetherCoreManager {
             put(AETHER_CONFIG_ENV, File(work, AetherIdentityManager.BASE_FILE).absolutePath)
             put(AETHER_MASQUE_CONFIG_ENV, File(work, AetherIdentityManager.MASQUE_FILE).absolutePath)
             put(AETHER_WG_CONFIG_ENV, File(work, AetherIdentityManager.WIREGUARD_FILE).absolutePath)
-            psiphonBinary(context).takeIf { it.canExecute() }
+            psiphonBinary(context).takeIf { isExecutableForDevice(it, "Psiphon") }
                 ?.let { put(PSIPHON_BIN_ENV, it.absolutePath) }
-            transportBinary(context).takeIf { it.canExecute() }?.let { transport ->
+            transportBinary(context).takeIf { isExecutableForDevice(it, "Lyrebird") }?.let { transport ->
                 put(TOR_PT_ENV, torTransports.joinToString(";") { "$it=${transport.absolutePath}" })
             }
             // The Psiphon client and lyrebird are programs built for Linux that read
@@ -524,7 +546,8 @@ object AetherCoreManager {
 
     /** Whether this build carries the helper processes a Psiphon or Tor profile needs. */
     fun carriersAvailable(context: Context): Boolean =
-        psiphonBinary(context).canExecute() && transportBinary(context).canExecute()
+        isExecutableForDevice(psiphonBinary(context), "Psiphon") &&
+            isExecutableForDevice(transportBinary(context), "Lyrebird")
 
     /**
      * Starts the core and waits for its listener to answer.
