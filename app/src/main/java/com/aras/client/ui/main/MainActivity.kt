@@ -262,7 +262,6 @@ class MainActivity : HelperBaseComponentActivity() {
                     MainAction.ImportClipboard -> importClipboard()
                     MainAction.ImportConfigLocal -> importConfigLocal()
                     MainAction.ImportArascFile -> importArascFile()
-                    MainAction.ImportPsiphon -> importPsiphon()
                     MainAction.OpenSubscriptions -> navigateTo(MainDestination.Subscriptions)
                     is MainAction.ImportManually -> importManually(action.type)
                     MainAction.RestartService -> LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
@@ -494,22 +493,6 @@ class MainActivity : HelperBaseComponentActivity() {
             )
         }
         profileEditorLauncher.launch(intent)
-    }
-
-    private fun importPsiphon() {
-        val selectedGroupId = mainViewModel.uiState.value.selectedGroupId
-        profileEditorLauncher.launch(
-            Intent(this, com.aras.client.ui.server.ServerPsiphonActivity::class.java).apply {
-                putExtra(
-                    "subscriptionId",
-                    if (com.aras.client.handler.FreeSubManager.isFreeSubId(selectedGroupId)) {
-                        AppConfig.DEFAULT_SUBSCRIPTION_ID
-                    } else {
-                        selectedGroupId
-                    }
-                )
-            }
-        )
     }
 
     private fun importQRcode() {
