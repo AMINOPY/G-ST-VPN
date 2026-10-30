@@ -21,6 +21,7 @@ import com.aras.client.enums.AetherPsiphonMode
 import com.aras.client.enums.AetherScanMode
 import com.aras.client.enums.AetherTor
 import com.aras.client.enums.EConfigType
+import com.aras.client.extension.nullIfBlank
 import com.aras.client.extension.toastError
 import com.aras.client.extension.toastSuccess
 import com.aras.client.fmt.AetherFmt
@@ -78,8 +79,8 @@ class ServerPsiphonActivity : BaseServerActivity() {
                     it.aetherWiwInner = null
                     it.aetherPsiphon = AetherPsiphon.ONLY.type
                     it.aetherPsiphonMode = AetherPsiphonMode.fromString(mode).type
-                    it.aetherPsiphonCdnIps = cdnIps.trim().ifBlank { null }
-                    it.aetherPsiphonCdnSni = cdnSni.trim().ifBlank { null }
+                    it.aetherPsiphonCdnIps = cdnIps.trim().nullIfBlank()
+                    it.aetherPsiphonCdnSni = cdnSni.trim().nullIfBlank()
                     it.aetherPsiphonRegion = region.takeUnless { it == "AUTO" }
                     it.aetherPsiphonBundledList = bundledList.takeUnless { it }
                     it.aetherTor = AetherTor.OFF.type
