@@ -263,6 +263,7 @@ class MainActivity : HelperBaseComponentActivity() {
                     MainAction.ImportConfigLocal -> importConfigLocal()
                     MainAction.ImportArascFile -> importArascFile()
                     MainAction.ImportPsiphon -> importPsiphon()
+                    MainAction.OpenSubscriptions -> navigateTo(MainDestination.Subscriptions)
                     is MainAction.ImportManually -> importManually(action.type)
                     MainAction.RestartService -> LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
                     MainAction.LocateSelectedServer -> mainViewModel.triggerLocateSelectedServer()
