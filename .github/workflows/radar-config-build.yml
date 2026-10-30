@@ -2,9 +2,9 @@ name: Radar Config Android build
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feat/cdn-sni-auto-ir-us]
   push:
-    branches: [feat/radar-config-discovery, fix/radar-vpn-full-restoration, feat/cdn-sni-auto-ir-us]
+    branches: [feat/radar-config-discovery, fix/radar-vpn-full-restoration, feat/cdn-sni-auto-ir-us, feature/zedsecure-config-finder-on-cdn-sni]
   workflow_dispatch:
 
 permissions:
