@@ -948,4 +948,5 @@
     <string name="menu_section_network_tools">Network tools</string>
     <string name="rdr_theme_switch_to_light">Switch to light appearance</string>
     <string name="rdr_theme_switch_to_dark">Switch to dark appearance</string>
+    <string name="cdn_sni_manual_list_hint">Manual mode accepts multiple IPs and SNI hostnames. Separate entries with Enter, commas, semicolons, or spaces. Switching modes keeps your entries.</string>
 </resources>
