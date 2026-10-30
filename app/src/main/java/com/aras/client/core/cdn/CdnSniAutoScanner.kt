@@ -162,9 +162,23 @@ object CdnSniAutoScanner {
 
     /** Performs a fresh TCP connect + certificate-validated TLS handshake for the entered pair. */
     fun test(ip: String, sni: String): Result? {
-        val validIp = CdnSniConfig.parseIp(ip) ?: return null
-        val validSni = CdnSniConfig.parseSni(sni) ?: return null
-        return probe(validIp, validSni)
+        val ips = CdnSniConfig.parseIps(ip) ?: return null
+        val snis = CdnSniConfig.parseSnis(sni) ?: return null
+        val pairs = ips.take(4).flatMap { address ->
+            snis.take(2).map { host -> address to host }
+        }.take(8)
+        val executor = java.util.concurrent.Executors.newFixedThreadPool(4) { task ->
+            Thread(task, "cdn-sni-manual-test").apply { isDaemon = true }
+        }
+        return try {
+            pairs.map { (address, host) ->
+                executor.submit<Result?> { probe(address, host) }
+            }.mapNotNull { future ->
+                runCatching { future.get(6, TimeUnit.SECONDS) }.getOrNull()
+            }.minByOrNull { it.latencyMs }
+        } finally {
+            executor.shutdownNow()
+        }
     }
 
     private fun probe(ip: String, sni: String): Result? {
