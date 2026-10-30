@@ -153,7 +153,7 @@ object CdnSniConfig {
             val address = if (element.isJsonPrimitive && element.asJsonPrimitive.isString) {
                 element.asString
             } else if (element.isJsonObject) {
-                element.asJsonObject.get("address")?.asString
+                element.asJsonObject.get("address")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
             } else {
                 null
             }
@@ -250,7 +250,7 @@ object CdnSniConfig {
                 val address = if (element.isJsonPrimitive && element.asJsonPrimitive.isString) {
                     element.asString
                 } else if (element.isJsonObject) {
-                    element.asJsonObject.get("address")?.asString
+                    element.asJsonObject.get("address")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString
                 } else null
                 address?.let { it.startsWith("quic") || it.startsWith("udp://") || it.contains("+local://") } == true
             }
@@ -268,7 +268,7 @@ object CdnSniConfig {
         }
         if (dnsProxyRule != 1) return "Xray DNS requests are not routed through Psiphon"
 
-        val inbounds = root.getAsJsonArray("inbounds")
+        val inbounds = root.getAsJsonArray("inbounds") ?: return "Missing Xray inbounds"
         inbounds.mapNotNull { it.takeIf { item -> item.isJsonObject }?.asJsonObject?.get("tag")?.asString }
             .filter { it == "tun" || it == "socks" }
             .distinct()
