@@ -104,7 +104,7 @@ fun MainScreen(
     var showMenu by remember { mutableStateOf(false) }
     // RADAR Glass theme ("rdrx"): home = radar, tapping the config card opens the normal list.
     var rdrShowList by remember { mutableStateOf(false) }
-    BackHandler(enabled = uiTheme == "rdrx" && rdrShowList) { rdrShowList = false }
+    BackHandler(enabled = (uiTheme == "rdrx" || uiTheme == "rdrn") && rdrShowList) { rdrShowList = false }
     val scope = rememberCoroutineScope()
     var showSearch by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -220,6 +220,18 @@ fun MainScreen(
         onDismiss = { showMenu = false },
         onNavigate = onNavigate,
     )
+
+    if (uiTheme == "rdrn" && !rdrShowList) {
+        // RADAR VPN home: six-tab neon dashboard; normal server management remains the existing list.
+        com.aras.client.ui.rdrn.RnMainHost(
+            uiState = uiState,
+            hasPing = hasPing,
+            onAction = onAction,
+            onNavigate = onNavigate,
+            onOpenList = { rdrShowList = true },
+        )
+        return
+    }
 
     if (uiTheme == "rdrx" && !rdrShowList) {
         RdrMainHost(
@@ -385,7 +397,7 @@ fun MainScreen(
                             lazyGridStates = lazyGridStates,
                             onSelectServer = { guid ->
                                 onAction(MainAction.SelectServer(guid))
-                                if (uiTheme == "rdrx") rdrShowList = false
+                                if (uiTheme == "rdrx" || uiTheme == "rdrn") rdrShowList = false
                             },
                             onEditServer = { guid, profile -> onAction(MainAction.EditServer(guid, profile)) },
                             onShareServer = { guid, profile ->
