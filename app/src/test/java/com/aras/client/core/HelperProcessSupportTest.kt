@@ -110,6 +110,23 @@ class HelperProcessSupportTest {
     }
 
     @Test
+    fun `AUTO US selects a US Psiphon exit while AUTO IR leaves exit automatic`() {
+        val autoUs = ProfileItem.create(EConfigType.CDN_SNI).apply {
+            cdnSniMode = "auto_us"
+            cdnSniTargets = "104.16.1.2"
+            cdnSniFront = "front.example"
+        }
+        val autoIr = ProfileItem.create(EConfigType.CDN_SNI).apply {
+            cdnSniMode = "auto_ir"
+            cdnSniTargets = "104.16.1.2"
+            cdnSniFront = "front.example"
+        }
+
+        assertEquals("US", HelperProcessSupport.profilesForXraySession(listOf(autoUs)).last().aetherPsiphonRegion)
+        assertEquals(null, HelperProcessSupport.profilesForXraySession(listOf(autoIr)).last().aetherPsiphonRegion)
+    }
+
+    @Test
     fun `multiple manual CDN candidates reach the Psiphon carrier`() {
         val cdn = ProfileItem.create(EConfigType.CDN_SNI).apply {
             remarks = "CDN/SNI"
