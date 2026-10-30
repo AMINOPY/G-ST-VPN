@@ -660,6 +660,7 @@
     <string name="server_lab_aether_psiphon_cdn_sni">نام سرور CDN سایفون</string>
     <string name="server_lab_aether_psiphon_cdn_sets">فهرست لبه‌های CDN سایفون</string>
     <string name="server_lab_aether_psiphon_region">منطقه سایفون</string>
+    <string name="psiphon_region_auto">خودکار</string>
     <string name="server_lab_aether_psiphon_bundled">استفاده از فهرست سرور همراه برنامه</string>
     <string name="server_lab_aether_tor">تور</string>
     <string name="server_lab_aether_tor_bridges">پل‌های تور</string>
