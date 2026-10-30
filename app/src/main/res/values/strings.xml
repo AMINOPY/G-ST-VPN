@@ -67,7 +67,6 @@
     <string name="server_lab_aether_obfuscation">Obfuscation</string>
     <string name="menu_item_import_config_manually_aether">Add Aether config manually</string>
     <string name="server_lab_aether_psiphon">Psiphon</string>
-    <string name="menu_item_import_config_psiphon">Psiphon · No config</string>
     <string name="add_server_sheet_title">Add server</string>
     <string name="add_server_group_import">Import</string>
     <string name="add_server_group_tunnels">Tunnels</string>
@@ -76,15 +75,11 @@
     <string name="add_server_group_subscriptions">Subscriptions</string>
     <string name="add_server_subscription">Manage subscriptions</string>
     <string name="add_server_custom_json">Custom JSON</string>
-    <string name="psiphon_standalone_description">Create a Psiphon tunnel without importing a proxy config. The bundled native client discovers and verifies its own server entries, then exposes a local SOCKS hop for Xray.</string>
-    <string name="psiphon_standalone_engine_note">Xray uses the local Psiphon SOCKS listener as its upstream. AUTO can select the transport; CDN mode can use your own edge IP and SNI.</string>
-    <string name="psiphon_cdn_pair_required">Enter both a CDN edge IP and SNI, or leave both empty to use the built-in CDN scan.</string>
     <string name="server_lab_aether_psiphon_mode">Psiphon mode</string>
     <string name="server_lab_aether_psiphon_cdn_ips">Psiphon CDN IPs</string>
     <string name="server_lab_aether_psiphon_cdn_sni">Psiphon CDN server name</string>
     <string name="server_lab_aether_psiphon_cdn_sets">Psiphon CDN edge lists</string>
     <string name="server_lab_aether_psiphon_region">Psiphon region</string>
-    <string name="psiphon_region_auto">Automatic</string>
     <string name="server_lab_aether_psiphon_bundled">Use the bundled server list</string>
     <string name="server_lab_aether_tor">Tor</string>
     <string name="server_lab_aether_tor_bridges">Tor bridges</string>
