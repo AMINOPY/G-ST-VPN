@@ -48,7 +48,7 @@ object CoreConfigManager {
                 return buildCdnSniRuntimeConfig(configContext)
             }
             val result = toConfigResult(configContext, buildUnifiedConfig(configContext))
-            return applyCdnSni(configContext, result)
+            return result
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to get Xray config", e)
             return ConfigResult(
@@ -60,8 +60,8 @@ object CoreConfigManager {
     }
 
     /**
-     * Build CDN/SNI from the Xray template directly. It must not pass through
-     * buildUnifiedConfig(), because that path requires a regular proxy outbound.
+     * Build standalone CDN/SNI with a Psiphon SOCKS outbound. The Psiphon
+     * carrier is started before this config is built; Xray remains the sole TUN owner.
      */
     private fun buildCdnSniRuntimeConfig(configContext: CoreConfigContext): ConfigResult {
         val profile = MmkvManager.decodeServerConfig(configContext.guid)
@@ -81,9 +81,8 @@ object CoreConfigManager {
         val root = JsonUtil.parseString(JsonUtil.toJsonPretty(base).orEmpty())
             ?.takeIf { it.isJsonObject }?.asJsonObject
             ?: return ConfigResult(false, configContext.guid, errorMessage = "CDN/SNI could not create the base config")
-        // The base template ships with a sample VMess outbound tagged "proxy". CDN/SNI
-        // is standalone and has no VMess credentials, so remove that invalid placeholder
-        // (and any rule targeting it) before injecting the dedicated bridge.
+        // Replace the template's sample proxy with the Psiphon SOCKS listener.
+        // The resulting config has no direct TCP fallback.
         com.aras.client.core.cdn.CdnSniConfig.removeTemplateProxyOutbound(root)
         com.aras.client.core.cdn.CdnSniConfig.inject(root, AetherCoreManager.socksPort)
         com.aras.client.core.cdn.CdnSniConfig.validateInjectedConfig(root, AetherCoreManager.socksPort)?.let { error ->
@@ -92,30 +91,6 @@ object CoreConfigManager {
         val json = JsonUtil.toJsonPretty(root)
             ?: return ConfigResult(false, configContext.guid, errorMessage = "CDN/SNI config serialization failed")
         return ConfigResult(true, configContext.guid, json)
-    }
-
-    /**
-     * A CDN/SNI profile has no server of its own, so its config is the ordinary one
-     * with the local TLS-ending inbound, the re-packing outbounds and their routing
-     * rules added.
-     */
-    private fun applyCdnSni(configContext: CoreConfigContext, result: ConfigResult): ConfigResult {
-        val profile = MmkvManager.decodeServerConfig(configContext.guid) ?: return result
-        if (profile.configType != EConfigType.CDN_SNI) return result
-        val settings = com.aras.client.core.cdn.CdnSniConfig.settingsOf(profile)
-            ?: return ConfigResult(
-                status = false,
-                guid = configContext.guid,
-                errorMessage = "CDN/SNI needs a valid IPv4 edge address and SNI hostname"
-            )
-        val root = JsonUtil.parseString(result.content)?.takeIf { it.isJsonObject }?.asJsonObject
-            ?: return ConfigResult(status = false, guid = configContext.guid, errorMessage = "CDN/SNI could not read the base config")
-        com.aras.client.core.cdn.CdnSniConfig.inject(root, AetherCoreManager.socksPort)
-        com.aras.client.core.cdn.CdnSniConfig.validateInjectedConfig(root, AetherCoreManager.socksPort)?.let { error ->
-            return ConfigResult(false, configContext.guid, errorMessage = error)
-        }
-        return JsonUtil.toJsonPretty(root)?.let { ConfigResult(true, configContext.guid, it) }
-            ?: ConfigResult(status = false, guid = configContext.guid, errorMessage = "CDN/SNI config serialization failed")
     }
 
     /**
