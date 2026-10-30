@@ -58,6 +58,7 @@ object HelperProcessSupport {
 
         // Serialized: both managers hold one global slot, so two chains claiming
         // them concurrently would silently take each other's daemon.
+        val acquired = mutableListOf<ProfileItem>()
         synchronized(lock) {
             for (helper in helpers) {
                 when (helper.configType) {
@@ -66,17 +67,24 @@ object HelperProcessSupport {
                         when {
                             aetherRefs == 0 -> {
                                 val error = startAether(context, helper)
-                                if (error != null) return Acquired(emptyList(), error)
+                                if (error != null) {
+                                    release(Acquired(acquired.toList(), null))
+                                    return Acquired(emptyList(), error)
+                                }
                                 aetherKey = key
                             }
 
-                            aetherKey != key -> return Acquired(
-                                emptyList(),
-                                "The aether core is already running for a different profile " +
-                                    "(${helper.remarks}); it can only serve one at a time"
-                            )
+                            aetherKey != key -> {
+                                release(Acquired(acquired.toList(), null))
+                                return Acquired(
+                                    emptyList(),
+                                    "The aether core is already running for a different profile " +
+                                        "(${helper.remarks}); it can only serve one at a time"
+                                )
+                            }
                         }
                         aetherRefs++
+                        acquired += helper
                     }
 
                     EConfigType.MIERU -> {
@@ -84,24 +92,31 @@ object HelperProcessSupport {
                         when {
                             mieruRefs == 0 -> {
                                 val error = startMieru(context, helper)
-                                if (error != null) return Acquired(emptyList(), error)
+                                if (error != null) {
+                                    release(Acquired(acquired.toList(), null))
+                                    return Acquired(emptyList(), error)
+                                }
                                 mieruKey = key
                             }
 
-                            mieruKey != key -> return Acquired(
-                                emptyList(),
-                                "The mieru client is already running for a different profile " +
-                                    "(${helper.remarks}); it can only serve one at a time"
-                            )
+                            mieruKey != key -> {
+                                release(Acquired(acquired.toList(), null))
+                                return Acquired(
+                                    emptyList(),
+                                    "The mieru client is already running for a different profile " +
+                                        "(${helper.remarks}); it can only serve one at a time"
+                                )
+                            }
                         }
                         mieruRefs++
+                        acquired += helper
                     }
 
                     else -> Unit
                 }
             }
         }
-        return Acquired(helpers, null)
+        return Acquired(acquired, null)
     }
 
     /** Stops the daemons [acquire] started, once nothing is using them. */
