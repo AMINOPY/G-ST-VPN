@@ -15,7 +15,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountTree
-import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Edit
@@ -59,7 +58,6 @@ private enum class ImportMenuAction(
     LocalFile(R.string.menu_item_import_config_local, MainAction.ImportConfigLocal, Icons.Outlined.InsertDriveFile),
     ArascFile(R.string.menu_item_import_config_arasc, MainAction.ImportArascFile, Icons.Outlined.FolderOpen),
     CustomConfig(R.string.add_server_custom_json, MainAction.ImportManually(EConfigType.CUSTOM.value), Icons.Outlined.Code),
-    Psiphon(R.string.menu_item_import_config_psiphon, MainAction.ImportPsiphon, Icons.Outlined.Bolt),
     // Deliberately below the .arasc entry rather than inside the "Add manually" protocol submenu.
     Aether(R.string.menu_item_import_config_manually_aether, MainAction.ImportManually(EConfigType.AETHER.value), Icons.Outlined.Hub),
     CdnSni(R.string.menu_item_cdn_sni, MainAction.ImportManually(EConfigType.CDN_SNI.value), Icons.Outlined.Security),
@@ -168,7 +166,6 @@ fun AddServerSheet(
 
             AddServerGroup(R.string.add_server_group_tunnels)
             listOf(
-                ImportMenuAction.Psiphon,
                 ImportMenuAction.Aether,
                 ImportMenuAction.CdnSni,
             ).forEach { item ->
