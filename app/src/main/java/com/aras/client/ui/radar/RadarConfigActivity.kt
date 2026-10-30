@@ -322,11 +322,16 @@ class RadarConfigActivity : ComponentActivity() {
             val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
             val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"").findAll(tree).map { it.groupValues[1] }
                 .filter { p -> val q = p.lowercase(); (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) && (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country")) }
-                .take(10)
+                .sortedBy { p -> if (p.contains("country", ignoreCase = true)) 0 else 1 }
+                .take(20)
             for (path in paths) {
                 val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
                 val country = countryFromPath(path)
-                extract(raw).forEach { uri -> found.putIfAbsent(uri, country) }
+                extract(raw).forEach { uri ->
+                    if (!found.containsKey(uri) || (found[uri] == null && country != null)) {
+                        found[uri] = country
+                    }
+                }
                 if (found.size >= 500) return found.entries.map { it.key to it.value }
             }
         } catch (_: Exception) { /* Other sources may still work. */ }
