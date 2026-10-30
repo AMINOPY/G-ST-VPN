@@ -908,4 +908,8 @@
     <string name="app_icon_calculator">Calculator</string>
     <string name="calculator_launcher_label">Calculator</string>
     <string name="calculator_access_code">Access code (4–12 digits; hold AC to restore icon)</string>
+
+    <string name="radar_config_title">Radar Config</string>
+    <string name="radar_config_summary">Discover and test public server configs</string>
+    <string name="menu_section_network_tools">Network tools</string>
 </resources>
