@@ -59,6 +59,9 @@ class ServerCdnSniActivity : BaseServerActivity() {
     override fun ScreenContent() {
         var edgeIp by rememberSaveable { mutableStateOf(CdnSniConfig.effectiveIp(initialConfig)) }
         var sni by rememberSaveable { mutableStateOf(CdnSniConfig.effectiveSni(initialConfig)) }
+        var selectedMode by rememberSaveable {
+            mutableStateOf(initialConfig.cdnSniMode?.takeIf { it == "auto_ir" || it == "auto_us" } ?: CdnSniConfig.MODE_MANUAL)
+        }
         var scanning by rememberSaveable { mutableStateOf(false) }
         var testingPing by rememberSaveable { mutableStateOf(false) }
         var pingResult by rememberSaveable { mutableStateOf<String?>(null) }
@@ -79,12 +82,8 @@ class ServerCdnSniActivity : BaseServerActivity() {
                 }
                 edgeIp = result.ip
                 sni = result.sni
+                selectedMode = mode.key
                 val label = if (mode == CdnSniAutoScanner.Mode.IR) "AUTO IR" else "AUTO US"
-                val draft = initialConfig.copy().also {
-                    it.cdnSniMode = mode.key
-                    it.cdnSniTargets = result.ip
-                    it.cdnSniFront = result.sni
-                }
                 pingResult = "$label پیدا شد: ${result.ip} · ${result.sni} · ${result.latencyMs} ms TLS. حالا «یافتن کانفیگ» را بزن تا فقط پروفایل‌های سازگار بررسی شوند."
             }
         }
@@ -93,7 +92,7 @@ class ServerCdnSniActivity : BaseServerActivity() {
             title = stringResource(R.string.menu_item_cdn_sni),
             onSaveClick = {
                 val draft = initialConfig.copy().also {
-                    it.cdnSniMode = CdnSniConfig.MODE_MANUAL
+                    it.cdnSniMode = selectedMode
                     it.cdnSniTargets = edgeIp.trim()
                     it.cdnSniFront = sni.trim()
                 }
@@ -114,11 +113,17 @@ class ServerCdnSniActivity : BaseServerActivity() {
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             ) {
                 OutlinedButton(
+                    onClick = { selectedMode = CdnSniConfig.MODE_MANUAL },
+                    enabled = !scanning,
+                    modifier = Modifier.weight(1f)
+                ) { Text(stringResource(R.string.cdn_sni_manual)) }
+                Spacer(Modifier.width(4.dp))
+                OutlinedButton(
                     onClick = { startAuto(CdnSniAutoScanner.Mode.IR) },
                     enabled = !scanning,
                     modifier = Modifier.weight(1f)
                 ) { Text(stringResource(R.string.cdn_sni_auto_ir)) }
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(4.dp))
                 OutlinedButton(
                     onClick = { startAuto(CdnSniAutoScanner.Mode.US) },
                     enabled = !scanning,
@@ -149,13 +154,13 @@ class ServerCdnSniActivity : BaseServerActivity() {
             FormTextField(
                 label = stringResource(R.string.cdn_sni_targets),
                 value = edgeIp,
-                onValueChange = { edgeIp = it },
+                onValueChange = { edgeIp = it; selectedMode = CdnSniConfig.MODE_MANUAL },
                 maxLines = 1,
             )
             FormTextField(
                 label = stringResource(R.string.cdn_sni_front),
                 value = sni,
-                onValueChange = { sni = it },
+                onValueChange = { sni = it; selectedMode = CdnSniConfig.MODE_MANUAL },
                 maxLines = 1,
             )
             OutlinedButton(
