@@ -58,6 +58,11 @@ object HelperProcessSupport {
             aetherPsiphonMode = AetherPsiphonMode.CDN.type
             aetherPsiphonCdnIps = settings.edgeIp
             aetherPsiphonCdnSni = settings.sni
+            // AUTO US selects an international edge list and asks Psiphon for a US exit.
+            // AUTO IR and Manual keep Psiphon's automatic exit selection.
+            aetherPsiphonRegion = cdnProfile.cdnSniMode
+                ?.takeIf { it.equals("auto_us", ignoreCase = true) }
+                ?.let { "US" }
             aetherPsiphonBundledList = true
         }
         return chain + carrier
