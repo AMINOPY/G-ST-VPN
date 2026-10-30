@@ -1,7 +1,6 @@
 package com.aras.client.core.aether
 
 import android.content.Context
-import android.os.Build
 import com.aras.client.AppConfig
 import com.aras.client.dto.AetherEndpoint
 import com.aras.client.dto.AetherRange
@@ -339,14 +338,10 @@ object AetherCoreManager {
         File(context.applicationInfo.nativeLibraryDir, BINARY_NAME)
 
     fun isAvailable(context: Context): Boolean =
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-            isExecutableForDevice(binary(context), "Aether")
+        isExecutableForDevice(binary(context), "Aether")
 
     /** A human-readable report used by diagnostics and connection error paths. */
     fun nativeBinaryReport(context: Context): String = buildList {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            add("Android=requires_api_29_current_${Build.VERSION.SDK_INT}")
-        }
         add(report(binary(context), "Aether"))
         add(report(psiphonBinary(context), "Psiphon"))
         add(report(transportBinary(context), "Lyrebird"))
@@ -384,10 +379,6 @@ object AetherCoreManager {
         onOutput: (String) -> Unit,
         ready: (String) -> Boolean,
     ): String? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            LogUtil.e(AppConfig.TAG, "AetherCore: Android 10 (API 29) or newer is required by the installed core")
-            return null
-        }
         reapStale()
         val exe = binary(context)
         if (!isExecutableForDevice(exe, "Aether")) {
@@ -573,10 +564,6 @@ object AetherCoreManager {
         onOutput: (String) -> Unit,
     ): Boolean {
         stop()
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            LogUtil.e(AppConfig.TAG, "AetherCore: Android 10 (API 29) or newer is required by the installed core")
-            return false
-        }
         reapStale()
         val exe = binary(context)
         if (!isExecutableForDevice(exe, "Aether")) {
