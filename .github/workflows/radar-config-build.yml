@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-      - name: Reinstall checksum-pinned Aether v2.4.0 Android runtimes
+      - name: Reinstall checksum-pinned Aether v2.3.0 Android runtimes
         run: bash scripts/install_aether_core.sh
 
       - name: Verify bundled native Aether runtimes
