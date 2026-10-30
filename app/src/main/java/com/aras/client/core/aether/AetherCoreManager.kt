@@ -545,9 +545,14 @@ object AetherCoreManager {
     private const val DEFAULT_RESOLVERS = "1.1.1.1,8.8.8.8"
 
     /** Whether this build carries the helper processes a Psiphon or Tor profile needs. */
+    fun psiphonAvailable(context: Context): Boolean =
+        isExecutableForDevice(psiphonBinary(context), "Psiphon")
+
+    fun torTransportAvailable(context: Context): Boolean =
+        isExecutableForDevice(transportBinary(context), "Lyrebird")
+
     fun carriersAvailable(context: Context): Boolean =
-        isExecutableForDevice(psiphonBinary(context), "Psiphon") &&
-            isExecutableForDevice(transportBinary(context), "Lyrebird")
+        psiphonAvailable(context) && torTransportAvailable(context)
 
     /**
      * Starts the core and waits for its listener to answer.
