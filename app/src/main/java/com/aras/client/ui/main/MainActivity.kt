@@ -495,18 +495,10 @@ class MainActivity : HelperBaseComponentActivity() {
     }
 
     private fun importPsiphon() {
-        val selectedGroupId = mainViewModel.uiState.value.selectedGroupId
-        val intent = Intent(this, com.aras.client.ui.server.ServerPsiphonActivity::class.java).apply {
-            putExtra(
-                "subscriptionId",
-                if (com.aras.client.handler.FreeSubManager.isFreeSubId(selectedGroupId)) {
-                    AppConfig.DEFAULT_SUBSCRIPTION_ID
-                } else {
-                    selectedGroupId
-                }
-            )
-        }
-        profileEditorLauncher.launch(intent)
+        // Psiphon-only is a standalone egress helper; do not inherit subscription neighbour chains.
+        profileEditorLauncher.launch(
+            Intent(this, com.aras.client.ui.server.ServerPsiphonActivity::class.java)
+        )
     }
 
     private fun importQRcode() {
