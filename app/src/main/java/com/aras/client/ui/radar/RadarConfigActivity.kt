@@ -19,6 +19,9 @@ import android.content.Intent
 import com.aras.client.ui.main.MainActivity
 import com.aras.client.core.cdn.CdnSniConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.InetAddress
@@ -26,6 +29,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
 import java.net.URLDecoder
+import java.util.concurrent.ExecutorCompletionService
 import java.util.concurrent.TimeUnit
 import java.security.cert.CertificateException
 import javax.net.ssl.SNIHostName
@@ -303,7 +307,10 @@ class RadarConfigActivity : ComponentActivity() {
                 LaunchedEffect(scanning) {
                     if (!scanning) return@LaunchedEffect
                     try {
-                        val discovered = withContext(Dispatchers.IO) { discover().distinctBy { it.first } }
+                        val scanJob = currentCoroutineContext()[Job]
+                        val discovered = withContext(Dispatchers.IO) {
+                            discover { scanJob?.isActive == true }.distinctBy { it.first }
+                        }
                         var reachable = 0
                         val bounded = discovered.take(180)
                         if (bounded.isEmpty()) {
@@ -376,15 +383,14 @@ class RadarConfigActivity : ComponentActivity() {
         }
     }
 
-    private fun discover(): List<Triple<String, String?, String?>> {
-        // Every configured country feed and every repository is queried. Do not stop
-        // after the first popular feed: that used to silently skip the other requested sources.
+    private fun discover(isActive: () -> Boolean): List<Triple<String, String?, String?>> {
         val buckets = ArrayList<List<Triple<String, String?, String?>>>()
 
-        val countryPool = java.util.concurrent.Executors.newFixedThreadPool(4)
-        try {
-            val futures = radarCountrySources.map { source ->
-                countryPool.submit<List<Triple<String, String?, String?>>> {
+        // Give the direct country feeds their own bounded window, then continue to
+        // repository-tree discovery even if some feeds are slow or unavailable.
+        val countryTasks: List<() -> List<Triple<String, String?, String?>>> =
+            radarCountrySources.map { source ->
+                {
                     runCatching {
                         extract(get(source.url, 12000))
                             .distinct()
@@ -393,14 +399,8 @@ class RadarConfigActivity : ComponentActivity() {
                     }.getOrDefault(emptyList())
                 }
             }
-            futures.forEach { future ->
-                runCatching { future.get() }.getOrNull()
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.let(buckets::add)
-            }
-        } finally {
-            countryPool.shutdownNow()
-        }
+        collectSourceBuckets(countryTasks, timeoutMs = 25_000L, isActive = isActive, buckets = buckets)
+        if (!isActive()) return emptyList()
 
         // Keep all nine user-requested repositories, plus the original discovery fallbacks.
         // Each repository contributes its own bounded bucket so one large feed cannot starve
@@ -419,57 +419,49 @@ class RadarConfigActivity : ComponentActivity() {
             "ircfspace/tconfig",
             "Argh94/V2RayAutoConfig",
         )
-        val repoPool = java.util.concurrent.Executors.newFixedThreadPool(4)
-        try {
-            val futures = repos.map { repo ->
-                repoPool.submit<List<Triple<String, String?, String?>>> {
-                    runCatching {
-                        val metadata = get("https://api.github.com/repos/" + repo, 10000)
-                        val branch = Regex("""default_branch"\s*:\s*"([^"]+)""")
-                            .find(metadata)?.groupValues?.get(1) ?: "main"
-                        val tree = get(
-                            "https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1",
-                            10000,
-                        )
-                        val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"")
-                            .findAll(tree)
-                            .map { it.groupValues[1] }
-                            .filter { p ->
-                                val q = p.lowercase()
-                                (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) &&
-                                    (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country") || q.contains("best") || q.contains("top"))
-                            }
-                            .sortedBy { p -> if (p.contains("country", ignoreCase = true)) 0 else 1 }
-                            .take(10)
+        val repoTasks: List<() -> List<Triple<String, String?, String?>>> = repos.map { repo ->
+            {
+                runCatching {
+                    val metadata = get("https://api.github.com/repos/" + repo, 10000)
+                    val branch = Regex("""default_branch"\s*:\s*"([^"]+)""")
+                        .find(metadata)?.groupValues?.get(1) ?: "main"
+                    val tree = get(
+                        "https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1",
+                        10000,
+                    )
+                    val paths = Regex("\\"path\\"\\s*:\\s*\\"([^\\"]+)\\"")
+                        .findAll(tree)
+                        .map { it.groupValues[1] }
+                        .filter { p ->
+                            val q = p.lowercase()
+                            (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) &&
+                                (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country") || q.contains("best") || q.contains("top"))
+                        }
+                        .sortedBy { p -> if (p.contains("country", ignoreCase = true)) 0 else 1 }
+                        .take(10)
 
-                        val repoFound = linkedMapOf<String, Triple<String, String?, String?>>()
-                        for (path in paths) {
-                            val encoded = path.split("/").joinToString("/") {
-                                java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20")
-                            }
-                            val raw = get(
-                                "https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + encoded,
-                                8000,
-                            )
-                            val country = countryFromPath(path)
-                            for (uri in extract(raw)) {
-                                repoFound.putIfAbsent(uri, Triple(uri, country, repo))
-                                if (repoFound.size >= 120) break
-                            }
+                    val repoFound = linkedMapOf<String, Triple<String, String?, String?>>()
+                    for (path in paths) {
+                        val encoded = path.split("/").joinToString("/") {
+                            java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20")
+                        }
+                        val raw = get(
+                            "https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + encoded,
+                            8000,
+                        )
+                        val country = countryFromPath(path)
+                        for (uri in extract(raw)) {
+                            repoFound.putIfAbsent(uri, Triple(uri, country, repo))
                             if (repoFound.size >= 120) break
                         }
-                        repoFound.values.toList()
-                    }.getOrDefault(emptyList())
-                }
+                        if (repoFound.size >= 120) break
+                    }
+                    repoFound.values.toList()
+                }.getOrDefault(emptyList())
             }
-            futures.forEach { future ->
-                runCatching { future.get() }.getOrNull()
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.let(buckets::add)
-            }
-        } finally {
-            repoPool.shutdownNow()
         }
+        collectSourceBuckets(repoTasks, timeoutMs = 40_000L, isActive = isActive, buckets = buckets)
+        if (!isActive()) return emptyList()
 
         // Fair round-robin merge, deduplicated by the full share URI.
         val unique = linkedMapOf<String, Triple<String, String?, String?>>()
@@ -487,6 +479,45 @@ class RadarConfigActivity : ComponentActivity() {
             round++
         }
         return unique.values.toList()
+    }
+
+    /**
+     * Collects source buckets concurrently under one deadline and checks cancellation
+     * frequently so the screen's Stop action also stops outstanding network work.
+     */
+    private fun collectSourceBuckets(
+        tasks: List<() -> List<Triple<String, String?, String?>>>,
+        timeoutMs: Long,
+        isActive: () -> Boolean,
+        buckets: MutableList<List<Triple<String, String?, String?>>>,
+    ) {
+        if (tasks.isEmpty() || !isActive()) return
+        val executor = java.util.concurrent.Executors.newFixedThreadPool(6) { task ->
+            Thread(task, "radar-source-discovery").apply { isDaemon = true }
+        }
+        val completion = ExecutorCompletionService<List<Triple<String, String?, String?>>>(executor)
+        val futures = tasks.map { task -> completion.submit<List<Triple<String, String?, String?>>> { task() } }
+        val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs)
+        try {
+            var remaining = futures.size
+            while (remaining > 0 && isActive()) {
+                val remainingNanos = deadline - System.nanoTime()
+                if (remainingNanos <= 0L) break
+                // Poll briefly so a user pressing Stop is not held behind the full
+                // discovery timeout while the current HTTP request is still running.
+                val pollNanos = minOf(remainingNanos, TimeUnit.MILLISECONDS.toNanos(250))
+                val future = completion.poll(pollNanos, TimeUnit.NANOSECONDS) ?: continue
+                remaining--
+                runCatching { future.get() }.getOrNull()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let(buckets::add)
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        } finally {
+            futures.forEach { if (!it.isDone) it.cancel(true) }
+            executor.shutdownNow()
+        }
     }
 
     private fun countryFromPath(path: String): String? {
