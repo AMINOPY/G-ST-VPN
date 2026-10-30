@@ -16,8 +16,8 @@ class CdnSniAutoScannerTest {
         val executor = Executors.newFixedThreadPool(2)
         try {
             val completion = ExecutorCompletionService<String>(executor)
-            completion.submit<String> { "first" }
-            completion.submit<String> { "second" }
+            completion.submit(java.util.concurrent.Callable { "first" })
+            completion.submit(java.util.concurrent.Callable { "second" })
             val results = mutableListOf<String>()
 
             val allCompleted = CdnSniAutoScanner.collectWithinDeadline(
@@ -40,15 +40,15 @@ class CdnSniAutoScannerTest {
         val completion = ExecutorCompletionService<Int>(executor)
         val futures = mutableListOf<java.util.concurrent.Future<Int>>()
         try {
-            futures += completion.submit<Int> {
+            futures += completion.submit(java.util.concurrent.Callable {
                 bothStarted.countDown()
                 Thread.sleep(5_000)
                 0
-            }
-            futures += completion.submit<Int> {
+            })
+            futures += completion.submit(java.util.concurrent.Callable {
                 bothStarted.countDown()
                 7
-            }
+            })
             assertTrue("Both workers should start before the deadline test", bothStarted.await(1, TimeUnit.SECONDS))
 
             val startedAt = System.nanoTime()
