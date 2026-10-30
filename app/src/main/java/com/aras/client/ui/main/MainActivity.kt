@@ -49,6 +49,7 @@ import com.aras.client.ui.routing.RoutingSettingActivity
 import com.aras.client.ui.radar.RadarConfigActivity
 import com.aras.client.ui.server.ProfileEditorResult
 import com.aras.client.ui.server.ServerAetherActivity
+import com.aras.client.ui.server.ServerPsiphonActivity
 import com.aras.client.ui.server.ServerMieruActivity
 import com.aras.client.ui.server.ServerAmneziawgActivity
 import com.aras.client.ui.server.ServerAnytlsActivity
