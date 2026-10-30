@@ -74,6 +74,8 @@ object CoreConfigContextBuilder {
     fun resolveChainProfiles(context: Context, guid: String): List<ProfileItem> {
         val config = MmkvManager.decodeServerConfig(guid) ?: return emptyList()
         if (config.configType == EConfigType.CUSTOM) return listOf(config)
+        // CDN/SNI owns a dedicated Psiphon carrier; subscription neighbours must not wrap it.
+        if (config.configType == EConfigType.CDN_SNI) return listOf(config)
         return when (config.configType) {
             EConfigType.POLICYGROUP -> resolvePolicyGroupProfiles(config)
             EConfigType.PROXYCHAIN -> resolveProxyChainProfiles(config)
