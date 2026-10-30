@@ -114,17 +114,17 @@ class RadarConfigActivity : ComponentActivity() {
                 val availableCountries = results.mapNotNull { it.country }.distinct().sorted()
                 val visibleResults = results.filter { candidate ->
                     val countryMatches = countryFilter == "all" || candidate.country == countryFilter
-                    val tlsFailed = candidate.tlsNote?.contains("ناموفق") == true
+                    val reachable = isProbeReachable(candidate)
                     val reachabilityMatches = when (resultFilter) {
-                        "reachable" -> candidate.latency != null && !tlsFailed
-                        "failed" -> (candidate.latency == null || tlsFailed) && !candidate.udpUnverified
+                        "reachable" -> reachable
+                        "failed" -> !reachable && !candidate.udpUnverified
                         else -> true
                     }
                     val protocolMatches = protocolFilter == "all" ||
                         protocolOf(candidate.uri) == protocolFilter
                     reachabilityMatches && protocolMatches && countryMatches
                 }.sortedWith(
-                    compareBy<RadarCandidate> { it.latency == null || it.tlsNote?.contains("ناموفق") == true }
+                    compareBy<RadarCandidate> { !isProbeReachable(it) }
                         .thenBy { it.latency ?: Long.MAX_VALUE }
                 )
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
@@ -321,7 +321,9 @@ class RadarConfigActivity : ComponentActivity() {
                                         val country = candidate.second
                                         val source = candidate.third
                                         val original = testTcp(uri).copy(country = country, source = source)
-                                        if (original.latency != null || !hasCdnSni) {
+                                        val tlsNeedsRecovery = original.tlsNote != null &&
+                            original.tlsNote != "TLS پاسخ داد"
+                                        if ((original.latency != null && !tlsNeedsRecovery) || !hasCdnSni) {
                                             original
                                         } else {
                                             val recoveredUri = rewriteTlsConfig(uri, requestedEdgeIp, requestedSni)
@@ -329,9 +331,9 @@ class RadarConfigActivity : ComponentActivity() {
                                                 original.copy(note = original.note + " · CDN/SNI روی این نوع کانفیگ قابل‌اعمال نیست")
                                             } else {
                                                 val retry = testTcp(recoveredUri).copy(country = country, source = source)
-                                                if (retry.latency != null) {
+                                                if (isProbeReachable(retry)) {
                                                     retry.copy(
-                                                        note = "CDN/SNI recovery · پاسخ TCP؛ سلامت تونل هنوز تأیید نشده"
+                                                        note = "CDN/SNI recovery · TCP/TLS پاسخ داد؛ سلامت تونل هنوز تأیید نشده"
                                                     )
                                                 } else {
                                                     original.copy(
@@ -344,10 +346,11 @@ class RadarConfigActivity : ComponentActivity() {
                                 }.map { it.await() }
                             }
                             for (result in batchResults) {
-                                if (result.latency != null) reachable++
-                                // Every candidate gets a blip: green/yellow for reachable latency,
-                                // red for an unreachable endpoint.
-                                radar?.addTestedCandidate(result.latency ?: -1L)
+                                if (isProbeReachable(result)) reachable++
+                                // TLS profiles count as reachable only after a successful,
+                                // certificate-validated SNI handshake; TCP-only profiles remain
+                                // explicitly preliminary endpoint checks.
+                                radar?.addTestedCandidate(if (isProbeReachable(result)) result.latency!! else -1L)
                                 results.add(result)
                                 checked++
                             }
@@ -699,6 +702,10 @@ class RadarConfigActivity : ComponentActivity() {
         }
         return "$rewrittenBase?$rewrittenQuery$fragment"
     }
+
+    private fun isProbeReachable(candidate: RadarCandidate): Boolean =
+        candidate.latency != null &&
+            (candidate.tlsNote == null || candidate.tlsNote == "TLS پاسخ داد")
 
     private fun protocolOf(uri: String): String {
         val scheme = uri.substringBefore("://", "").lowercase()
