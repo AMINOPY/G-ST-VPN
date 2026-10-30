@@ -44,8 +44,9 @@ internal fun PsiphonRegionField(
         "FR", "GB", "HR", "HU", "IE", "IN", "IT", "JP", "KR", "LV", "MX", "NL", "NO",
         "PL", "PT", "RO", "RS", "SE", "SG", "SK", "UA", "US",
     ).let { listOf("") + it.filter { code -> code.isNotBlank() }.sortedBy { code -> Locale("", code).getDisplayCountry(Locale.getDefault()) } }
+    val autoLabel = stringResource(R.string.psiphon_region_auto)
     fun name(code: String): String = if (code.isBlank()) {
-        "AUTO"
+        autoLabel
     } else {
         Locale("", code).getDisplayCountry(Locale.getDefault()).ifBlank { code }
     }
