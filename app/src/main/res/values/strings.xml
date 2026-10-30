@@ -68,6 +68,7 @@
     <string name="menu_item_import_config_manually_aether">Add Aether config manually</string>
     <string name="server_lab_aether_psiphon">Psiphon</string>
     <string name="menu_item_import_config_psiphon">Psiphon · No config</string>
+    <string name="add_server_sheet_title">Add server</string>
     <string name="psiphon_standalone_description">Create a Psiphon tunnel without importing a proxy config. The bundled native client discovers and verifies its own server entries, then exposes a local SOCKS hop for Xray.</string>
     <string name="psiphon_standalone_engine_note">Xray uses the local Psiphon SOCKS listener as its upstream. AUTO can select the transport; CDN mode can use your own edge IP and SNI.</string>
     <string name="psiphon_cdn_pair_required">Enter both a CDN edge IP and SNI, or leave both empty to use the built-in CDN scan.</string>
