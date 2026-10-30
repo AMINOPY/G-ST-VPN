@@ -4,43 +4,36 @@ import com.aras.client.dto.entities.ProfileItem
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 
-/** What a CDN/SNI profile asks for, after its two text fields are read. */
+/** The two values used by Psiphon's CDN-fronted transport. */
 data class CdnSniSettings(
-    /** The single CDN edge IP to dial. */
     val edgeIp: String,
-    /** The TLS server name sent by Xray to that edge. */
     val sni: String,
 )
 
 /**
- * CDN/SNI as a standalone profile: only a CDN edge IP and the TLS server name.
+ * Xray's CDN/SNI profile is carried by a real Psiphon session.
  *
- * It follows the MITM domain-fronting setup for Xray. The browser's TLS to a target
- * site is ended locally with a CA that exists only on this device, the plain HTTP
- * request (with its real Host header) is read, and a new TLS connection is made to
- * the configured CDN edge under the configured server name.
+ * The edge IP and SNI are passed to Psiphon when its transport is started. Xray
+ * then sends TCP through the Psiphon SOCKS listener. There is deliberately no
+ * local TLS interception, generated CA, or direct-to-edge fallback in this path.
  */
 object CdnSniConfig {
-
     const val MODE_AUTO = "auto"
     const val MODE_MANUAL = "manual"
 
-    const val INBOUND_TAG = "cdn-sni-decrypt"
-    const val REDIRECT_TAG = "cdn-sni-redirect"
-    const val REPACK_TAG = "cdn-sni-repack"
-    const val EDGE_HOST = "cdn-sni.redirect"
-    const val DECRYPT_PORT = 11777
+    const val PROXY_TAG = "proxy"
+    const val UDP_BLOCK_TAG = "cdn-sni-udp-block"
 
     private val hostName = Regex("^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$")
 
-    /** A host name, not a dotted number (which would otherwise match the name pattern). */
     private fun isName(token: String) = hostName.matches(token) && token.any { it.isLetter() }
 
     /** Entries may be separated by Enter, comma (English or Persian), semicolon, space or tab. */
     fun tokens(text: String?): List<String> =
-        text.orEmpty().split('\n', '\r', ',', '،', ';', ' ', '\t').map { it.trim() }.filter { it.isNotEmpty() }
+        text.orEmpty().split('\\n', '\\r', ',', '،', ';', ' ', '\\t')
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
 
-    /** IP and SNI are the only connection values; old editor mode is ignored. */
     fun effectiveIp(profile: ProfileItem): String {
         val candidates = tokens(profile.cdnSniTargets) + tokens(profile.cdnSniFront)
         return candidates.firstOrNull { CdnIp.isIpv4(it) }.orEmpty()
@@ -64,18 +57,12 @@ object CdnSniConfig {
         return CdnSniSettings(edgeIp = ip, sni = sni)
     }
 
-    /**
-     * Remove the template's sample `proxy` outbound for standalone IP+SNI profiles.
-     * The shipped Xray template contains a placeholder VMess outbound (xray.cool with
-     * sample credentials); it is not a real connection and its settings are invalid for
-     * the current core. Leaving it in the generated JSON makes Xray fail while parsing
-     * outbound tag `proxy`, before the CDN/SNI bridge can start.
-     */
+    /** Remove the sample proxy outbound and its rules before installing the Psiphon SOCKS hop. */
     fun removeTemplateProxyOutbound(root: JsonObject) {
         val outbounds = root.get("outbounds")?.takeIf { it.isJsonArray }?.asJsonArray
         outbounds?.toList()?.filter { element ->
             element.isJsonObject && element.asJsonObject.get("tag")?.let { tag ->
-                tag.isJsonPrimitive && tag.asString == "proxy"
+                tag.isJsonPrimitive && tag.asString == PROXY_TAG
             } == true
         }?.forEach { outbounds.remove(it) }
 
@@ -83,170 +70,88 @@ object CdnSniConfig {
             ?.takeIf { it.isJsonArray }?.asJsonArray ?: return
         rules.toList().filter { element ->
             element.isJsonObject && element.asJsonObject.get("outboundTag")?.let { tag ->
-                tag.isJsonPrimitive && tag.asString == "proxy"
+                tag.isJsonPrimitive && tag.asString == PROXY_TAG
             } == true
         }.forEach { rules.remove(it) }
     }
 
     /**
-     * Adds the local TLS-ending inbound, the two outbounds and the routing rules to a
-     * finished Xray config. This mode intercepts TCP/443 traffic while this profile is active.
-     *
-     * @param caCertPem the device-only CA certificate, PEM
-     * @param caKeyPem its private key, PEM
+     * Route Xray TCP through the already-started Psiphon SOCKS listener.
+     * UDP is explicitly blocked because the Psiphon listener is a TCP SOCKS
+     * transport; it must never leak through Xray's direct outbound.
      */
-    fun inject(root: JsonObject, settings: CdnSniSettings, caCertPem: String, caKeyPem: String) {
-        val inbounds = array(root, "inbounds")
+    fun inject(root: JsonObject, socksPort: Int) {
+        require(socksPort in 1..65535) { "Invalid Psiphon SOCKS port" }
         val outbounds = array(root, "outbounds")
         val routing = obj(root, "routing")
         val rules = array(routing, "rules")
 
-        // Enable TLS/HTTP sniffing on existing inbounds so the local bridge can inspect
-        // the original request and preserve its HTTP Host when repacking the TLS stream.
-        for (element in inbounds) {
-            val inbound = element.takeIf { it.isJsonObject }?.asJsonObject ?: continue
-            if (inbound.get("tag")?.asString == INBOUND_TAG) continue
-            val sniffing = inbound.get("sniffing")?.takeIf { it.isJsonObject }?.asJsonObject
-                ?: JsonObject().also { inbound.add("sniffing", it) }
-            sniffing.addProperty("enabled", true)
-            sniffing.addProperty("routeOnly", false)
-            val dest = sniffing.get("destOverride")?.takeIf { it.isJsonArray }?.asJsonArray
-                ?: JsonArray().also { sniffing.add("destOverride", it) }
-            for (kind in listOf("http", "tls")) {
-                if (dest.none { it.isJsonPrimitive && it.asString == kind }) dest.add(kind)
-            }
+        outbounds.add(psiphonSocksOutbound(socksPort))
+        if (outbounds.none { it.isJsonObject && it.asJsonObject.get("tag")?.asString == UDP_BLOCK_TAG }) {
+            outbounds.add(JsonObject().apply {
+                addProperty("tag", UDP_BLOCK_TAG)
+                addProperty("protocol", "blackhole")
+                add("settings", JsonObject())
+            })
         }
 
-        inbounds.add(decryptInbound(caCertPem, caKeyPem))
-
-        outbounds.add(redirectOutbound())
-        outbounds.add(repackOutbound(settings))
-
-        val dns = obj(root, "dns")
-        val hosts = obj(dns, "hosts")
-        hosts.addProperty(EDGE_HOST, settings.edgeIp)
-
-        // Rules go first: decrypted local traffic is re-packed; TCP/443 from the device
-        // enters the local TLS bridge before ordinary routing rules are considered.
-        val front = JsonArray()
-        front.add(JsonObject().apply {
-            add("inboundTag", JsonArray().apply { add(INBOUND_TAG) })
-            addProperty("outboundTag", REPACK_TAG)
-        })
-        front.add(JsonObject().apply {
-            // This profile is a standalone connection mode: route TLS traffic through
-            // the local Xray TLS bridge, without requiring a third "target sites" field.
+        // Append after the template's explicit/private-domain rules, preserving those
+        // exceptions while making the default TCP path fail closed through Psiphon.
+        rules.add(JsonObject().apply {
             addProperty("network", "tcp")
-            addProperty("port", "443")
-            addProperty("outboundTag", REDIRECT_TAG)
+            addProperty("outboundTag", PROXY_TAG)
         })
-        val merged = JsonArray()
-        front.forEach { merged.add(it) }
-        rules.forEach { merged.add(it) }
-        routing.add("rules", merged)
+        rules.add(JsonObject().apply {
+            addProperty("network", "udp")
+            addProperty("outboundTag", UDP_BLOCK_TAG)
+        })
     }
 
-    /**
-     * Structural sanity check after injection. This catches incomplete or conflicting
-     * generated JSON before it is handed to the native core; it does not claim that the
-     * remote CDN accepts the configured SNI or that a live VPN connection works.
-     *
-     * @return a diagnostic when a required generated component is missing or inconsistent.
-     */
-    fun validateInjectedConfig(root: JsonObject, settings: CdnSniSettings): String? {
-        val inbounds = root.get("inbounds")?.takeIf { it.isJsonArray }?.asJsonArray
-            ?: return "Missing Xray inbounds"
+    /** Structural validation; it does not claim that Psiphon reached a remote server. */
+    fun validateInjectedConfig(root: JsonObject, socksPort: Int): String? {
         val outbounds = root.get("outbounds")?.takeIf { it.isJsonArray }?.asJsonArray
             ?: return "Missing Xray outbounds"
         val rules = root.getAsJsonObject("routing")?.get("rules")?.takeIf { it.isJsonArray }?.asJsonArray
             ?: return "Missing Xray routing rules"
 
-        fun countTag(items: JsonArray, tag: String) = items.count {
-            it.isJsonObject && it.asJsonObject.get("tag")?.let { value ->
-                value.isJsonPrimitive && value.asString == tag
-            } == true
-        }
-        if (countTag(inbounds, INBOUND_TAG) != 1) return "CDN/SNI local TLS inbound is missing or duplicated"
-        if (countTag(outbounds, REDIRECT_TAG) != 1 || countTag(outbounds, REPACK_TAG) != 1) {
-            return "CDN/SNI outbound is missing or duplicated"
-        }
+        val proxy = outbounds.firstOrNull {
+            it.isJsonObject && it.asJsonObject.get("tag")?.asString == PROXY_TAG
+        }?.asJsonObject ?: return "Psiphon SOCKS outbound is missing"
+        if (proxy.get("protocol")?.asString != "socks") return "CDN/SNI proxy is not a SOCKS outbound"
+        val server = proxy.getAsJsonObject("settings")?.getAsJsonArray("servers")
+            ?.firstOrNull()?.takeIf { it.isJsonObject }?.asJsonObject
+            ?: return "Psiphon SOCKS listener is missing"
+        if (server.get("address")?.asString != "127.0.0.1" ||
+            server.get("port")?.asInt != socksPort
+        ) return "Psiphon SOCKS listener does not match the configured port"
 
-        val repack = outbounds.firstOrNull {
-            it.isJsonObject && it.asJsonObject.get("tag")?.asString == REPACK_TAG
-        }?.asJsonObject ?: return "CDN/SNI outbound is missing"
-        val tls = repack.getAsJsonObject("streamSettings")?.getAsJsonObject("tlsSettings")
-            ?: return "CDN/SNI TLS settings are missing"
-        if (tls.get("serverName")?.asString != settings.sni) return "CDN/SNI hostname does not match the profile"
-        val hosts = root.getAsJsonObject("dns")?.getAsJsonObject("hosts")
-            ?: return "CDN/SNI DNS mapping is missing"
-        if (hosts.get(EDGE_HOST)?.asString != settings.edgeIp) return "CDN/SNI edge IP mapping does not match the profile"
-
-        val inboundRule = rules.count {
+        val tcpRule = rules.count {
             it.isJsonObject &&
-                it.asJsonObject.get("outboundTag")?.asString == REPACK_TAG &&
-                it.asJsonObject.getAsJsonArray("inboundTag")?.any { tag -> tag.asString == INBOUND_TAG } == true
-        }
-        val tlsRule = rules.count {
-            it.isJsonObject &&
-                it.asJsonObject.get("outboundTag")?.asString == REDIRECT_TAG &&
                 it.asJsonObject.get("network")?.asString == "tcp" &&
-                it.asJsonObject.get("port")?.asString == "443"
+                it.asJsonObject.get("outboundTag")?.asString == PROXY_TAG
         }
-        if (inboundRule != 1 || tlsRule != 1) return "CDN/SNI routing rules are missing or duplicated"
+        val udpRule = rules.count {
+            it.isJsonObject &&
+                it.asJsonObject.get("network")?.asString == "udp" &&
+                it.asJsonObject.get("outboundTag")?.asString == UDP_BLOCK_TAG
+        }
+        if (tcpRule != 1) return "TCP traffic is not exclusively routed through Psiphon"
+        if (udpRule != 1) return "UDP fail-closed rule is missing"
         return null
     }
 
-    private fun decryptInbound(certPem: String, keyPem: String) = JsonObject().apply {
-        addProperty("tag", INBOUND_TAG)
-        addProperty("listen", "127.0.0.1")
-        addProperty("port", DECRYPT_PORT)
-        addProperty("protocol", "dokodemo-door")
+    private fun psiphonSocksOutbound(port: Int) = JsonObject().apply {
+        addProperty("tag", PROXY_TAG)
+        addProperty("protocol", "socks")
         add("settings", JsonObject().apply {
-            addProperty("network", "tcp")
-            addProperty("port", 443)
-            addProperty("followRedirect", true)
-        })
-        add("streamSettings", JsonObject().apply {
-            addProperty("security", "tls")
-            add("tlsSettings", JsonObject().apply {
-                add("alpn", JsonArray().apply { add("h2"); add("http/1.1") })
-                add("certificates", JsonArray().apply {
-                    add(JsonObject().apply {
-                        addProperty("usage", "issue")
-                        add("certificate", lines(certPem))
-                        add("key", lines(keyPem))
-                    })
+            add("servers", JsonArray().apply {
+                add(JsonObject().apply {
+                    addProperty("address", "127.0.0.1")
+                    addProperty("port", port)
                 })
             })
         })
     }
-
-    private fun redirectOutbound() = JsonObject().apply {
-        addProperty("tag", REDIRECT_TAG)
-        addProperty("protocol", "freedom")
-        add("settings", JsonObject().apply { addProperty("redirect", "127.0.0.1:$DECRYPT_PORT") })
-    }
-
-    private fun repackOutbound(settings: CdnSniSettings) = JsonObject().apply {
-        addProperty("tag", REPACK_TAG)
-        addProperty("protocol", "freedom")
-        add("settings", JsonObject().apply { addProperty("redirect", "$EDGE_HOST:443") })
-        add("streamSettings", JsonObject().apply {
-            addProperty("security", "tls")
-            add("tlsSettings", JsonObject().apply {
-                addProperty("serverName", settings.sni)
-                // The origin certificate is selected by the request's Host at the edge;
-                // Xray's local TLS bridge has already terminated the device-side TLS.
-                addProperty("verifyPeerCertByName", "fromMitM,${settings.sni}")
-                add("alpn", JsonArray().apply { add("fromMitM") })
-                addProperty("fingerprint", "chrome")
-            })
-            add("sockopt", JsonObject().apply { addProperty("domainStrategy", "ForceIP") })
-        })
-    }
-
-    private fun lines(pem: String) =
-        JsonArray().apply { pem.trim().lines().map { it.trim() }.filter { it.isNotEmpty() }.forEach { add(it) } }
 
     private fun array(parent: JsonObject, name: String): JsonArray =
         parent.get(name)?.takeIf { it.isJsonArray }?.asJsonArray ?: JsonArray().also { parent.add(name, it) }
@@ -257,8 +162,6 @@ object CdnSniConfig {
 
 object CdnIp {
     fun isIpv4(value: String): Boolean {
-        // Accept only canonical ASCII dotted-decimal IPv4. Char.isDigit() also accepts
-        // non-ASCII numerals, which are not valid in an Xray IP literal.
         val parts = value.split('.')
         if (parts.size != 4) return false
         return parts.all { part ->
