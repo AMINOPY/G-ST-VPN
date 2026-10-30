@@ -349,7 +349,6 @@ class MainViewModel(
             MainAction.ImportClipboard,
             MainAction.ImportConfigLocal,
             MainAction.ImportArascFile,
-            MainAction.ImportPsiphon,
             MainAction.OpenSubscriptions,
             MainAction.ImportManualMenu,
             is MainAction.ImportManually,
