@@ -33,6 +33,7 @@ private data class RadarCandidate(
     val latency: Long?,
     val note: String,
     val dnsLatency: Long? = null,
+    val country: String? = null,
 )
 
 /** Public-source discovery. TCP reachability is not treated as proof of a working proxy tunnel. */
@@ -48,7 +49,10 @@ class RadarConfigActivity : ComponentActivity() {
                 var radar by remember { mutableStateOf<RadarScanView?>(null) }
                 var resultFilter by remember { mutableStateOf("all") }
                 var protocolFilter by remember { mutableStateOf("all") }
+                var countryFilter by remember { mutableStateOf("all") }
+                val availableCountries = results.mapNotNull { it.country }.distinct().sorted()
                 val visibleResults = results.filter { candidate ->
+                    val countryMatches = countryFilter == "all" || candidate.country == countryFilter
                     val reachabilityMatches = when (resultFilter) {
                         "reachable" -> candidate.latency != null
                         "failed" -> candidate.latency == null
@@ -56,7 +60,7 @@ class RadarConfigActivity : ComponentActivity() {
                     }
                     val protocolMatches = protocolFilter == "all" ||
                         protocolOf(candidate.uri) == protocolFilter
-                    reachabilityMatches && protocolMatches
+                    reachabilityMatches && protocolMatches && countryMatches
                 }.sortedWith(
                     compareBy<RadarCandidate> { it.latency == null }
                         .thenBy { it.latency ?: Long.MAX_VALUE }
@@ -112,6 +116,27 @@ class RadarConfigActivity : ComponentActivity() {
                                 label = { Text("بدون پاسخ (" + results.count { it.latency == null } + ")") }
                             )
                         }
+                        if (availableCountries.isNotEmpty()) {
+                            androidx.compose.foundation.lazy.LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                item {
+                                    FilterChip(
+                                        selected = countryFilter == "all",
+                                        onClick = { countryFilter = "all" },
+                                        label = { Text("همه کشورها") }
+                                    )
+                                }
+                                items(availableCountries.size) { index ->
+                                    val country = availableCountries[index]
+                                    FilterChip(
+                                        selected = countryFilter == country,
+                                        onClick = { countryFilter = country },
+                                        label = { Text(country) }
+                                    )
+                                }
+                            }
+                        }
                         androidx.compose.foundation.lazy.LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -141,6 +166,7 @@ class RadarConfigActivity : ComponentActivity() {
                             visibleResults.forEach { item ->
                                 Card(Modifier.fillMaxWidth()) {
                                     Column(Modifier.padding(12.dp)) {
+                                        item.country?.let { Text("کشور: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
                                         Text(
                                             if (item.latency == null) {
@@ -167,9 +193,9 @@ class RadarConfigActivity : ComponentActivity() {
                 LaunchedEffect(scanning) {
                     if (!scanning) return@LaunchedEffect
                     try {
-                        val uris = withContext(Dispatchers.IO) { discover().distinct() }
+                        val discovered = withContext(Dispatchers.IO) { discover().distinctBy { it.first } }
                         var reachable = 0
-                        val bounded = uris.take(180)
+                        val bounded = discovered.take(180)
                         if (bounded.isEmpty()) {
                             message = "منابع پاسخ ندادند یا کانفیگ قابل‌خواندن پیدا نشد؛ اتصال اینترنت و دسترسی به GitHub را بررسی کن."
                         } else if (uris.size > bounded.size) {
@@ -179,7 +205,11 @@ class RadarConfigActivity : ComponentActivity() {
                         for (batch in bounded.chunked(8)) {
                             if (!scanning) break
                             val batchResults = coroutineScope {
-                                batch.map { uri -> async(Dispatchers.IO) { testTcp(uri) } }.map { it.await() }
+                                batch.map { candidate ->
+                                    async(Dispatchers.IO) {
+                                        testTcp(candidate.first).copy(country = candidate.second)
+                                    }
+                                }.map { it.await() }
                             }
                             for (result in batchResults) {
                                 if (result.latency != null) reachable++
@@ -211,9 +241,23 @@ class RadarConfigActivity : ComponentActivity() {
         }
     }
 
-    private fun discover(): List<String> {
-        val repos = listOf("barry-far/V2ray-Config", "0xRadikal/Free-v2ray-Configs", "ircfspace/tconfig", "Argh94/V2RayAutoConfig")
-        val found = linkedSetOf<String>()
+    private fun discover(): List<Pair<String, String?>> {
+        // Sources are intentionally isolated from the VPN runtime: discovery never installs or connects.
+        val repos = listOf(
+            "miladtahanian/V2RayScrapeByCountry",
+            "SoliSpirit/v2ray-configs",
+            "Delta-Kronecker/V2ray-Config",
+            "Danialsamadi/v2go",
+            "morpheusadam/v2ray-config",
+            "MatinGhanbari/v2ray-configs",
+            "0xRadikal/Free-v2ray-Configs",
+            "drmikecrypto/PulseConfigs",
+            "rtwo2/FastNodes",
+            "barry-far/V2ray-Config",
+            "ircfspace/tconfig",
+            "Argh94/V2RayAutoConfig"
+        )
+        val found = linkedMapOf<String, String?>()
         for (repo in repos) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
             val branch = Regex("""default_branch"\s*:\s*"([^"]+)""").find(metadata)?.groupValues?.get(1) ?: "main"
@@ -223,11 +267,29 @@ class RadarConfigActivity : ComponentActivity() {
                 .take(10)
             for (path in paths) {
                 val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
-                extract(raw).forEach { found.add(it) }
-                if (found.size >= 250) return found.toList()
+                val country = countryFromPath(path)
+                extract(raw).forEach { uri -> found.putIfAbsent(uri, country) }
+                if (found.size >= 500) return found.entries.map { it.key to it.value }
             }
         } catch (_: Exception) { /* Other sources may still work. */ }
-        return found.toList()
+        return found.entries.map { it.key to it.value }
+    }
+
+    private fun countryFromPath(path: String): String? {
+        val normalized = path.lowercase().replace('-', '_')
+        return when {
+            normalized.contains("united_states") || normalized.contains("/us.") || normalized.contains("_us.") -> "آمریکا"
+            normalized.contains("germany") || normalized.contains("/de.") || normalized.contains("_de.") -> "آلمان"
+            normalized.contains("turkiye") || normalized.contains("türkiye") || normalized.contains("turkey") || normalized.contains("/tr.") -> "ترکیه"
+            normalized.contains("south_korea") || normalized.contains("korea") || normalized.contains("/kr.") -> "کره جنوبی"
+            normalized.contains("russia") || normalized.contains("/ru.") -> "روسیه"
+            normalized.contains("france") || normalized.contains("/fr.") -> "فرانسه"
+            normalized.contains("netherlands") || normalized.contains("/nl.") -> "هلند"
+            normalized.contains("japan") || normalized.contains("/jp.") -> "ژاپن"
+            normalized.contains("singapore") || normalized.contains("/sg.") -> "سنگاپور"
+            normalized.contains("iran") || normalized.contains("/ir.") -> "ایران"
+            else -> null
+        }
     }
 
     private fun extract(text: String): List<String> {
