@@ -2,9 +2,9 @@ name: Android validation
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feat/cdn-sni-auto-ir-us]
   push:
-    branches: [main, feature/cultural-theme-picker]
+    branches: [main, feature/cultural-theme-picker, feature/zedsecure-config-finder-on-cdn-sni]
   workflow_dispatch:
 
 permissions:
