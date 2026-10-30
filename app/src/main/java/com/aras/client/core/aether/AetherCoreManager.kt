@@ -599,16 +599,23 @@ object AetherCoreManager {
             onOutput(line)
         }
 
-        val listenerReady = awaitListener(
+        // Aether briefly binds and drops the SOCKS port before starting Psiphon
+        // to check that it is available. Wait for the Psiphon-ready log first, then
+        // probe the listener; otherwise that temporary preflight bind could look ready.
+        val psiphonReportedReady =
+            !needsPsiphonReady || awaitPsiphonReady(psiphonReadySeen, PSIPHON_READY_WAIT_MS)
+        val listenerReady = psiphonReportedReady && awaitListener(
             core.port,
             if (needsPsiphonReady) PSIPHON_READY_WAIT_MS else MAX_READY_WAIT_MS,
         )
-        val ready = listenerReady && awaitPsiphonReady(psiphonReadySeen, PSIPHON_READY_WAIT_MS)
+        val ready = psiphonReportedReady && listenerReady
         if (!ready) {
             LogUtil.e(
                 AppConfig.TAG,
-                if (!listenerReady) "AetherCore: listener on ${core.port} never came up"
-                else "AetherCore: Psiphon did not report a ready proxy"
+                when {
+                    !psiphonReportedReady -> "AetherCore: Psiphon did not report a ready proxy"
+                    else -> "AetherCore: listener on ${core.port} never came up"
+                }
             )
             stop()
         }
