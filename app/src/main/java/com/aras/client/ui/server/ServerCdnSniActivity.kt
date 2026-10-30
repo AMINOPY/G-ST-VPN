@@ -1,8 +1,6 @@
 package com.aras.client.ui.server
 
 import android.content.Intent
-import android.provider.Settings
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,11 +20,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.aras.client.R
 import com.aras.client.core.cdn.CdnSniAutoScanner
-import com.aras.client.core.cdn.CdnSniCa
 import com.aras.client.core.cdn.CdnSniConfig
 import com.aras.client.enums.EConfigType
 import com.aras.client.extension.toastError
-import com.aras.client.extension.toastInfo
 import com.aras.client.extension.toastSuccess
 import com.aras.client.handler.MmkvManager
 import com.aras.client.ui.compose.FormTextField
@@ -42,18 +38,6 @@ import kotlinx.coroutines.withContext
 class ServerCdnSniActivity : BaseServerActivity() {
 
     override val serverConfigType: EConfigType = EConfigType.CDN_SNI
-
-    private val saveCertificate =
-        registerForActivityResult(ActivityResultContracts.CreateDocument("application/x-x509-ca-cert")) { uri ->
-            uri ?: return@registerForActivityResult
-            try {
-                contentResolver.openOutputStream(uri)?.use { it.write(CdnSniCa.certificatePem(this).toByteArray()) }
-                toastSuccess(R.string.cdn_sni_cert_saved)
-                startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
-            } catch (e: Exception) {
-                toastError(R.string.cdn_sni_cert_failed)
-            }
-        }
 
     @Composable
     override fun ScreenContent() {
@@ -196,17 +180,10 @@ class ServerCdnSniActivity : BaseServerActivity() {
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
             Text(
-                stringResource(R.string.cdn_sni_cert_hint),
+                stringResource(R.string.cdn_sni_psiphon_transport_hint),
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
-            OutlinedButton(
-                onClick = {
-                    toastInfo(R.string.cdn_sni_cert_steps)
-                    saveCertificate.launch("ArasClient-CDN-SNI-CA.crt")
-                },
-                modifier = Modifier.padding(horizontal = 16.dp)
-            ) { Text(stringResource(R.string.cdn_sni_cert_export)) }
         }
     }
 
