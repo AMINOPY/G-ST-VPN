@@ -122,7 +122,7 @@ object AetherCoreManager {
     const val PSIPHON_CONFIG_ENV = "AETHER_PSIPHON_CONFIG"
     const val PSIPHON_DIR_ENV = "AETHER_PSIPHON_DIR"
 
-    private val psiphonReady = Regex("psiphon ready|proxy started: psiphon", RegexOption.IGNORE_CASE)
+    private val psiphonReady = Regex("psiphon is ready|psiphon ready|proxy started: psiphon", RegexOption.IGNORE_CASE)
     private val torReady = Regex("tor ready|proxy started: tor", RegexOption.IGNORE_CASE)
 
     /** The work directory, shared with [AetherIdentityManager]. */
