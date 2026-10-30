@@ -38,11 +38,12 @@ internal fun PsiphonRegionField(
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
     var query by rememberSaveable { mutableStateOf("") }
+    val selectedCode = selected.trim().uppercase().takeUnless { it == "AUTO" }.orEmpty()
     val codes = listOf(
         "", "AT", "AU", "BE", "BG", "CA", "CH", "CZ", "DE", "DK", "EE", "ES", "FI",
         "FR", "GB", "HR", "HU", "IE", "IN", "IT", "JP", "KR", "LV", "MX", "NL", "NO",
         "PL", "PT", "RO", "RS", "SE", "SG", "SK", "UA", "US",
-    )
+    ).let { listOf("") + it.filter { code -> code.isNotBlank() }.sortedBy { code -> Locale("", code).getDisplayCountry(Locale.getDefault()) } }
     fun name(code: String): String = if (code.isBlank()) {
         "AUTO"
     } else {
@@ -65,7 +66,7 @@ internal fun PsiphonRegionField(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                CountryResolver.flagForCountry(selected).ifBlank { "🌐" },
+                CountryResolver.flagForCountry(selectedCode).ifBlank { "🌐" },
                 style = MaterialTheme.typography.titleLarge,
             )
             Column(modifier = Modifier.weight(1f)) {
@@ -74,7 +75,7 @@ internal fun PsiphonRegionField(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(name(selected), style = MaterialTheme.typography.bodyLarge)
+                Text(name(selectedCode), style = MaterialTheme.typography.bodyLarge)
             }
             Text("⌄", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -108,7 +109,7 @@ internal fun PsiphonRegionField(
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                             ) {
                                 RadioButton(
-                                    selected = selected == code,
+                                    selected = selectedCode == code,
                                     onClick = {
                                         onSelect(code)
                                         open = false
