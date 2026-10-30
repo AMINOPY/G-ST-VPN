@@ -946,4 +946,5 @@
     <string name="menu_section_network_tools">ابزارهای شبکه</string>
     <string name="rdr_theme_switch_to_light">تغییر به حالت روشن</string>
     <string name="rdr_theme_switch_to_dark">تغییر به حالت تاریک</string>
+    <string name="cdn_sni_manual_list_hint">در حالت دستی می‌تونی چند IP و SNI وارد کنی؛ موارد را با Enter، ویرگول انگلیسی یا فارسی، نقطه‌ویرگول یا فاصله جدا کن. با تغییر حالت، مقادیرت حفظ می‌شوند.</string>
 </resources>
