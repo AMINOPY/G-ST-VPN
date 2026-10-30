@@ -339,7 +339,7 @@ class AetherCoreTest {
             port = 10819,
         )
         assertEquals("1.2.3.4", cdn.valueOf("--psiphon-cdn-ips"))
-        // Aether 2.4 supports explicit fronting-set selection.
+        // Aether 2.3 supports explicit fronting-set selection.
         assertEquals("cloudflare,github", cdn.valueOf("--psiphon-cdn-sets"))
     }
 
