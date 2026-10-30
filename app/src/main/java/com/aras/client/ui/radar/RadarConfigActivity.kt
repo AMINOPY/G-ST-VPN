@@ -322,7 +322,7 @@ class RadarConfigActivity : ComponentActivity() {
                                         val source = candidate.third
                                         val original = testTcp(uri).copy(country = country, source = source)
                                         val tlsNeedsRecovery = original.tlsNote != null &&
-                            original.tlsNote != "TLS پاسخ داد"
+                                            original.tlsNote != "TLS پاسخ داد"
                                         if ((original.latency != null && !tlsNeedsRecovery) || !hasCdnSni) {
                                             original
                                         } else {
