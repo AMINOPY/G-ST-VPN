@@ -154,7 +154,7 @@ class ServerCdnSniActivity : BaseServerActivity() {
                 label = stringResource(R.string.cdn_sni_targets),
                 value = edgeIp,
                 onValueChange = { edgeIp = it; selectedMode = CdnSniConfig.MODE_MANUAL },
-                maxLines = 1,
+                maxLines = 3,
             )
             FormTextField(
                 label = stringResource(R.string.cdn_sni_front),
