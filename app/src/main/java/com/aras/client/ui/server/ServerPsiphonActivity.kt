@@ -94,9 +94,8 @@ class ServerPsiphonActivity : BaseServerActivity() {
                     toastError(R.string.toast_failure)
                     return@ServerEditorScaffold
                 }
-                if (draft.subscriptionId.isEmpty() && !subscriptionId.isNullOrEmpty()) {
-                    draft.subscriptionId = subscriptionId.orEmpty()
-                }
+                // This profile is the Xray exit via Psiphon; subscription neighbours would create an invalid nested chain.
+                draft.subscriptionId = ""
                 val guid = MmkvManager.encodeServerConfig(editGuid, draft)
                 toastSuccess(R.string.toast_success)
                 ProfileEditorResult.run { finishSaved(guid, isRunning) }
