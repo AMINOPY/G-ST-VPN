@@ -114,16 +114,17 @@ class RadarConfigActivity : ComponentActivity() {
                 val availableCountries = results.mapNotNull { it.country }.distinct().sorted()
                 val visibleResults = results.filter { candidate ->
                     val countryMatches = countryFilter == "all" || candidate.country == countryFilter
+                    val tlsFailed = candidate.tlsNote?.contains("ناموفق") == true
                     val reachabilityMatches = when (resultFilter) {
-                        "reachable" -> candidate.latency != null
-                        "failed" -> candidate.latency == null && !candidate.udpUnverified
+                        "reachable" -> candidate.latency != null && !tlsFailed
+                        "failed" -> (candidate.latency == null || tlsFailed) && !candidate.udpUnverified
                         else -> true
                     }
                     val protocolMatches = protocolFilter == "all" ||
                         protocolOf(candidate.uri) == protocolFilter
                     reachabilityMatches && protocolMatches && countryMatches
                 }.sortedWith(
-                    compareBy<RadarCandidate> { it.latency == null }
+                    compareBy<RadarCandidate> { it.latency == null || it.tlsNote?.contains("ناموفق") == true }
                         .thenBy { it.latency ?: Long.MAX_VALUE }
                 )
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
