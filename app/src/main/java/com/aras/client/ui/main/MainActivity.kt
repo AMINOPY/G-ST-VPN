@@ -46,6 +46,7 @@ import com.aras.client.ui.export.ExportActivity
 import com.aras.client.ui.logcat.LogcatActivity
 import com.aras.client.ui.perappproxy.PerAppProxyActivity
 import com.aras.client.ui.routing.RoutingSettingActivity
+import com.aras.client.ui.radar.RadarConfigActivity
 import com.aras.client.ui.server.ProfileEditorResult
 import com.aras.client.ui.server.ServerAetherActivity
 import com.aras.client.ui.server.ServerMieruActivity
@@ -385,6 +386,10 @@ class MainActivity : HelperBaseComponentActivity() {
     }
 
     private fun navigateTo(destination: MainDestination) {
+        if (destination == MainDestination.RadarConfig) {
+            startActivity(Intent(this, RadarConfigActivity::class.java))
+            return
+        }
         val intent = when (destination) {
             MainDestination.Hybrid -> Intent(this, HybridActivity::class.java)
             MainDestination.AI -> Intent(this, AiDiagnosticsActivity::class.java)
