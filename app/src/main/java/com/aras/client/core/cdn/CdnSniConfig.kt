@@ -113,6 +113,11 @@ object CdnSniConfig {
         rules.toList().filter { element ->
             element.isJsonObject && element.asJsonObject.get("outboundTag")?.asString == "direct"
         }.forEach { rules.remove(it) }
+        // Remove the template direct outbound too. If an unexpected protocol misses
+        // every rule, Xray's first-outbound fallback must fail closed, never go direct.
+        outbounds.toList().filter { element ->
+            element.isJsonObject && element.asJsonObject.get("tag")?.asString == "direct"
+        }.forEach { outbounds.remove(it) }
 
         outbounds.add(psiphonSocksOutbound(socksPort))
         if (outbounds.none { it.isJsonObject && it.asJsonObject.get("tag")?.asString == UDP_BLOCK_TAG }) {
@@ -253,6 +258,9 @@ object CdnSniConfig {
 
         if (rules.any { it.isJsonObject && it.asJsonObject.get("outboundTag")?.asString == "direct" }) {
             return "CDN/SNI direct bypass rule is present"
+        }
+        if (outbounds.any { it.isJsonObject && it.asJsonObject.get("tag")?.asString == "direct" }) {
+            return "CDN/SNI direct fallback outbound is present"
         }
 
         val dns = root.getAsJsonObject("dns") ?: return "Xray DNS configuration is missing"
