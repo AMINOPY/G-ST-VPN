@@ -22,8 +22,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Sync
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -44,7 +42,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.aras.client.R
-import com.aras.client.ui.main.ImportMenuContent
+import com.aras.client.ui.main.AddServerSheet
 import com.aras.client.ui.main.MainAction
 import com.aras.client.ui.main.MainMoreMenuAction
 import com.aras.client.ui.main.MoreMenuContent
@@ -128,19 +126,13 @@ fun RdrToolbarCapsule(
             PlainIcon(Icons.Rounded.MoreVert, stringResource(R.string.rdr_more), { showMore = true }, size = 36.dp)
         }
         if (showAdd) {
-            RdrGlassPopup(onDismiss = { showAdd = false }) {
-                ImportMenuContent(onAction = { action ->
-                    showAdd = false
-                    onImportAction(action)
-                })
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.rdr_config_radar)) },
-                    onClick = {
-                        showAdd = false
-                        context.startActivity(Intent(context, RadarConfigActivity::class.java))
-                    },
-                )
-            }
+            AddServerSheet(
+                onDismiss = { showAdd = false },
+                onAction = onImportAction,
+                onOpenRadarConfig = {
+                    context.startActivity(Intent(context, RadarConfigActivity::class.java))
+                },
+            )
         }
         if (showMore) {
             RdrGlassPopup(onDismiss = { showMore = false }) {
