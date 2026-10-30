@@ -906,4 +906,8 @@
     <string name="theme_ui_aurora_summary">داشبورد شیشه‌ای آینده‌نگر با جزئیات نورانی</string>
     <string name="theme_ui_style_title">سبک رابط اصلی برنامه</string>
     <string name="menu_dpi_diagnostics">آزمایش تشخیصی DPI</string>
+
+    <string name="radar_config_title">رادار کانفیگ</string>
+    <string name="radar_config_summary">کشف و آزمایش کانفیگ‌های عمومی</string>
+    <string name="menu_section_network_tools">ابزارهای شبکه</string>
 </resources>
