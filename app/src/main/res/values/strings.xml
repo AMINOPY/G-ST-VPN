@@ -83,6 +83,7 @@
     <string name="server_lab_aether_psiphon_cdn_sni">Psiphon CDN server name</string>
     <string name="server_lab_aether_psiphon_cdn_sets">Psiphon CDN edge lists</string>
     <string name="server_lab_aether_psiphon_region">Psiphon region</string>
+    <string name="psiphon_region_auto">Automatic</string>
     <string name="server_lab_aether_psiphon_bundled">Use the bundled server list</string>
     <string name="server_lab_aether_tor">Tor</string>
     <string name="server_lab_aether_tor_bridges">Tor bridges</string>
