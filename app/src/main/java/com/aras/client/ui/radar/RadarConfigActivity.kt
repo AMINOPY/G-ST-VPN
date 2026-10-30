@@ -78,6 +78,10 @@ private data class RadarCandidate(
     val dnsLatency: Long? = null,
     val country: String? = null,
     val source: String? = null,
+    val host: String? = null,
+    val port: Int? = null,
+    val resolvedIp: String? = null,
+    val udpUnverified: Boolean = false,
 )
 
 /** Public-source discovery. TCP reachability is not treated as proof of a working proxy tunnel. */
@@ -104,7 +108,7 @@ class RadarConfigActivity : ComponentActivity() {
                     val countryMatches = countryFilter == "all" || candidate.country == countryFilter
                     val reachabilityMatches = when (resultFilter) {
                         "reachable" -> candidate.latency != null
-                        "failed" -> candidate.latency == null
+                        "failed" -> candidate.latency == null && !candidate.udpUnverified
                         else -> true
                     }
                     val protocolMatches = protocolFilter == "all" ||
@@ -222,6 +226,14 @@ class RadarConfigActivity : ComponentActivity() {
                                     Column(Modifier.padding(12.dp)) {
                                         item.country?.let { Text("برچسب کشور منبع: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
                                         item.source?.let { Text("منبع: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary) }
+                                        item.host?.let { host ->
+                                            Text(
+                                                "میزبان: $host:${item.port ?: "—"}" +
+                                                    (item.resolvedIp?.let { " · IP: $it" } ?: ""),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
                                         Text(
                                             if (item.latency == null) {
@@ -229,8 +241,8 @@ class RadarConfigActivity : ComponentActivity() {
                                             } else {
                                                 "DNS " + (item.dnsLatency?.toString() ?: "—") + " ms · TCP " + item.latency + " ms · " + item.note
                                             },
-                                            color = when { item.latency == null -> MaterialTheme.colorScheme.error; item.latency <= 150 -> Color(0xFF00A86B); item.latency <= 300 -> Color(0xFFB8860B); else -> Color(0xFFC62828) })
-                                        if (item.latency != null || hasAnyCdnSni) {
+                                            color = when { item.udpUnverified -> MaterialTheme.colorScheme.tertiary; item.latency == null -> MaterialTheme.colorScheme.error; item.latency <= 150 -> Color(0xFF00A86B); item.latency <= 300 -> Color(0xFFB8860B); else -> Color(0xFFC62828) })
+                                        if (item.latency != null || item.udpUnverified || hasAnyCdnSni) {
                                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 Button(onClick = {
                                                     val configToImport = when {
@@ -488,26 +500,45 @@ class RadarConfigActivity : ComponentActivity() {
     private fun testTcp(uri: String): RadarCandidate {
         val endpoint = parseEndpoint(uri)
             ?: return RadarCandidate(uri, null, "آدرس یا پورت قابل تشخیص نیست")
+        val host = endpoint.first
+        val port = endpoint.second
         val dnsStart = System.nanoTime()
         val addresses = try {
-            InetAddress.getAllByName(endpoint.first)
+            InetAddress.getAllByName(host)
         } catch (_: Exception) {
-            return RadarCandidate(uri, null, "DNS ناموفق بود یا میزبان در دسترس نیست")
+            return RadarCandidate(uri, null, "DNS ناموفق بود یا میزبان در دسترس نیست", host = host, port = port)
         }
         val dnsMs = (System.nanoTime() - dnsStart) / 1_000_000L
+        val resolvedIp = addresses.firstOrNull()?.hostAddress?.substringBefore('%')
+        val udpProtocol = protocolOf(uri) in setOf("hysteria", "hysteria2", "tuic")
+        if (udpProtocol) {
+            return RadarCandidate(
+                uri = uri,
+                latency = null,
+                note = "پروتکل UDP/QUIC است؛ فقط DNS بررسی شد و تست واقعی تونل لازم است",
+                dnsLatency = dnsMs,
+                host = host,
+                port = port,
+                resolvedIp = resolvedIp,
+                udpUnverified = true,
+            )
+        }
         var lastError: Exception? = null
-        for (address in addresses) {
+        for (address in addresses.take(4)) {
             val tcpStart = System.nanoTime()
             try {
                 Socket().use { socket ->
-                    socket.connect(InetSocketAddress(address, endpoint.second), 1800)
+                    socket.connect(InetSocketAddress(address, port), 1800)
                 }
                 val tcpMs = (System.nanoTime() - tcpStart) / 1_000_000L
                 return RadarCandidate(
                     uri = uri,
                     latency = tcpMs,
-                    note = "DNS و پورت پاسخ دادند؛ سلامت تونل تأیید نشده",
+                    note = "DNS و پورت TCP پاسخ دادند؛ سلامت تونل تأیید نشده",
                     dnsLatency = dnsMs,
+                    host = host,
+                    port = port,
+                    resolvedIp = address.hostAddress?.substringBefore('%'),
                 )
             } catch (e: Exception) {
                 lastError = e
@@ -518,7 +549,15 @@ class RadarConfigActivity : ComponentActivity() {
         } else {
             "DNS پاسخ داد، اما پورت TCP در دسترس نیست"
         }
-        return RadarCandidate(uri, null, detail, dnsMs)
+        return RadarCandidate(
+            uri = uri,
+            latency = null,
+            note = detail,
+            dnsLatency = dnsMs,
+            host = host,
+            port = port,
+            resolvedIp = resolvedIp,
+        )
     }
 
 
