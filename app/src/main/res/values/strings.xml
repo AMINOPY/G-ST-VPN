@@ -927,4 +927,8 @@
     <string name="cdn_sni_cert_steps">Save the file, then in Settings choose Security, Install a certificate, CA certificate</string>
     <string name="cdn_sni_cert_saved">Certificate saved</string>
     <string name="cdn_sni_cert_failed">Could not save the certificate</string>
+
+    <string name="radar_config_title">Radar Config</string>
+    <string name="radar_config_summary">Discover and test public server configs</string>
+    <string name="menu_section_network_tools">Network tools</string>
 </resources>
