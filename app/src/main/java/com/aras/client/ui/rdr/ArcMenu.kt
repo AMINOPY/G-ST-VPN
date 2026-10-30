@@ -229,7 +229,7 @@ fun ArcMenu(
             val themeX = if (fromRight) btnX - 50.dp else btnX + RdrDims.menuButton + 6.dp
             GlassIconButton(
                 icon = if (isDark) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
-                contentDescription = if (isDark) "روشن کردن تم" else "تیره کردن تم",
+                contentDescription = stringResource(if (isDark) R.string.rdr_theme_switch_to_light else R.string.rdr_theme_switch_to_dark),
                 onClick = onToggleTheme,
                 modifier = Modifier.absoluteOffset(themeX, btnY),
                 size = 40.dp,
