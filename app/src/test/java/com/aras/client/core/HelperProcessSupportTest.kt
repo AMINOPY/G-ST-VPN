@@ -1,6 +1,7 @@
 package com.aras.client.core
 
 import com.aras.client.dto.entities.ProfileItem
+import com.aras.client.core.aether.AetherCore
 import com.aras.client.enums.EConfigType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -98,6 +99,14 @@ class HelperProcessSupportTest {
         assertEquals("104.16.1.2", carrier.aetherPsiphonCdnIps)
         assertEquals("front.example", carrier.aetherPsiphonCdnSni)
         assertEquals(listOf("CDN/SNI Psiphon carrier"), HelperProcessSupport.helperProfilesOf(sessionProfiles).map { it.remarks })
+        val arguments = AetherCore.of(carrier).arguments
+        assertTrue(arguments.contains("--psiphon-only"))
+        assertTrue(arguments.contains("--psiphon-mode"))
+        assertTrue(arguments.contains("cdn"))
+        assertTrue(arguments.contains("--psiphon-cdn-ips"))
+        assertTrue(arguments.contains("104.16.1.2"))
+        assertTrue(arguments.contains("--psiphon-cdn-sni"))
+        assertTrue(arguments.contains("front.example"))
     }
 
     @Test
