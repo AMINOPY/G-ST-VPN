@@ -50,7 +50,7 @@ class CdnSniConfigTest {
     private fun baseConfig(): JsonObject = JsonParser.parseString(
         """{"inbounds":[{"tag":"tun","protocol":"tun"}],
             "outbounds":[{"tag":"proxy","protocol":"vmess"},{"tag":"direct","protocol":"freedom"},{"tag":"block","protocol":"blackhole"}],
-            "routing":{"rules":[{"outboundTag":"proxy","network":"tcp,udp"}]}}"""
+            "routing":{"rules":[{"outboundTag":"proxy","network":"tcp,udp"},{"outboundTag":"direct","domain":["domain:private"]}]}}"""
     ).asJsonObject
 
     private fun tags(a: JsonArray) = a.map { it.asJsonObject.get("tag")?.asString }
@@ -62,7 +62,7 @@ class CdnSniConfigTest {
         assertFalse(tags(root.getAsJsonArray("outbounds")).contains("proxy"))
         assertTrue(tags(root.getAsJsonArray("outbounds")).contains("direct"))
         assertTrue(tags(root.getAsJsonArray("outbounds")).contains("block"))
-        assertTrue(root.getAsJsonObject("routing").getAsJsonArray("rules").isEmpty)
+        assertEquals("direct", root.getAsJsonObject("routing").getAsJsonArray("rules")[0].asJsonObject.get("outboundTag").asString)
     }
 
     @Test
@@ -80,6 +80,7 @@ class CdnSniConfigTest {
 
         val rules = root.getAsJsonObject("routing").getAsJsonArray("rules")
         assertEquals(2, rules.size())
+        assertFalse(rules.any { it.isJsonObject && it.asJsonObject.get("outboundTag")?.asString == "direct" })
         assertEquals("tcp", rules[0].asJsonObject.get("network").asString)
         assertEquals(CdnSniConfig.PROXY_TAG, rules[0].asJsonObject.get("outboundTag").asString)
         assertEquals("udp", rules[1].asJsonObject.get("network").asString)
