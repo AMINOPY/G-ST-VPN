@@ -45,17 +45,32 @@ object CdnSniConfig {
         return candidates.firstOrNull { isName(it.lowercase()) }?.lowercase().orEmpty()
     }
 
-    fun parseIp(text: String?): String? =
-        tokens(text).singleOrNull()?.takeIf { CdnIp.isIpv4(it) }
+    fun parseIps(text: String?): List<String>? {
+        val values = tokens(text)
+        if (values.isEmpty() || values.any { !CdnIp.isIpv4(it) }) return null
+        return values.distinct()
+    }
 
-    fun parseSni(text: String?): String? =
-        tokens(text).singleOrNull()?.lowercase()?.takeIf { isName(it) }
+    fun parseSnis(text: String?): List<String>? {
+        val values = tokens(text).map { it.lowercase() }
+        if (values.isEmpty() || values.any { !isName(it) }) return null
+        return values.distinct()
+    }
 
-    /** Null when either field is not exactly one valid value. */
+    /** Single-value helpers for screens that need one candidate for a quick probe. */
+    fun parseIp(text: String?): String? = parseIps(text)?.singleOrNull()
+    fun parseSni(text: String?): String? = parseSnis(text)?.singleOrNull()
+    fun firstIp(text: String?): String? = parseIps(text)?.firstOrNull()
+    fun firstSni(text: String?): String? = parseSnis(text)?.firstOrNull()
+
+    /**
+     * Manual input accepts multiple comma/newline/space-separated candidates.
+     * Aether receives the normalized comma-separated lists and performs fronting selection.
+     */
     fun settingsOf(profile: ProfileItem): CdnSniSettings? {
-        val ip = parseIp(profile.cdnSniTargets) ?: return null
-        val sni = parseSni(profile.cdnSniFront) ?: return null
-        return CdnSniSettings(edgeIp = ip, sni = sni)
+        val ips = parseIps(profile.cdnSniTargets) ?: return null
+        val snis = parseSnis(profile.cdnSniFront) ?: return null
+        return CdnSniSettings(edgeIp = ips.joinToString(","), sni = snis.joinToString(","))
     }
 
     /** Remove the sample proxy outbound and its rules before installing the Psiphon SOCKS hop. */
