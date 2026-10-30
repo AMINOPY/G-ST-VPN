@@ -30,12 +30,54 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 
+private data class RadarSource(val name: String, val url: String, val country: String)
+
+private val radarCountrySources = listOf(
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/United_States.txt", "آمریکا"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Germany.txt", "آلمان"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Türkiye.txt", "ترکیه"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/South_Korea.txt", "کره جنوبی"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Russia.txt", "روسیه"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/United_States.txt", "آمریکا"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Germany.txt", "آلمان"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Türkiye.txt", "ترکیه"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/South_Korea.txt", "کره جنوبی"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Russia.txt", "روسیه"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/us.txt", "آمریکا"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/de.txt", "آلمان"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/tr.txt", "ترکیه"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/kr.txt", "کره جنوبی"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/ru.txt", "روسیه"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/US.txt", "آمریکا"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/DE.txt", "آلمان"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/TR.txt", "ترکیه"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/KR.txt", "کره جنوبی"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/RU.txt", "روسیه"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/France.txt", "فرانسه"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Netherlands.txt", "هلند"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Japan.txt", "ژاپن"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Singapore.txt", "سنگاپور"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/France.txt", "فرانسه"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Netherlands.txt", "هلند"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Japan.txt", "ژاپن"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Singapore.txt", "سنگاپور"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/fr.txt", "فرانسه"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/nl.txt", "هلند"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/jp.txt", "ژاپن"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/sg.txt", "سنگاپور"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/FR.txt", "فرانسه"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/NL.txt", "هلند"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/JP.txt", "ژاپن"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/SG.txt", "سنگاپور")
+)
+
 private data class RadarCandidate(
     val uri: String,
     val latency: Long?,
     val note: String,
     val dnsLatency: Long? = null,
     val country: String? = null,
+    val source: String? = null,
 )
 
 /** Public-source discovery. TCP reachability is not treated as proof of a working proxy tunnel. */
@@ -178,7 +220,8 @@ class RadarConfigActivity : ComponentActivity() {
                             visibleResults.forEach { item ->
                                 Card(Modifier.fillMaxWidth()) {
                                     Column(Modifier.padding(12.dp)) {
-                                        item.country?.let { Text("کشور: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
+                                        item.country?.let { Text("برچسب کشور منبع: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
+                                        item.source?.let { Text("منبع: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary) }
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
                                         Text(
                                             if (item.latency == null) {
@@ -245,7 +288,8 @@ class RadarConfigActivity : ComponentActivity() {
                                     async(Dispatchers.IO) {
                                         val uri = candidate.first
                                         val country = candidate.second
-                                        val original = testTcp(uri).copy(country = country)
+                                        val source = candidate.third
+                                        val original = testTcp(uri).copy(country = country, source = source)
                                         if (original.latency != null || !hasCdnSni) {
                                             original
                                         } else {
@@ -253,7 +297,7 @@ class RadarConfigActivity : ComponentActivity() {
                                             if (recoveredUri == null) {
                                                 original.copy(note = original.note + " · CDN/SNI روی این نوع کانفیگ قابل‌اعمال نیست")
                                             } else {
-                                                val retry = testTcp(recoveredUri).copy(country = country)
+                                                val retry = testTcp(recoveredUri).copy(country = country, source = source)
                                                 if (retry.latency != null) {
                                                     retry.copy(
                                                         note = "CDN/SNI recovery · پاسخ TCP؛ سلامت تونل هنوز تأیید نشده"
@@ -298,9 +342,29 @@ class RadarConfigActivity : ComponentActivity() {
         }
     }
 
-    private fun discover(): List<Pair<String, String?>> {
-        // Multi-source discovery: retain existing sources and add the repositories requested for Radar Config.
-        // Repository names are not treated as proof of an endpoint country.
+    private fun discover(): List<Triple<String, String?, String?>> {
+        // Country labels describe the source feed only; they are not verified endpoint geolocation.
+        val found = linkedMapOf<String, Pair<String?, String?>>()
+        val countryFeedPool = java.util.concurrent.Executors.newFixedThreadPool(4)
+        try {
+            radarCountrySources.map { source ->
+                countryFeedPool.submit<Pair<RadarSource, List<String>>> {
+                    source to runCatching { extract(get(source.url, 12000)) }.getOrDefault(emptyList())
+                }
+            }.forEach { future ->
+                val (source, links) = runCatching { future.get() }.getOrNull() ?: return@forEach
+                links.forEach { link ->
+                    val current = found[link]
+                    if (current == null || current.first == null) {
+                        found[link] = source.country to source.name
+                    }
+                }
+            }
+        } finally {
+            countryFeedPool.shutdownNow()
+        }
+        if (found.size >= 500) return found.entries.take(500).map { Triple(it.key, it.value.first, it.value.second) }
+        // Keep the existing repository-tree fallback for additional repositories not covered by country feeds.
         val repos = listOf(
             "barry-far/V2ray-Config",
             "0xRadikal/Free-v2ray-Configs",
@@ -315,7 +379,6 @@ class RadarConfigActivity : ComponentActivity() {
             "drmikecrypto/PulseConfigs",
             "rtwo2/FastNodes"
         )
-        val found = linkedMapOf<String, String?>()
         for (repo in repos) try {
             val metadata = get("https://api.github.com/repos/" + repo, 10000)
             val branch = Regex("""default_branch"\s*:\s*"([^"]+)""").find(metadata)?.groupValues?.get(1) ?: "main"
@@ -328,14 +391,15 @@ class RadarConfigActivity : ComponentActivity() {
                 val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
                 val country = countryFromPath(path)
                 extract(raw).forEach { uri ->
-                    if (!found.containsKey(uri) || (found[uri] == null && country != null)) {
-                        found[uri] = country
+                    val current = found[uri]
+                    if (current == null || (current.first == null && country != null)) {
+                        found[uri] = country to repo
                     }
                 }
-                if (found.size >= 500) return found.entries.map { it.key to it.value }
+                if (found.size >= 500) return found.entries.take(500).map { Triple(it.key, it.value.first, it.value.second) }
             }
         } catch (_: Exception) { /* Other sources may still work. */ }
-        return found.entries.map { it.key to it.value }
+        return found.entries.take(500).map { Triple(it.key, it.value.first, it.value.second) }
     }
 
     private fun countryFromPath(path: String): String? {
