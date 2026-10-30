@@ -242,7 +242,7 @@ object HelperProcessSupport {
         val carrierIdentity = if (configType == EConfigType.AETHER &&
             AetherPsiphon.fromString(aetherPsiphon) == AetherPsiphon.ONLY
         ) {
-            "|${aetherPsiphonMode.orEmpty()}|${aetherPsiphonCdnIps.orEmpty()}|${aetherPsiphonCdnSni.orEmpty()}"
+            "|${aetherPsiphonMode.orEmpty()}|${aetherPsiphonCdnIps.orEmpty()}|${aetherPsiphonCdnSni.orEmpty()}|${aetherPsiphonRegion.orEmpty()}|bundled=${aetherPsiphonBundledList}"
         } else {
             ""
         }
