@@ -80,6 +80,9 @@ class CdnSniConfigTest {
         val root = baseConfig()
         CdnSniConfig.removeTemplateProxyOutbound(root)
         CdnSniConfig.inject(root, 10808)
+        assertFalse(root.getAsJsonArray("outbounds").any {
+            it.isJsonObject && it.asJsonObject.get("tag")?.asString == "direct"
+        })
 
         val proxy = root.getAsJsonArray("outbounds").map { it.asJsonObject }
             .first { it.get("tag").asString == CdnSniConfig.PROXY_TAG }
@@ -116,6 +119,21 @@ class CdnSniConfigTest {
         assertNull(CdnSniConfig.validateInjectedConfig(root, 10808))
         assertEquals("Psiphon SOCKS listener does not match the configured port",
             CdnSniConfig.validateInjectedConfig(root, 10809))
+    }
+
+    @Test
+    fun validationRejectsDirectFallbackOutbound() {
+        val root = baseConfig()
+        CdnSniConfig.removeTemplateProxyOutbound(root)
+        CdnSniConfig.inject(root, 10808)
+        root.getAsJsonArray("outbounds").add(JsonObject().apply {
+            addProperty("tag", "direct")
+            addProperty("protocol", "freedom")
+        })
+        assertEquals(
+            "CDN/SNI direct fallback outbound is present",
+            CdnSniConfig.validateInjectedConfig(root, 10808)
+        )
     }
 
     @Test
