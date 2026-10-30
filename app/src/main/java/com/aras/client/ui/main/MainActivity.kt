@@ -474,6 +474,7 @@ class MainActivity : HelperBaseComponentActivity() {
             EConfigType.WIREGUARD.value -> Intent(this, ServerWireguardActivity::class.java)
             EConfigType.HYSTERIA2.value -> Intent(this, ServerHysteria2Activity::class.java)
             EConfigType.ANYTLS.value -> Intent(this, ServerAnytlsActivity::class.java)
+            EConfigType.CUSTOM.value -> Intent(this, ServerCustomConfigActivity::class.java)
             EConfigType.AMNEZIAWG.value -> Intent(this, ServerAmneziawgActivity::class.java)
             EConfigType.AETHER.value -> Intent(this, ServerAetherActivity::class.java)
             EConfigType.MIERU.value -> Intent(this, ServerMieruActivity::class.java)
