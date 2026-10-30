@@ -396,6 +396,7 @@ class MainActivity : HelperBaseComponentActivity() {
             return
         }
         val intent = when (destination) {
+            MainDestination.RadarConfig -> Intent(this, RadarConfigActivity::class.java)
             MainDestination.Hybrid -> Intent(this, HybridActivity::class.java)
             MainDestination.AI -> Intent(this, AiDiagnosticsActivity::class.java)
             MainDestination.Subscriptions -> Intent(this, SubSettingActivity::class.java)
