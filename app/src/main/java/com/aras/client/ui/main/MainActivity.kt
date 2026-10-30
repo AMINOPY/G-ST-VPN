@@ -261,6 +261,7 @@ class MainActivity : HelperBaseComponentActivity() {
                     MainAction.ImportClipboard -> importClipboard()
                     MainAction.ImportConfigLocal -> importConfigLocal()
                     MainAction.ImportArascFile -> importArascFile()
+                    MainAction.ImportPsiphon -> importPsiphon()
                     is MainAction.ImportManually -> importManually(action.type)
                     MainAction.RestartService -> LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
                     MainAction.LocateSelectedServer -> mainViewModel.triggerLocateSelectedServer()
@@ -492,6 +493,21 @@ class MainActivity : HelperBaseComponentActivity() {
         profileEditorLauncher.launch(intent)
     }
 
+    private fun importPsiphon() {
+        val selectedGroupId = mainViewModel.uiState.value.selectedGroupId
+        val intent = Intent(this, com.aras.client.ui.server.ServerPsiphonActivity::class.java).apply {
+            putExtra(
+                "subscriptionId",
+                if (com.aras.client.handler.FreeSubManager.isFreeSubId(selectedGroupId)) {
+                    AppConfig.DEFAULT_SUBSCRIPTION_ID
+                } else {
+                    selectedGroupId
+                }
+            )
+        }
+        profileEditorLauncher.launch(intent)
+    }
+
     private fun importQRcode() {
         launchQRCodeScanner { scanResult ->
             if (scanResult != null) {
@@ -641,7 +657,7 @@ class MainActivity : HelperBaseComponentActivity() {
             EConfigType.HYSTERIA2 -> ServerHysteria2Activity::class.java
             EConfigType.ANYTLS -> ServerAnytlsActivity::class.java
             EConfigType.AMNEZIAWG -> ServerAmneziawgActivity::class.java
-            EConfigType.AETHER -> ServerAetherActivity::class.java
+            EConfigType.AETHER -> if (profile.aetherPsiphon == "only") ServerPsiphonActivity::class.java else ServerAetherActivity::class.java
             EConfigType.MIERU -> ServerMieruActivity::class.java
             EConfigType.CDN_SNI -> com.aras.client.ui.server.ServerCdnSniActivity::class.java
             else -> ServerHttpActivity::class.java
