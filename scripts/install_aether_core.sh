@@ -50,10 +50,19 @@ install_abi() {
     chmod 0755 "$ROOT/app/libs/$abi/$file"
   done
 
-  if [ ! -d "$ROOT/app/src/main/assets/aether-licenses/$VERSION" ]; then
-    mkdir -p "$ROOT/app/src/main/assets/aether-licenses/$VERSION"
-    cp -R "$unpack/LICENSES/." "$ROOT/app/src/main/assets/aether-licenses/$VERSION/"
+  local license_dir="$ROOT/app/src/main/assets/aether-licenses/$VERSION"
+  mkdir -p "$license_dir"
+  # Release archives do not include a LICENSES directory; retain upstream's
+  # AGPL-3.0 license in the app assets and copy any bundled notices when present.
+  if [ -d "$unpack/LICENSES" ]; then
+    cp -R "$unpack/LICENSES/." "$license_dir/"
   fi
+  if [ ! -s "$license_dir/LICENSE" ]; then
+    curl -fsSL --retry 3 --retry-delay 2 \
+      "https://raw.githubusercontent.com/CluvexStudio/Aether/$VERSION/LICENSE" \
+      -o "$license_dir/LICENSE"
+  fi
+  test -s "$license_dir/LICENSE"
   echo "Installed Aether $VERSION + Psiphon + Lyrebird for $abi"
 }
 
