@@ -25,6 +25,11 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
+import java.net.URLDecoder
+import java.security.cert.CertificateException
+import javax.net.ssl.SNIHostName
+import javax.net.ssl.SSLSocket
+import javax.net.ssl.SSLSocketFactory
 import android.util.Base64
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
@@ -82,6 +87,8 @@ private data class RadarCandidate(
     val port: Int? = null,
     val resolvedIp: String? = null,
     val udpUnverified: Boolean = false,
+    val tlsLatency: Long? = null,
+    val tlsNote: String? = null,
 )
 
 /** Public-source discovery. TCP reachability is not treated as proof of a working proxy tunnel. */
@@ -236,12 +243,22 @@ class RadarConfigActivity : ComponentActivity() {
                                         }
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
                                         Text(
-                                            if (item.latency == null) {
-                                                (item.dnsLatency?.let { "DNS " + it + " ms · " } ?: "") + item.note
-                                            } else {
-                                                "DNS " + (item.dnsLatency?.toString() ?: "—") + " ms · TCP " + item.latency + " ms · " + item.note
+                                            buildString {
+                                                item.dnsLatency?.let { append("DNS ").append(it).append(" ms · ") }
+                                                item.latency?.let { append("TCP ").append(it).append(" ms · ") }
+                                                item.tlsLatency?.let { append("TLS ").append(it).append(" ms · ") }
+                                                item.tlsNote?.let { append(it).append(" · ") }
+                                                append(item.note)
                                             },
-                                            color = when { item.udpUnverified -> MaterialTheme.colorScheme.tertiary; item.latency == null -> MaterialTheme.colorScheme.error; item.latency <= 150 -> Color(0xFF00A86B); item.latency <= 300 -> Color(0xFFB8860B); else -> Color(0xFFC62828) })
+                                            color = when {
+                                                item.udpUnverified -> MaterialTheme.colorScheme.tertiary
+                                                item.tlsNote?.contains("ناموفق") == true -> MaterialTheme.colorScheme.error
+                                                item.tlsNote?.contains("مورد اعتماد نیست") == true -> MaterialTheme.colorScheme.tertiary
+                                                item.latency == null -> MaterialTheme.colorScheme.error
+                                                item.latency <= 150 -> Color(0xFF00A86B)
+                                                item.latency <= 300 -> Color(0xFFB8860B)
+                                                else -> Color(0xFFC62828)
+                                            })
                                         if (item.latency != null || item.udpUnverified || hasAnyCdnSni) {
                                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 Button(onClick = {
@@ -523,22 +540,33 @@ class RadarConfigActivity : ComponentActivity() {
                 udpUnverified = true,
             )
         }
+        val (usesTls, sni) = tlsTarget(uri, host)
         var lastError: Exception? = null
         for (address in addresses.take(4)) {
             val tcpStart = System.nanoTime()
             try {
+                var tlsLatency: Long? = null
+                var tlsNote: String? = null
                 Socket().use { socket ->
                     socket.connect(InetSocketAddress(address, port), 1800)
+                    if (usesTls) {
+                        val result = probeTls(socket, sni ?: host, port)
+                        tlsLatency = result.first
+                        tlsNote = result.second
+                    }
                 }
                 val tcpMs = (System.nanoTime() - tcpStart) / 1_000_000L
                 return RadarCandidate(
                     uri = uri,
                     latency = tcpMs,
-                    note = "DNS و پورت TCP پاسخ دادند؛ سلامت تونل تأیید نشده",
+                    note = if (usesTls) "TCP پاسخ داد؛ تست TLS انجام شد و سلامت تونل تأیید نشده"
+                        else "DNS و پورت TCP پاسخ دادند؛ سلامت تونل تأیید نشده",
                     dnsLatency = dnsMs,
                     host = host,
                     port = port,
                     resolvedIp = address.hostAddress?.substringBefore('%'),
+                    tlsLatency = tlsLatency,
+                    tlsNote = tlsNote,
                 )
             } catch (e: Exception) {
                 lastError = e
@@ -558,6 +586,68 @@ class RadarConfigActivity : ComponentActivity() {
             port = port,
             resolvedIp = resolvedIp,
         )
+    }
+
+    /** Extract the TLS flag and SNI without changing the original share URI. */
+    private fun tlsTarget(uri: String, fallbackHost: String): Pair<Boolean, String?> {
+        if (uri.startsWith("vmess://", true)) {
+            val encoded = uri.substringAfter("://").substringBefore('#')
+            val raw = runCatching {
+                Base64.decode(encoded, Base64.DEFAULT).toString(Charsets.UTF_8)
+            }.recoverCatching {
+                Base64.decode(encoded, Base64.URL_SAFE or Base64.NO_WRAP).toString(Charsets.UTF_8)
+            }.getOrDefault("")
+            fun field(name: String) =
+                Regex("\\\"$name\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"")
+                    .find(raw)?.groupValues?.get(1)
+            val tls = field("tls").equals("tls", ignoreCase = true)
+            return tls to (field("sni")?.takeIf { it.isNotBlank() } ?: field("host")?.takeIf { it.isNotBlank() } ?: fallbackHost)
+        }
+        val query = uri.substringAfter("?", "").substringBefore('#')
+        val params = query.split("&").mapNotNull { part ->
+            val index = part.indexOf('=')
+            if (index <= 0) null else {
+                val key = runCatching { URLDecoder.decode(part.substring(0, index), "UTF-8") }.getOrDefault(part.substring(0, index))
+                val value = runCatching { URLDecoder.decode(part.substring(index + 1), "UTF-8") }.getOrDefault(part.substring(index + 1))
+                key.lowercase() to value
+            }
+        }.toMap()
+        val security = params["security"]?.lowercase()
+        val scheme = uri.substringBefore("://").lowercase()
+        val tls = security == "tls" || (scheme == "trojan" && security !in setOf("none", "reality"))
+        val sni = params["sni"]?.takeIf { it.isNotBlank() }
+            ?: params["host"]?.takeIf { it.isNotBlank() }
+            ?: fallbackHost
+        return tls to sni
+    }
+
+    /** TCP is not enough for TLS configs: try the real SNI handshake on the same socket. */
+    private fun probeTls(plain: Socket, serverName: String, port: Int): Pair<Long?, String?> {
+        val started = System.nanoTime()
+        var tls: SSLSocket? = null
+        return try {
+            tls = (SSLSocketFactory.getDefault() as SSLSocketFactory)
+                .createSocket(plain, serverName, port, true) as SSLSocket
+            tls.soTimeout = 2500
+            val params = tls.sslParameters
+            val isIpv4 = serverName.matches(Regex("^\\d{1,3}(?:\\.\\d{1,3}){3}$"))
+            if (!isIpv4 && !serverName.contains(':')) {
+                params.serverNames = listOf(SNIHostName(serverName))
+                params.endpointIdentificationAlgorithm = "HTTPS"
+            }
+            tls.sslParameters = params
+            tls.startHandshake()
+            (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)) to "TLS پاسخ داد"
+        } catch (e: Exception) {
+            val certIssue = generateSequence<Throwable>(e) { it.cause }.any { it is CertificateException }
+            if (certIssue) {
+                (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)) to "TLS پاسخ داد؛ گواهی مورد اعتماد نیست"
+            } else {
+                null to "TLS handshake ناموفق بود"
+            }
+        } finally {
+            runCatching { tls?.close() }
+        }
     }
 
 
