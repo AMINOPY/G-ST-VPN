@@ -102,7 +102,7 @@ fun RdrGlassPopup(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> 
 
 /**
  * کپسول شیشه‌ایِ ابزار (همگام‌سازی / جستجو / + / ⋮).
- * منوهای «+» و «⋮» دقیقاً همان منوهای واقعی برنامه‌اند (ImportMenuContent و MoreMenuContent).
+ * بخش «+» از همان AddServerSheet واقعی استفاده می‌کند؛ منوی «⋮» همچنان پاپ‌آپ شیشه‌ای می‌ماند.
  */
 @Composable
 fun RdrToolbarCapsule(
