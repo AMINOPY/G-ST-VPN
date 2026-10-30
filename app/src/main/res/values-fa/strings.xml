@@ -911,6 +911,7 @@
     <string name="menu_dpi_diagnostics">آزمایش تشخیصی DPI</string>
     <string name="menu_item_cdn_sni">CDN/SNI</string>
     <string name="cdn_sni_auto_ir">خودکار ایران 🇮🇷</string>
+    <string name="cdn_sni_manual">دستی</string>
     <string name="cdn_sni_auto_us">خودکار آمریکا 🇺🇸</string>
     <string name="cdn_sni_auto_scanning">دارم IP و SNIهای قابل‌دسترسی رو بررسی می‌کنم و سرعت TLS رو می‌سنجم…</string>
     <string name="cdn_sni_auto_not_found">تو این شبکه IP و SNI تأییدشده‌ای پیدا نشد. اینترنت دیگه‌ای رو امتحان کن یا دستی وارد کن.</string>
