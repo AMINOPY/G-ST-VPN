@@ -26,7 +26,7 @@ def verify(path: Path, machine: int, elf_class: int) -> None:
     if not path.is_file():
         raise ValueError(f"missing {path.relative_to(ROOT)}")
     data = path.read_bytes()[:20]
-    if len(data) < 20 or data[:4] != b"\\x7fELF":
+    if len(data) < 20 or data[:4] != b"\x7fELF":
         raise ValueError(f"not a valid ELF header: {path.relative_to(ROOT)}")
     if data[4] != elf_class:
         raise ValueError(f"wrong ELF class in {path.relative_to(ROOT)}")
