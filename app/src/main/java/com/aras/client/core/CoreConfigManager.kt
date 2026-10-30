@@ -5,6 +5,7 @@ import android.text.TextUtils
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.aras.client.AppConfig
+import com.aras.client.core.aether.AetherCoreManager
 import com.aras.client.dto.ConfigResult
 import com.aras.client.dto.CoreConfigContext
 import com.aras.client.dto.XrayConfig
@@ -84,9 +85,8 @@ object CoreConfigManager {
         // is standalone and has no VMess credentials, so remove that invalid placeholder
         // (and any rule targeting it) before injecting the dedicated bridge.
         com.aras.client.core.cdn.CdnSniConfig.removeTemplateProxyOutbound(root)
-        val ca = com.aras.client.core.cdn.CdnSniCa.getOrCreate(configContext.context)
-        com.aras.client.core.cdn.CdnSniConfig.inject(root, settings, ca.certificate, ca.key)
-        com.aras.client.core.cdn.CdnSniConfig.validateInjectedConfig(root, settings)?.let { error ->
+        com.aras.client.core.cdn.CdnSniConfig.inject(root, AetherCoreManager.socksPort)
+        com.aras.client.core.cdn.CdnSniConfig.validateInjectedConfig(root, AetherCoreManager.socksPort)?.let { error ->
             return ConfigResult(false, configContext.guid, errorMessage = error)
         }
         val json = JsonUtil.toJsonPretty(root)
@@ -110,9 +110,8 @@ object CoreConfigManager {
             )
         val root = JsonUtil.parseString(result.content)?.takeIf { it.isJsonObject }?.asJsonObject
             ?: return ConfigResult(status = false, guid = configContext.guid, errorMessage = "CDN/SNI could not read the base config")
-        val ca = com.aras.client.core.cdn.CdnSniCa.getOrCreate(configContext.context)
-        com.aras.client.core.cdn.CdnSniConfig.inject(root, settings, ca.certificate, ca.key)
-        com.aras.client.core.cdn.CdnSniConfig.validateInjectedConfig(root, settings)?.let { error ->
+        com.aras.client.core.cdn.CdnSniConfig.inject(root, AetherCoreManager.socksPort)
+        com.aras.client.core.cdn.CdnSniConfig.validateInjectedConfig(root, AetherCoreManager.socksPort)?.let { error ->
             return ConfigResult(false, configContext.guid, errorMessage = error)
         }
         return JsonUtil.toJsonPretty(root)?.let { ConfigResult(true, configContext.guid, it) }
