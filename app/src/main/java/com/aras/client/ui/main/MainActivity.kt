@@ -49,7 +49,6 @@ import com.aras.client.ui.routing.RoutingSettingActivity
 import com.aras.client.ui.radar.RadarConfigActivity
 import com.aras.client.ui.server.ProfileEditorResult
 import com.aras.client.ui.server.ServerAetherActivity
-import com.aras.client.ui.server.ServerPsiphonActivity
 import com.aras.client.ui.server.ServerMieruActivity
 import com.aras.client.ui.server.ServerAmneziawgActivity
 import com.aras.client.ui.server.ServerAnytlsActivity
@@ -644,7 +643,7 @@ class MainActivity : HelperBaseComponentActivity() {
             EConfigType.HYSTERIA2 -> ServerHysteria2Activity::class.java
             EConfigType.ANYTLS -> ServerAnytlsActivity::class.java
             EConfigType.AMNEZIAWG -> ServerAmneziawgActivity::class.java
-            EConfigType.AETHER -> if (profile.aetherPsiphon == "only") ServerPsiphonActivity::class.java else ServerAetherActivity::class.java
+            EConfigType.AETHER -> ServerAetherActivity::class.java
             EConfigType.MIERU -> ServerMieruActivity::class.java
             EConfigType.CDN_SNI -> com.aras.client.ui.server.ServerCdnSniActivity::class.java
             else -> ServerHttpActivity::class.java
