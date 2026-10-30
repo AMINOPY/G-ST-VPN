@@ -90,7 +90,7 @@ internal fun PsiphonRegionField(
                         value = query,
                         onValueChange = { query = it },
                         singleLine = true,
-                        placeholder = { Text(stringResource(R.string.action_search)) },
+                        placeholder = { Text(stringResource(R.string.menu_item_search)) },
                         modifier = Modifier.fillMaxWidth(),
                     )
                     LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
