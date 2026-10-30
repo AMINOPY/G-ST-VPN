@@ -44,6 +44,7 @@ import com.aras.client.util.Utils
 
 enum class MainDestination(@DrawableRes val iconRes: Int, @StringRes val labelRes: Int) {
     Hybrid(R.drawable.ic_hybrid_24dp, R.string.menu_sub_hybrid),
+    RadarConfig(R.drawable.ic_radar, R.string.radar_config_title),
     AI(R.drawable.ic_ai_24dp, R.string.menu_sub_ai),
     Subscriptions(R.drawable.ic_subscriptions_24dp, R.string.title_sub_setting),
     PerAppProxy(R.drawable.ic_per_apps_24dp, R.string.per_app_proxy_settings),
@@ -111,6 +112,10 @@ private fun menuSections(): List<MenuSection> {
                 item(MainDestination.BackupRestore, rose, R.string.menu_sub_backup),
             )
         ),
+        MenuSection(
+            R.string.menu_section_network_tools,
+            listOf(item(MainDestination.RadarConfig, Color(0xFF00A86B), R.string.radar_config_summary))
+        )
     )
 }
 
