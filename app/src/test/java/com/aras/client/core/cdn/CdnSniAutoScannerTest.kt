@@ -40,24 +40,28 @@ class CdnSniAutoScannerTest {
         val completion = ExecutorCompletionService<Int>(executor)
         val futures = mutableListOf<java.util.concurrent.Future<Int>>()
         try {
-            repeat(2) { value ->
-                futures += completion.submit<Int> {
-                    bothStarted.countDown()
-                    Thread.sleep(5_000)
-                    value
-                }
+            futures += completion.submit<Int> {
+                bothStarted.countDown()
+                Thread.sleep(5_000)
+                0
+            }
+            futures += completion.submit<Int> {
+                bothStarted.countDown()
+                7
             }
             assertTrue("Both workers should start before the deadline test", bothStarted.await(1, TimeUnit.SECONDS))
 
             val startedAt = System.nanoTime()
+            val results = mutableListOf<Int>()
             val allCompleted = CdnSniAutoScanner.collectWithinDeadline(
                 completion = completion,
                 taskCount = 2,
                 timeoutMs = 200,
-            ) { }
+            ) { results += it }
             val elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt)
 
             assertFalse(allCompleted)
+            assertEquals(listOf(7), results)
             assertTrue("The collector exceeded its single deadline: ${elapsedMs}ms", elapsedMs < 1_500)
         } finally {
             futures.forEach { it.cancel(true) }
