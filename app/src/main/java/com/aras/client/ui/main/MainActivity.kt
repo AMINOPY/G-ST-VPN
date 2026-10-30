@@ -497,9 +497,18 @@ class MainActivity : HelperBaseComponentActivity() {
     }
 
     private fun importPsiphon() {
-        // Psiphon-only is a standalone egress helper; do not inherit subscription neighbour chains.
+        val selectedGroupId = mainViewModel.uiState.value.selectedGroupId
         profileEditorLauncher.launch(
-            Intent(this, com.aras.client.ui.server.ServerPsiphonActivity::class.java)
+            Intent(this, com.aras.client.ui.server.ServerPsiphonActivity::class.java).apply {
+                putExtra(
+                    "subscriptionId",
+                    if (com.aras.client.handler.FreeSubManager.isFreeSubId(selectedGroupId)) {
+                        AppConfig.DEFAULT_SUBSCRIPTION_ID
+                    } else {
+                        selectedGroupId
+                    }
+                )
+            }
         )
     }
 
