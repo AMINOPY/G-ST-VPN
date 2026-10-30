@@ -7,12 +7,17 @@ import android.os.IBinder
 import com.aras.client.AppConfig
 import com.aras.client.contracts.ServiceControl
 import com.aras.client.core.CoreServiceManager
+import com.aras.client.enums.EConfigType
+import com.aras.client.handler.MmkvManager
 import com.aras.client.handler.AppLocaleManager
 import com.aras.client.handler.NotificationManager
 import com.aras.client.util.LogUtil
 import java.lang.ref.SoftReference
+import java.util.concurrent.atomic.AtomicBoolean
 
 class CoreProxyOnlyService : Service(), ServiceControl {
+    private val cdnSniStartInProgress = AtomicBoolean(false)
+
     /**
      * Initializes the service.
      */
@@ -35,6 +40,24 @@ class CoreProxyOnlyService : Service(), ServiceControl {
 
         if (CoreServiceManager.isRunning()) {
             LogUtil.i(AppConfig.TAG, "StartCore-Proxy: Core is already running")
+            return START_STICKY
+        }
+
+        val selected = MmkvManager.getSelectServer()?.let(MmkvManager::decodeServerConfig)
+        if (selected?.configType == EConfigType.CDN_SNI) {
+            // Psiphon may need a long time to establish its carrier. Do not block
+            // Service.onStartCommand's main thread while the dedicated CDN profile starts.
+            if (!cdnSniStartInProgress.compareAndSet(false, true)) return START_STICKY
+            Thread({
+                try {
+                    if (!CoreServiceManager.startCoreLoop(null)) {
+                        LogUtil.e(AppConfig.TAG, "StartCore-Proxy: Failed to start CDN/SNI core loop")
+                        stopSelf()
+                    }
+                } finally {
+                    cdnSniStartInProgress.set(false)
+                }
+            }, "cdn-sni-proxy-start").apply { isDaemon = true }.start()
             return START_STICKY
         }
 
