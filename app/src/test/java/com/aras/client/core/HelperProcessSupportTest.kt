@@ -110,6 +110,22 @@ class HelperProcessSupportTest {
     }
 
     @Test
+    fun `multiple manual CDN candidates reach the Psiphon carrier`() {
+        val cdn = ProfileItem.create(EConfigType.CDN_SNI).apply {
+            remarks = "CDN/SNI"
+            cdnSniTargets = "104.16.1.2\n104.16.1.3"
+            cdnSniFront = "WWW.Google.com،www.cloudflare.com"
+        }
+
+        val carrier = HelperProcessSupport.profilesForXraySession(listOf(cdn)).last()
+        assertEquals("104.16.1.2,104.16.1.3", carrier.aetherPsiphonCdnIps)
+        assertEquals("www.google.com,www.cloudflare.com", carrier.aetherPsiphonCdnSni)
+        val arguments = AetherCore.of(carrier).arguments
+        assertTrue(arguments.contains("104.16.1.2,104.16.1.3"))
+        assertTrue(arguments.contains("www.google.com,www.cloudflare.com"))
+    }
+
+    @Test
     fun `invalid CDN SNI does not start a carrier`() {
         val cdn = ProfileItem.create(EConfigType.CDN_SNI).apply {
             cdnSniTargets = "not-an-ip"
