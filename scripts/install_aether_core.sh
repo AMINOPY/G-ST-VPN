@@ -29,13 +29,14 @@ install_abi() {
     exit 1
   fi
 
-  tar -tzf "$archive" | grep -qx 'aether' || {
+  tar -tzf "$archive" > "$WORK/$abi.contents.txt"
+  grep -Fxq "aether" "$WORK/$abi.contents.txt" || {
     echo "$asset does not contain the Aether executable" >&2; exit 1;
   }
-  tar -tzf "$archive" | grep -qx 'pt/psiphon-tunnel-core' || {
+  grep -Fxq "pt/psiphon-tunnel-core" "$WORK/$abi.contents.txt" || {
     echo "$asset does not contain the Psiphon helper" >&2; exit 1;
   }
-  tar -tzf "$archive" | grep -qx 'pt/lyrebird' || {
+  grep -Fxq "pt/lyrebird" "$WORK/$abi.contents.txt" || {
     echo "$asset does not contain the Lyrebird transport helper" >&2; exit 1;
   }
 
