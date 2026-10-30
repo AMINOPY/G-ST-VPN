@@ -50,7 +50,7 @@ class CdnSniConfigTest {
     private fun baseConfig(): JsonObject = JsonParser.parseString(
         """{"inbounds":[{"tag":"tun","protocol":"tun"}],
             "outbounds":[{"tag":"proxy","protocol":"vmess"},{"tag":"direct","protocol":"freedom"},{"tag":"block","protocol":"blackhole"}],
-            "routing":{"rules":[{"outboundTag":"proxy","network":"tcp,udp"},{"outboundTag":"direct","domain":["domain:private"]}]}}"""
+            "routing":{"rules":[{"outboundTag":"proxy","network":"tcp,udp"},{"outboundTag":"direct","domain":["domain:private"]}]},
     ).asJsonObject
 
     private fun tags(a: JsonArray) = a.map { it.asJsonObject.get("tag")?.asString }
@@ -80,12 +80,20 @@ class CdnSniConfigTest {
         assertEquals(10808, server.get("port").asInt)
 
         val rules = root.getAsJsonObject("routing").getAsJsonArray("rules")
-        assertEquals(2, rules.size())
         assertFalse(rules.any { it.isJsonObject && it.asJsonObject.get("outboundTag")?.asString == "direct" })
-        assertEquals("tcp", rules[0].asJsonObject.get("network").asString)
-        assertEquals(CdnSniConfig.PROXY_TAG, rules[0].asJsonObject.get("outboundTag").asString)
-        assertEquals("udp", rules[1].asJsonObject.get("network").asString)
-        assertEquals(CdnSniConfig.UDP_BLOCK_TAG, rules[1].asJsonObject.get("outboundTag").asString)
+        assertEquals(1, rules.count { it.isJsonObject && it.asJsonObject.get("network")?.asString == "tcp" &&
+            it.asJsonObject.get("outboundTag")?.asString == CdnSniConfig.PROXY_TAG })
+        assertEquals(1, rules.count { it.isJsonObject && it.asJsonObject.get("network")?.asString == "udp" &&
+            it.asJsonObject.get("outboundTag")?.asString == CdnSniConfig.UDP_BLOCK_TAG })
+        assertTrue(rules.any { it.isJsonObject &&
+            it.asJsonObject.get("outboundTag")?.asString == CdnSniConfig.PROXY_TAG &&
+            it.asJsonObject.getAsJsonArray("inboundTag")?.any { tag -> tag.asString == "dns-module" } == true })
+        assertTrue(rules.any { it.isJsonObject &&
+            it.asJsonObject.get("outboundTag")?.asString == "dns-out" &&
+            it.asJsonObject.get("port")?.asString == "53" &&
+            it.asJsonObject.getAsJsonArray("inboundTag")?.any { tag -> tag.asString == "tun" } == true })
+        val dnsServers = root.getAsJsonObject("dns").getAsJsonArray("servers").map { it.asString }
+        assertEquals(listOf("tcp://1.1.1.1", "https://dns.google/dns-query"), dnsServers)
         assertEquals("blackhole", root.getAsJsonArray("outbounds").map { it.asJsonObject }
             .first { it.get("tag").asString == CdnSniConfig.UDP_BLOCK_TAG }.get("protocol").asString)
         assertFalse(root.getAsJsonArray("inbounds").any { it.asJsonObject.get("tag")?.asString?.contains("decrypt") == true })
@@ -106,7 +114,8 @@ class CdnSniConfigTest {
         val root = baseConfig()
         CdnSniConfig.removeTemplateProxyOutbound(root)
         CdnSniConfig.inject(root, 10808)
-        root.getAsJsonObject("routing").getAsJsonArray("rules").remove(1)
+        val rules = root.getAsJsonObject("routing").getAsJsonArray("rules")
+        rules.remove(rules.size() - 1)
         assertEquals("UDP fail-closed rule is missing", CdnSniConfig.validateInjectedConfig(root, 10808))
     }
 }
