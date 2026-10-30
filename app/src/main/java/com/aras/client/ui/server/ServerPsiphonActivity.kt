@@ -63,7 +63,6 @@ class ServerPsiphonActivity : BaseServerActivity() {
                     return@ServerEditorScaffold
                 }
                 val draft = initialConfig.copy().also {
-                    it.configType = EConfigType.AETHER
                     it.remarks = name.trim()
                     it.server = null
                     it.serverPort = null
