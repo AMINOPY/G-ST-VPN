@@ -4,7 +4,7 @@ set -euo pipefail
 # Reinstall the pinned upstream Aether runtime into the Android jniLibs payload.
 # v2.4.0 is built for Android API 29+, so the app gates Aether on Android 10+.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="v2.4.0"
+VERSION="v2.3.0"
 BASE="https://github.com/CluvexStudio/Aether/releases/download/$VERSION"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -57,10 +57,10 @@ install_abi() {
 }
 
 install_abi "arm64-v8a" "aether-android-arm64.tar.gz" \
-  "02f1a1d673cf2f3e5592c90ce7ef4d6f03e218d41a333bdd175e0da92ce2073c"
+  "038748745244828ea41a808958f16a1c25053dc61db977c95ceb2d3a0b2f7970"
 install_abi "armeabi-v7a" "aether-android-armv7.tar.gz" \
-  "13a170d175eab5a64d69c6fa3c174430754f01171d616a00eba0b3598315da1d"
+  "9e9c59b188ff235053ae22b9f007f31de3e9bc71c8252ef73b0d626b85b64dae"
 install_abi "x86_64" "aether-android-x86_64.tar.gz" \
-  "b8d18baf6b1efe120d04109f819d08ca822c1fafeb3d61297b0e035cf095ae07"
+  "9acd35dc7bafd4bbf0f4bd8337cb26c4efe6ab0d84ec01d1a0a9fa68168b09c1"
 
 echo "Aether $VERSION native runtime reinstall completed."
