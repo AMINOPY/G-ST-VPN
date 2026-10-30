@@ -69,9 +69,13 @@ object CdnSniConfig {
         val rules = root.getAsJsonObject("routing")?.get("rules")
             ?.takeIf { it.isJsonArray }?.asJsonArray ?: return
         rules.toList().filter { element ->
-            element.isJsonObject && element.asJsonObject.get("outboundTag")?.let { tag ->
-                tag.isJsonPrimitive && tag.asString == PROXY_TAG
-            } == true
+            if (!element.isJsonObject || element.asJsonObject.get("outboundTag")?.asString != PROXY_TAG) {
+                false
+            } else {
+                // Keep inbound-specific routes (notably Xray's internal DNS -> proxy rule).
+                val inboundTags = element.asJsonObject.get("inboundTag")
+                inboundTags == null || !inboundTags.isJsonArray || inboundTags.asJsonArray.size() == 0
+            }
         }.forEach { rules.remove(it) }
     }
 
@@ -85,6 +89,8 @@ object CdnSniConfig {
         val outbounds = array(root, "outbounds")
         val routing = obj(root, "routing")
         val rules = array(routing, "rules")
+
+        configureDnsOverPsiphon(root, outbounds, rules)
 
         // This standalone profile has no alternate direct transport. Remove the
         // template's direct bypasses so TCP cannot escape around the Psiphon carrier.
@@ -111,6 +117,84 @@ object CdnSniConfig {
             addProperty("network", "udp")
             addProperty("outboundTag", UDP_BLOCK_TAG)
         })
+    }
+
+
+    /**
+     * DNS must not escape through UDP or Android's local resolver. Force routed
+     * DNS upstreams onto TCP/DoH, and send port-53 traffic from Xray's TUN/SOCKS
+     * inbounds into its DNS module. The DNS module's own requests are routed to
+     * the Psiphon SOCKS outbound by the inboundTag=dns rule.
+     */
+    private fun configureDnsOverPsiphon(root: JsonObject, outbounds: JsonArray, rules: JsonArray) {
+        val dns = obj(root, "dns")
+        val servers = array(dns, "servers")
+        val normalized = JsonArray()
+        servers.forEach { element ->
+            when {
+                element.isJsonPrimitive && element.asJsonPrimitive.isString -> {
+                    normalizeDnsAddress(element.asString)?.let { normalized.add(it) }
+                }
+                element.isJsonObject -> {
+                    val server = element.asJsonObject
+                    val address = server.get("address")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }
+                        ?.asString
+                    if (address == null) {
+                        normalized.add(server)
+                    } else {
+                        normalizeDnsAddress(address)?.let { normalized.add(server.apply { addProperty("address", it) }) }
+                    }
+                }
+                else -> Unit
+            }
+        }
+        if (normalized.size() == 0) {
+            normalized.add("tcp://1.1.1.1")
+            normalized.add("tcp://8.8.8.8")
+        }
+        dns.add("servers", normalized)
+
+        if (outbounds.none { it.isJsonObject && it.asJsonObject.get("tag")?.asString == "dns-out" }) {
+            outbounds.add(JsonObject().apply {
+                addProperty("tag", "dns-out")
+                addProperty("protocol", "dns")
+                add("settings", JsonObject())
+            })
+        }
+
+        val inbounds = root.get("inbounds")?.takeIf { it.isJsonArray }?.asJsonArray ?: JsonArray()
+        inbounds.mapNotNull { element ->
+            element.takeIf { it.isJsonObject }?.asJsonObject?.get("tag")?.asString
+                ?.takeIf { it == "tun" || it == "socks" }
+        }.distinct().forEach { tag ->
+            val exists = rules.any { rule ->
+                rule.isJsonObject &&
+                    rule.asJsonObject.get("outboundTag")?.asString == "dns-out" &&
+                    rule.asJsonObject.get("port")?.asString == "53" &&
+                    rule.asJsonObject.getAsJsonArray("inboundTag")?.any { it.asString == tag } == true
+            }
+            if (!exists) {
+                rules.add(0, JsonObject().apply {
+                    add("inboundTag", JsonArray().apply { add(tag) })
+                    addProperty("port", "53")
+                    addProperty("outboundTag", "dns-out")
+                })
+            }
+        }
+    }
+
+    private fun normalizeDnsAddress(address: String): String? {
+        val value = address.trim()
+        if (value.isEmpty()) return null
+        return when {
+            value == "fakedns" -> value
+            value == "localhost" -> null
+            value.startsWith("https+local://") -> value.replaceFirst("https+local://", "https://")
+            value.startsWith("tcp+local://") -> value.replaceFirst("tcp+local://", "tcp://")
+            value.startsWith("quic://") || value.startsWith("quic+local://") -> null
+            value.startsWith("https://") || value.startsWith("http://") || value.startsWith("tcp://") -> value
+            else -> "tcp://$value"
+        }
     }
 
     /** Structural validation; it does not claim that Psiphon reached a remote server. */
