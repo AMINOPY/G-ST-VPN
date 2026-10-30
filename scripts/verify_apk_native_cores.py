@@ -13,6 +13,7 @@ def main() -> int:
         return 1
 
     errors = []
+    seen_aether = False
     for apk in APKS:
         try:
             with ZipFile(apk) as archive:
@@ -27,6 +28,7 @@ def main() -> int:
                     aether = f"lib/{abi}/libaether.so"
                     if aether not in names:
                         continue
+                    seen_aether = True
                     missing = [f"lib/{abi}/{name}" for name in REQUIRED if f"lib/{abi}/{name}" not in names]
                     if missing:
                         errors.append(f"{apk}: incomplete {abi} Aether payload: {', '.join(missing)}")
@@ -35,6 +37,8 @@ def main() -> int:
         except Exception as exc:
             errors.append(f"{apk}: {exc}")
 
+    if not seen_aether:
+        errors.append("No APK contains libaether.so; the Aether runtime was not packaged.")
     if errors:
         for error in errors:
             print(f"ERROR {error}", file=sys.stderr)
