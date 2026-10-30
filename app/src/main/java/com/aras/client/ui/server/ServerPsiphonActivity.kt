@@ -65,6 +65,10 @@ class ServerPsiphonActivity : BaseServerActivity() {
                     toastError(R.string.server_lab_remarks)
                     return@ServerEditorScaffold
                 }
+                if (mode == AetherPsiphonMode.CDN.type && cdnIps.isBlank() != cdnSni.isBlank()) {
+                    toastError(R.string.psiphon_cdn_pair_required)
+                    return@ServerEditorScaffold
+                }
                 val draft = initialConfig.copy().also {
                     it.remarks = name.trim()
                     it.server = null
