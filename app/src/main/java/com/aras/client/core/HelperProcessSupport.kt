@@ -8,9 +8,11 @@ import com.aras.client.core.mieru.MieruProcessManager
 import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.enums.EConfigType
 import com.aras.client.enums.AetherPsiphon
+import com.aras.client.enums.AetherPsiphonMode
 import com.aras.client.enums.AetherTor
 import com.aras.client.fmt.AetherFmt
 import com.aras.client.util.LogUtil
+import com.aras.client.core.cdn.CdnSniConfig
 
 /**
  * Starts the helper processes a config's *resolved chain* depends on.
@@ -40,6 +42,26 @@ object HelperProcessSupport {
      */
     fun helperProfilesOf(chain: List<ProfileItem>): List<ProfileItem> =
         chain.filter { it.needsHelperProcess }
+
+    /**
+     * Add the Psiphon-only carrier required by a standalone CDN/SNI Xray profile.
+     * Aether exposes the Psiphon session as loopback SOCKS; Xray remains the only
+     * process that owns the device VPN/TUN.
+     */
+    fun profilesForXraySession(chain: List<ProfileItem>): List<ProfileItem> {
+        val cdnProfile = chain.firstOrNull { it.configType == EConfigType.CDN_SNI } ?: return chain
+        val settings = CdnSniConfig.settingsOf(cdnProfile) ?: return chain
+        val carrier = ProfileItem.create(EConfigType.AETHER).apply {
+            remarks = "CDN/SNI Psiphon carrier"
+            aetherListenPort = AppConfig.PORT_AETHER_SOCKS.toString()
+            aetherPsiphon = AetherPsiphon.ONLY.type
+            aetherPsiphonMode = AetherPsiphonMode.CDN.type
+            aetherPsiphonCdnIps = settings.edgeIp
+            aetherPsiphonCdnSni = settings.sni
+            aetherPsiphonBundledList = true
+        }
+        return chain + carrier
+    }
 
     /**
      * Brings up whatever [chain] needs.
@@ -212,7 +234,14 @@ object HelperProcessSupport {
         } else {
             AetherFmt.listenPortOf(mieruListenPort) ?: AppConfig.PORT_MIERU_SOCKS.toInt()
         }
-        return "${remarks}|$port"
+        val carrierIdentity = if (configType == EConfigType.AETHER &&
+            AetherPsiphon.fromString(aetherPsiphon) == AetherPsiphon.ONLY
+        ) {
+            "|${aetherPsiphonMode.orEmpty()}|${aetherPsiphonCdnIps.orEmpty()}|${aetherPsiphonCdnSni.orEmpty()}"
+        } else {
+            ""
+        }
+        return "${remarks}|$port$carrierIdentity"
     }
 
     /** What [acquire] started, and any reason it could not. */
