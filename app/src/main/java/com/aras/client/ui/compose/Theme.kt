@@ -329,6 +329,8 @@ object ThemeManager {
         _uiTheme.value = MmkvManager.decodeSettingsString(PREF_UI_THEME, "default")?.takeIf {
             it in setOf("default", "radar", "survival", "aurora", "rdrx")
         } ?: "default"
+        _rdrxAppearance.value = MmkvManager.decodeSettingsString(PREF_RDRX_APPEARANCE, "system")
+            ?.takeIf { it in setOf("system", "light", "dark") } ?: "system"
         _dynamicColorEnabled.value =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, false)
     }
