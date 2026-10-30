@@ -215,7 +215,8 @@ object CdnSniConfig {
             value.startsWith("https+local://") -> value.replaceFirst("https+local://", "https://")
             value.startsWith("tcp+local://") -> value.replaceFirst("tcp+local://", "tcp://")
             value.startsWith("quic://") || value.startsWith("quic+local://") -> null
-            value.startsWith("https://") || value.startsWith("http://") || value.startsWith("tcp://") -> value
+            value.startsWith("https://") || value.startsWith("tcp://") -> value
+            value.contains("://") -> null
             else -> "tcp://$value"
         }
     }
@@ -241,6 +242,45 @@ object CdnSniConfig {
         if (rules.any { it.isJsonObject && it.asJsonObject.get("outboundTag")?.asString == "direct" }) {
             return "CDN/SNI direct bypass rule is present"
         }
+
+        val dns = root.getAsJsonObject("dns") ?: return "Xray DNS configuration is missing"
+        val dnsServers = dns.getAsJsonArray("servers") ?: return "Psiphon-routed DNS servers are missing"
+        if (dnsServers.size() == 0) return "Psiphon-routed DNS servers are empty"
+        if (dnsServers.any { element ->
+                val address = if (element.isJsonPrimitive && element.asJsonPrimitive.isString) {
+                    element.asString
+                } else if (element.isJsonObject) {
+                    element.asJsonObject.get("address")?.asString
+                } else null
+                address?.let { it.startsWith("quic") || it.startsWith("udp://") || it.contains("+local://") } == true
+            }
+        ) return "A DNS server would bypass the Psiphon TCP transport"
+
+        if (outbounds.none {
+                it.isJsonObject && it.asJsonObject.get("tag")?.asString == "dns-out" &&
+                    it.asJsonObject.get("protocol")?.asString == "dns"
+            }
+        ) return "Xray DNS outbound is missing"
+        val dnsProxyRule = rules.count {
+            it.isJsonObject &&
+                it.asJsonObject.get("outboundTag")?.asString == PROXY_TAG &&
+                it.asJsonObject.getAsJsonArray("inboundTag")?.any { tag -> tag.asString == AppConfig.TAG_DNS } == true
+        }
+        if (dnsProxyRule != 1) return "Xray DNS requests are not routed through Psiphon"
+
+        val inbounds = root.getAsJsonArray("inbounds")
+        inbounds.mapNotNull { it.takeIf { item -> item.isJsonObject }?.asJsonObject?.get("tag")?.asString }
+            .filter { it == "tun" || it == "socks" }
+            .distinct()
+            .forEach { tag ->
+                val hijack = rules.any {
+                    it.isJsonObject &&
+                        it.asJsonObject.get("outboundTag")?.asString == "dns-out" &&
+                        it.asJsonObject.get("port")?.asString == "53" &&
+                        it.asJsonObject.getAsJsonArray("inboundTag")?.any { item -> item.asString == tag } == true
+                }
+                if (!hijack) return "DNS requests from $tag are not handled by Xray"
+            }
 
         val tcpRule = rules.count {
             it.isJsonObject &&
