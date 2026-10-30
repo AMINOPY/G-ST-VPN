@@ -33,6 +33,15 @@ class CdnSniConfigTest {
         assertEquals("104.16.1.2", settings.edgeIp)
         assertEquals("www.google.com", settings.sni)
     }
+    
+    @Test
+    fun parsesMultipleManualCandidatesAndNormalizesSni() {
+        val settings = CdnSniConfig.settingsOf(
+            profile("104.16.1.2\n104.16.1.3, 104.16.1.2", "WWW.Google.com،www.cloudflare.com")
+        )!!
+        assertEquals("104.16.1.2,104.16.1.3", settings.edgeIp)
+        assertEquals("www.google.com,www.cloudflare.com", settings.sni)
+    }
 
     @Test
     fun rejectsMissingOrInvalidIpAndSni() {
@@ -41,9 +50,9 @@ class CdnSniConfigTest {
         assertNull(CdnSniConfig.settingsOf(profile("01.2.3.4", "www.google.com")))
         assertNull(CdnSniConfig.settingsOf(profile("1.2.3.４", "www.google.com")))
         assertNull(CdnSniConfig.settingsOf(profile("1..3.4", "www.google.com")))
-        assertNull(CdnSniConfig.settingsOf(profile("104.16.1.2 104.16.1.3", "www.google.com")))
+        assertNull(CdnSniConfig.settingsOf(profile("104.16.1.2 invalid", "www.google.com")))
         assertNull(CdnSniConfig.settingsOf(profile("104.16.1.2", "not_a_hostname")))
-        assertNull(CdnSniConfig.settingsOf(profile("104.16.1.2", "www.google.com other.example")))
+        assertNull(CdnSniConfig.settingsOf(profile("104.16.1.2", "www.google.com invalid_host")))
         assertNotNull(CdnSniConfig.settingsOf(profile("104.16.1.2", "www.google.com")))
     }
 
