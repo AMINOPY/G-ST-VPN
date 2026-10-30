@@ -30,7 +30,7 @@ object CdnSniConfig {
 
     /** Entries may be separated by Enter, comma (English or Persian), semicolon, space or tab. */
     fun tokens(text: String?): List<String> =
-        text.orEmpty().split('\\n', '\\r', ',', '،', ';', ' ', '\\t')
+        text.orEmpty().split('\n', '\r', ',', '،', ';', ' ', '\t')
             .map { it.trim() }
             .filter { it.isNotEmpty() }
 
