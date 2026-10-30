@@ -397,7 +397,7 @@ class RadarConfigActivity : ComponentActivity() {
                             "https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1",
                             10000,
                         )
-                        val paths = Regex("\\"path\\"\\s*:\\s*\\"([^\\"]+)\\\"")
+                        val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"")
                             .findAll(tree)
                             .map { it.groupValues[1] }
                             .filter { p ->
