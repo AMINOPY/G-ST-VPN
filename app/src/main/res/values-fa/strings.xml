@@ -647,6 +647,7 @@
     <string name="menu_item_import_config_psiphon">سایفون · بدون کانفیگ</string>
     <string name="psiphon_standalone_description">بدون وارد کردن کانفیگ پروکسی، یک تونل سایفون بساز. کلاینت native همراه برنامه، فهرست سرورهای امضاشده را دریافت و اعتبارسنجی می‌کند و سپس یک مسیر SOCKS محلی برای Xray فراهم می‌کند.</string>
     <string name="psiphon_standalone_engine_note">Xray از SOCKS محلی سایفون به‌عنوان مسیر بالادستی استفاده می‌کند. حالت AUTO روش اتصال را انتخاب می‌کند و در حالت CDN می‌توان IP و SNI دلخواه را وارد کرد.</string>
+    <string name="psiphon_cdn_pair_required">برای لبهٔ CDN باید هر دو مقدار IP و SNI را وارد کنی؛ یا هر دو را خالی بگذار تا اسکن داخلی CDN استفاده شود.</string>
     <string name="server_lab_aether_psiphon_mode">حالت سایفون</string>
     <string name="server_lab_aether_psiphon_cdn_ips">نشانی‌های CDN سایفون</string>
     <string name="server_lab_aether_psiphon_cdn_sni">نام سرور CDN سایفون</string>
