@@ -33,6 +33,7 @@ object CdnSniAutoScanner {
     private const val HANDSHAKE_TIMEOUT_MS = 2500
     // One wall-clock budget for the whole scan, not one fresh timeout per candidate.
     private const val SCAN_TIMEOUT_MS = 20_000L
+    private const val MANUAL_TEST_TIMEOUT_MS = 8_000L
     private const val TAG = "CdnSniAutoScanner"
 
     private val irCandidates = listOf(
@@ -210,13 +211,23 @@ object CdnSniAutoScanner {
         val executor = java.util.concurrent.Executors.newFixedThreadPool(4) { task ->
             Thread(task, "cdn-sni-manual-test").apply { isDaemon = true }
         }
+        val completion = ExecutorCompletionService<Result?>(executor)
+        val futures = pairs.map { (address, host) ->
+            completion.submit<Result?> { probe(address, host) }
+        }
         return try {
-            pairs.map { (address, host) ->
-                executor.submit<Result?> { probe(address, host) }
-            }.mapNotNull { future ->
-                runCatching { future.get(6, TimeUnit.SECONDS) }.getOrNull()
-            }.minByOrNull { it.latencyMs }
+            val results = ArrayList<Result>()
+            collectWithinDeadline(
+                completion = completion,
+                taskCount = futures.size,
+                timeoutMs = MANUAL_TEST_TIMEOUT_MS,
+            ) { result -> result?.let(results::add) }
+            results.minByOrNull { it.latencyMs }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            null
         } finally {
+            futures.forEach { if (!it.isDone) it.cancel(true) }
             executor.shutdownNow()
         }
     }
