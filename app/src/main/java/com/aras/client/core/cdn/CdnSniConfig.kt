@@ -174,7 +174,7 @@ object CdnSniConfig {
                     rule.asJsonObject.getAsJsonArray("inboundTag")?.any { it.asString == tag } == true
             }
             if (!exists) {
-                rules.add(0, JsonObject().apply {
+                rules.add(JsonObject().apply {
                     add("inboundTag", JsonArray().apply { add(tag) })
                     addProperty("port", "53")
                     addProperty("outboundTag", "dns-out")
