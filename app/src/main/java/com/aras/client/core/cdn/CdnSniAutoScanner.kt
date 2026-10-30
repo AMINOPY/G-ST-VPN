@@ -102,19 +102,43 @@ object CdnSniAutoScanner {
 
         val candidates = if (mode == Mode.IR) irCandidates else usCandidates
         val ranked = ArrayList<Result>()
-        for (candidate in candidates) {
-            try {
-                val addresses = java.net.InetAddress.getAllByName(candidate.sni)
-                    .take(8)
-                for (address in addresses) {
-                    val ip = address.hostAddress?.substringBefore('%') ?: continue
-                    if (!CdnIp.isIpv4(ip)) continue
-                    val result = probe(ip, candidate.sni) ?: continue
-                    ranked += result
+        // DNS and TLS checks are bounded and parallel. The previous sequential loop could
+        // spend several minutes on slow candidate networks and made AUTO feel frozen.
+        val executor = java.util.concurrent.Executors.newFixedThreadPool(6) { task ->
+            Thread(task, "cdn-sni-probe").apply { isDaemon = true }
+        }
+        try {
+            val futures = candidates.map { candidate ->
+                executor.submit<List<Result>> {
+                    val candidateResults = ArrayList<Result>()
+                    try {
+                        // A hostname may have many CDN/Anycast answers; two representative
+                        // IPv4 addresses are enough for a bounded first-pass ranking.
+                        val addresses = java.net.InetAddress.getAllByName(candidate.sni).take(2)
+                        for (address in addresses) {
+                            val ip = address.hostAddress?.substringBefore('%') ?: continue
+                            if (!CdnIp.isIpv4(ip)) continue
+                            probe(ip, candidate.sni)?.let(candidateResults::add)
+                        }
+                    } catch (e: Exception) {
+                        Log.d(TAG, "Candidate lookup failed: ${candidate.sni}", e)
+                    }
+                    candidateResults
                 }
-            } catch (e: Exception) {
-                Log.d(TAG, "Candidate lookup failed: ${candidate.sni}", e)
             }
+            futures.forEach { future ->
+                try {
+                    ranked.addAll(future.get(12, TimeUnit.SECONDS))
+                } catch (e: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    futures.forEach { it.cancel(true) }
+                    return null
+                } catch (e: Exception) {
+                    future.cancel(true)
+                }
+            }
+        } finally {
+            executor.shutdownNow()
         }
 
         val unique = ranked.distinctBy { "${it.ip}|${it.sni}" }
