@@ -86,6 +86,12 @@ object CdnSniConfig {
         val routing = obj(root, "routing")
         val rules = array(routing, "rules")
 
+        // This standalone profile has no alternate direct transport. Remove the
+        // template's direct bypasses so TCP cannot escape around the Psiphon carrier.
+        rules.toList().filter { element ->
+            element.isJsonObject && element.asJsonObject.get("outboundTag")?.asString == "direct"
+        }.forEach { rules.remove(it) }
+
         outbounds.add(psiphonSocksOutbound(socksPort))
         if (outbounds.none { it.isJsonObject && it.asJsonObject.get("tag")?.asString == UDP_BLOCK_TAG }) {
             outbounds.add(JsonObject().apply {
