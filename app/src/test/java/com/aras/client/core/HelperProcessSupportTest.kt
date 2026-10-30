@@ -80,4 +80,34 @@ class HelperProcessSupportTest {
 
         assertEquals(listOf("warp"), HelperProcessSupport.helperProfilesOf(chain).map { it.remarks })
     }
+    @Test
+    fun `standalone CDN SNI adds a Psiphon only carrier for Xray`() {
+        val cdn = ProfileItem.create(EConfigType.CDN_SNI).apply {
+            remarks = "CDN/SNI"
+            cdnSniTargets = "104.16.1.2"
+            cdnSniFront = "front.example"
+        }
+
+        val sessionProfiles = HelperProcessSupport.profilesForXraySession(listOf(cdn))
+        val carrier = sessionProfiles.last()
+
+        assertEquals(EConfigType.CDN_SNI, sessionProfiles.first().configType)
+        assertEquals(EConfigType.AETHER, carrier.configType)
+        assertEquals("only", carrier.aetherPsiphon)
+        assertEquals("cdn", carrier.aetherPsiphonMode)
+        assertEquals("104.16.1.2", carrier.aetherPsiphonCdnIps)
+        assertEquals("front.example", carrier.aetherPsiphonCdnSni)
+        assertEquals(listOf("CDN/SNI Psiphon carrier"), HelperProcessSupport.helperProfilesOf(sessionProfiles).map { it.remarks })
+    }
+
+    @Test
+    fun `invalid CDN SNI does not start a carrier`() {
+        val cdn = ProfileItem.create(EConfigType.CDN_SNI).apply {
+            cdnSniTargets = "not-an-ip"
+            cdnSniFront = "front.example"
+        }
+
+        assertEquals(listOf(cdn), HelperProcessSupport.profilesForXraySession(listOf(cdn)))
+    }
+
 }
