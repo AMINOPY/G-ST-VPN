@@ -118,7 +118,7 @@ object CdnSniAutoScanner {
         val futures = ArrayList<java.util.concurrent.Future<List<Result>>>(candidates.size)
         try {
             candidates.forEach { candidate ->
-                futures += completion.submit<List<Result>> {
+                futures += completion.submit(java.util.concurrent.Callable<List<Result>> {
                     val candidateResults = ArrayList<Result>()
                     try {
                         // A hostname may have many CDN/Anycast answers; two representative
@@ -133,7 +133,7 @@ object CdnSniAutoScanner {
                         Log.d(TAG, "Candidate lookup failed: ${candidate.sni}", e)
                     }
                     candidateResults
-                }
+                })
             }
             val completedAll = collectWithinDeadline(
                 completion = completion,
@@ -213,7 +213,7 @@ object CdnSniAutoScanner {
         }
         val completion = ExecutorCompletionService<Result?>(executor)
         val futures = pairs.map { (address, host) ->
-            completion.submit<Result?> { probe(address, host) }
+            completion.submit(java.util.concurrent.Callable<Result?> { probe(address, host) })
         }
         return try {
             val results = ArrayList<Result>()
