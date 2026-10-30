@@ -628,17 +628,18 @@ class RadarConfigActivity : ComponentActivity() {
         val started = System.nanoTime()
         var tls: SSLSocket? = null
         return try {
-            tls = (SSLSocketFactory.getDefault() as SSLSocketFactory)
+            val socket = (SSLSocketFactory.getDefault() as SSLSocketFactory)
                 .createSocket(plain, serverName, port, true) as SSLSocket
-            tls.soTimeout = 2500
-            val params = tls.sslParameters
+            tls = socket
+            socket.soTimeout = 2500
+            val params = socket.sslParameters
             val isIpv4 = serverName.matches(Regex("^\\d{1,3}(?:\\.\\d{1,3}){3}$"))
             if (!isIpv4 && !serverName.contains(':')) {
                 params.serverNames = listOf(SNIHostName(serverName))
                 params.endpointIdentificationAlgorithm = "HTTPS"
             }
-            tls.sslParameters = params
-            tls.startHandshake()
+            socket.sslParameters = params
+            socket.startHandshake()
             (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)) to "TLS پاسخ داد"
         } catch (e: Exception) {
             val certIssue = generateSequence<Throwable>(e) { it.cause }.any { it is CertificateException }
