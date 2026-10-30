@@ -5,6 +5,9 @@ import android.util.Log
 import org.json.JSONObject
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.util.concurrent.CompletionService
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.ExecutorCompletionService
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SNIHostName
 import javax.net.ssl.SSLSocket
@@ -28,6 +31,8 @@ object CdnSniAutoScanner {
     private const val CACHE_TTL_MS = 6 * 60 * 60 * 1000L
     private const val CONNECT_TIMEOUT_MS = 2200
     private const val HANDSHAKE_TIMEOUT_MS = 2500
+    // One wall-clock budget for the whole scan, not one fresh timeout per candidate.
+    private const val SCAN_TIMEOUT_MS = 20_000L
     private const val TAG = "CdnSniAutoScanner"
 
     private val irCandidates = listOf(
@@ -102,14 +107,17 @@ object CdnSniAutoScanner {
 
         val candidates = if (mode == Mode.IR) irCandidates else usCandidates
         val ranked = ArrayList<Result>()
-        // DNS and TLS checks are bounded and parallel. The previous sequential loop could
-        // spend several minutes on slow candidate networks and made AUTO feel frozen.
+        // All DNS/TLS candidates share one deadline. Waiting on each Future in list
+        // order gave every queued candidate a new timeout and could freeze AUTO for
+        // several minutes on a resolver that stopped responding.
         val executor = java.util.concurrent.Executors.newFixedThreadPool(6) { task ->
             Thread(task, "cdn-sni-probe").apply { isDaemon = true }
         }
+        val completion = ExecutorCompletionService<List<Result>>(executor)
+        val futures = ArrayList<java.util.concurrent.Future<List<Result>>>(candidates.size)
         try {
-            val futures = candidates.map { candidate ->
-                executor.submit<List<Result>> {
+            candidates.forEach { candidate ->
+                futures += completion.submit<List<Result>> {
                     val candidateResults = ArrayList<Result>()
                     try {
                         // A hostname may have many CDN/Anycast answers; two representative
@@ -126,18 +134,21 @@ object CdnSniAutoScanner {
                     candidateResults
                 }
             }
-            futures.forEach { future ->
-                try {
-                    ranked.addAll(future.get(12, TimeUnit.SECONDS))
-                } catch (e: InterruptedException) {
-                    Thread.currentThread().interrupt()
-                    futures.forEach { it.cancel(true) }
-                    return null
-                } catch (e: Exception) {
-                    future.cancel(true)
-                }
+            val completedAll = collectWithinDeadline(
+                completion = completion,
+                taskCount = futures.size,
+                timeoutMs = SCAN_TIMEOUT_MS,
+            ) { ranked.addAll(it) }
+            if (!completedAll) {
+                Log.w(TAG, "AUTO scan reached its ${SCAN_TIMEOUT_MS}ms deadline; ranking completed candidates only")
             }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            return null
         } finally {
+            // DNS resolvers are not always interruptible, but cancel every outstanding
+            // task and return control to the UI at the single scan deadline.
+            futures.forEach { if (!it.isDone) it.cancel(true) }
             executor.shutdownNow()
         }
 
@@ -158,6 +169,35 @@ object CdnSniAutoScanner {
             put("mode", mode.key)
         }.toString()).apply()
         return best
+    }
+
+    /**
+     * Collects completed candidate batches against one absolute wall-clock deadline.
+     * Exposed internally so the timeout behavior can be tested without live DNS.
+     */
+    internal fun <T> collectWithinDeadline(
+        completion: CompletionService<T>,
+        taskCount: Int,
+        timeoutMs: Long,
+        onResult: (T) -> Unit,
+    ): Boolean {
+        if (taskCount <= 0) return true
+        val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs.coerceAtLeast(0))
+        var completed = 0
+        while (completed < taskCount) {
+            val remainingNanos = deadline - System.nanoTime()
+            if (remainingNanos <= 0L) return false
+            val future = completion.poll(remainingNanos, TimeUnit.NANOSECONDS) ?: return false
+            completed++
+            try {
+                onResult(future.get())
+            } catch (_: ExecutionException) {
+                // One failed DNS/TLS candidate must not discard other successful candidates.
+            } catch (_: java.util.concurrent.CancellationException) {
+                // A candidate cancelled by the executor is simply absent from the ranking.
+            }
+        }
+        return true
     }
 
     /** Performs a fresh TCP connect + certificate-validated TLS handshake for the entered pair. */
