@@ -349,6 +349,7 @@ class MainViewModel(
             MainAction.ImportClipboard,
             MainAction.ImportConfigLocal,
             MainAction.ImportArascFile,
+            MainAction.ImportPsiphon,
             MainAction.ImportManualMenu,
             is MainAction.ImportManually,
             MainAction.RestartService,
