@@ -83,8 +83,15 @@ class ServerCdnSniActivity : BaseServerActivity() {
                 edgeIp = result.ip
                 sni = result.sni
                 selectedMode = mode.key
-                val label = if (mode == CdnSniAutoScanner.Mode.IR) "AUTO IR" else "AUTO US"
-                pingResult = "$label پیدا شد: ${result.ip} · ${result.sni} · ${result.latencyMs} ms TLS. حالا «یافتن کانفیگ» را بزن تا فقط پروفایل‌های سازگار بررسی شوند."
+                val draft = initialConfig.copy().also {
+                    it.cdnSniMode = mode.key
+                    it.cdnSniTargets = result.ip
+                    it.cdnSniFront = result.sni
+                }
+                val generatedName = "CDN/SNI · ${result.sni}"
+                // AUTO IR/US keep the original one-tap flow: rank the live TLS candidates,
+                // save the winning pair, and return directly to the server list.
+                save(draft, initialConfig.remarks.takeIf { it.isNotBlank() } ?: generatedName)
             }
         }
 
