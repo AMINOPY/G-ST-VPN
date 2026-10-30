@@ -599,7 +599,10 @@ object AetherCoreManager {
             onOutput(line)
         }
 
-        val listenerReady = awaitListener(core.port)
+        val listenerReady = awaitListener(
+            core.port,
+            if (needsPsiphonReady) PSIPHON_READY_WAIT_MS else MAX_READY_WAIT_MS,
+        )
         val ready = listenerReady && awaitPsiphonReady(psiphonReadySeen, PSIPHON_READY_WAIT_MS)
         if (!ready) {
             LogUtil.e(
@@ -628,8 +631,8 @@ object AetherCoreManager {
         return ready.get()
     }
 
-    private fun awaitListener(port: Int): Boolean {
-        val deadline = System.currentTimeMillis() + MAX_READY_WAIT_MS
+    private fun awaitListener(port: Int, timeoutMs: Long): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {
             if (probe(port)) return true
             if (process?.isAlive == false) return false
