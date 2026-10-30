@@ -37,7 +37,7 @@ object CoreConfigContextBuilder {
         }
 
         // CDN/SNI has no normal proxy server/outbound. Its dedicated runtime builder
-        // starts from the Xray template and injects the IP+SNI bridge separately.
+        // starts from the Xray template and routes through the separately started Psiphon SOCKS carrier.
         if (config.configType == EConfigType.CDN_SNI) {
             return CoreConfigContext(context = context, guid = guid)
         }
