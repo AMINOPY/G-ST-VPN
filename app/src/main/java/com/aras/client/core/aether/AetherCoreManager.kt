@@ -88,6 +88,8 @@ object AetherCoreManager {
     private const val READY_POLL_MS = 500L
     private const val DEFAULT_LOG_LEVEL = "info"
     private const val MAX_READY_WAIT_MS = 30_000L
+    // Aether 2.3.0's Psiphon startup timeout defaults to 180 seconds.
+    private const val PSIPHON_READY_WAIT_MS = 190_000L
 
     /**
      * Names the app process that spawned a core process. Rust ignores SIGPIPE and the core
@@ -598,7 +600,7 @@ object AetherCoreManager {
         }
 
         val listenerReady = awaitListener(core.port)
-        val ready = listenerReady && awaitPsiphonReady(psiphonReadySeen)
+        val ready = listenerReady && awaitPsiphonReady(psiphonReadySeen, PSIPHON_READY_WAIT_MS)
         if (!ready) {
             LogUtil.e(
                 AppConfig.TAG,
@@ -610,9 +612,9 @@ object AetherCoreManager {
         return ready
     }
 
-    private fun awaitPsiphonReady(ready: AtomicBoolean): Boolean {
+    private fun awaitPsiphonReady(ready: AtomicBoolean, timeoutMs: Long): Boolean {
         if (ready.get()) return true
-        val deadline = System.currentTimeMillis() + MAX_READY_WAIT_MS
+        val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {
             if (ready.get()) return true
             if (process?.isAlive == false) return false
