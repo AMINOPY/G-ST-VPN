@@ -75,6 +75,7 @@
     <string name="add_server_group_discovery">Discovery</string>
     <string name="add_server_group_subscriptions">Subscriptions</string>
     <string name="add_server_subscription">Manage subscriptions</string>
+    <string name="add_server_custom_json">Custom JSON</string>
     <string name="psiphon_standalone_description">Create a Psiphon tunnel without importing a proxy config. The bundled native client discovers and verifies its own server entries, then exposes a local SOCKS hop for Xray.</string>
     <string name="psiphon_standalone_engine_note">Xray uses the local Psiphon SOCKS listener as its upstream. AUTO can select the transport; CDN mode can use your own edge IP and SNI.</string>
     <string name="psiphon_cdn_pair_required">Enter both a CDN edge IP and SNI, or leave both empty to use the built-in CDN scan.</string>
