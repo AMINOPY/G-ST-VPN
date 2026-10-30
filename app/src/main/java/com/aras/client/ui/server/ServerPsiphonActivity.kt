@@ -52,12 +52,6 @@ class ServerPsiphonActivity : BaseServerActivity() {
         var cdnSni by rememberSaveable { mutableStateOf(initialConfig.aetherPsiphonCdnSni.orEmpty()) }
         var bundledList by rememberSaveable { mutableStateOf(initialConfig.aetherPsiphonBundledList != false) }
 
-        val regions = listOf(
-            "AUTO", "AT", "AU", "BE", "BG", "CA", "CH", "CZ", "DE", "DK", "EE", "ES",
-            "FI", "FR", "GB", "HR", "HU", "IE", "IN", "IT", "JP", "KR", "LV", "MX",
-            "NL", "NO", "PL", "PT", "RO", "RS", "SE", "SG", "SK", "UA", "US",
-        )
-
         ServerEditorScaffold(
             title = stringResource(R.string.menu_item_import_config_psiphon),
             onSaveClick = {
@@ -122,11 +116,9 @@ class ServerPsiphonActivity : BaseServerActivity() {
                 options = stringArrayResource(R.array.aether_psiphon_modes).toList(),
                 onValueChange = { mode = AetherPsiphonMode.fromString(it).type },
             )
-            FormDropdownField(
-                label = stringResource(R.string.server_lab_aether_psiphon_region),
-                value = region,
-                options = regions,
-                onValueChange = { region = it },
+            PsiphonRegionField(
+                selected = region,
+                onSelect = { region = it },
             )
             if (mode == AetherPsiphonMode.CDN.type) {
                 FormTextField(
