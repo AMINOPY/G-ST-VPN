@@ -51,8 +51,8 @@ class CdnSniConfigTest {
         """{"inbounds":[{"tag":"tun","protocol":"tun"}],
             "outbounds":[{"tag":"proxy","protocol":"vmess"},{"tag":"direct","protocol":"freedom"},{"tag":"block","protocol":"blackhole"}],
             "routing":{"rules":[{"outboundTag":"proxy","network":"tcp,udp"},{"outboundTag":"direct","domain":["domain:private"]}]},
+            "dns":{"servers":["1.1.1.1","https+local://dns.google/dns-query","quic+local://dns.adguard.com"],"hosts":{}}}"""
     ).asJsonObject
-
     private fun tags(a: JsonArray) = a.map { it.asJsonObject.get("tag")?.asString }
 
     @Test
