@@ -62,6 +62,7 @@ class CdnSniConfigTest {
         assertFalse(tags(root.getAsJsonArray("outbounds")).contains("proxy"))
         assertTrue(tags(root.getAsJsonArray("outbounds")).contains("direct"))
         assertTrue(tags(root.getAsJsonArray("outbounds")).contains("block"))
+        assertEquals(1, root.getAsJsonObject("routing").getAsJsonArray("rules").size())
         assertEquals("direct", root.getAsJsonObject("routing").getAsJsonArray("rules")[0].asJsonObject.get("outboundTag").asString)
     }
 
