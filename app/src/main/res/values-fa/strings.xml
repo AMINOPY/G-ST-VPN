@@ -644,7 +644,6 @@
     <string name="server_lab_aether_vpn_off">ابتدا VPN را خاموش کنید تا جست‌وجو همان شبکه‌ای را ببیند که واقعاً استفاده می‌کنید.</string>
     <string name="server_lab_aether_note">دروازه WARP اغلب به پینگ معمولی پاسخ نمی‌دهد و نشانی خروجی‌اش ایرانی دیده می‌شود — هر دو طبیعی است. اتصال را بررسی کنید، نه پینگ را.</string>
     <string name="server_lab_aether_psiphon">سایفون</string>
-    <string name="menu_item_import_config_psiphon">سایفون · بدون کانفیگ</string>
     <string name="add_server_sheet_title">افزودن سرور</string>
     <string name="add_server_group_import">ورود و افزودن</string>
     <string name="add_server_group_tunnels">تونل‌ها</string>
@@ -653,15 +652,11 @@
     <string name="add_server_group_subscriptions">اشتراک‌ها</string>
     <string name="add_server_subscription">مدیریت اشتراک‌ها</string>
     <string name="add_server_custom_json">JSON سفارشی</string>
-    <string name="psiphon_standalone_description">بدون وارد کردن کانفیگ پروکسی، یک تونل سایفون بساز. کلاینت native همراه برنامه، فهرست سرورهای امضاشده را دریافت و اعتبارسنجی می‌کند و سپس یک مسیر SOCKS محلی برای Xray فراهم می‌کند.</string>
-    <string name="psiphon_standalone_engine_note">Xray از SOCKS محلی سایفون به‌عنوان مسیر بالادستی استفاده می‌کند. حالت AUTO روش اتصال را انتخاب می‌کند و در حالت CDN می‌توان IP و SNI دلخواه را وارد کرد.</string>
-    <string name="psiphon_cdn_pair_required">برای لبهٔ CDN باید هر دو مقدار IP و SNI را وارد کنی؛ یا هر دو را خالی بگذار تا اسکن داخلی CDN استفاده شود.</string>
     <string name="server_lab_aether_psiphon_mode">حالت سایفون</string>
     <string name="server_lab_aether_psiphon_cdn_ips">نشانی‌های CDN سایفون</string>
     <string name="server_lab_aether_psiphon_cdn_sni">نام سرور CDN سایفون</string>
     <string name="server_lab_aether_psiphon_cdn_sets">فهرست لبه‌های CDN سایفون</string>
     <string name="server_lab_aether_psiphon_region">منطقه سایفون</string>
-    <string name="psiphon_region_auto">خودکار</string>
     <string name="server_lab_aether_psiphon_bundled">استفاده از فهرست سرور همراه برنامه</string>
     <string name="server_lab_aether_tor">تور</string>
     <string name="server_lab_aether_tor_bridges">پل‌های تور</string>
