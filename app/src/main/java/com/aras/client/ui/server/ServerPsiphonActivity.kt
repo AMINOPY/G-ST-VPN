@@ -13,7 +13,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.unit.dp
 import com.aras.client.R
-import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.enums.AetherIpVersion
 import com.aras.client.enums.AetherObfuscation
 import com.aras.client.enums.AetherProtocol
@@ -26,6 +25,9 @@ import com.aras.client.extension.toastError
 import com.aras.client.extension.toastSuccess
 import com.aras.client.fmt.AetherFmt
 import com.aras.client.handler.MmkvManager
+import com.aras.client.ui.compose.FormDropdownField
+import com.aras.client.ui.compose.FormTextField
+import com.aras.client.ui.compose.FormToggleField
 
 /**
  * A no-import Psiphon profile. The bundled Aether native helper owns Psiphon's
