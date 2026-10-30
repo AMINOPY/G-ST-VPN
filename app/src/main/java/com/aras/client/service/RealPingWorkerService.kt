@@ -130,7 +130,9 @@ class RealPingWorkerService(
         val retFailure = PingResult(-1L)
 
         val config = MmkvManager.decodeServerConfig(guid) ?: return retFailure
-        val chain = CoreConfigContextBuilder.resolveChainProfiles(context, guid)
+        val chain = HelperProcessSupport.profilesForXraySession(
+            CoreConfigContextBuilder.resolveChainProfiles(context, guid)
+        )
 
         val configResult = CoreConfigManager.getXrayConfig4Speedtest(context, guid)
         if (!configResult.status) {
