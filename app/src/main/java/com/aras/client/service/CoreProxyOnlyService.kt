@@ -17,6 +17,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class CoreProxyOnlyService : Service(), ServiceControl {
     private val cdnSniStartInProgress = AtomicBoolean(false)
+    private val cdnSniStartCancelled = AtomicBoolean(false)
+    @Volatile
+    private var cdnSniStartThread: Thread? = null
 
     /**
      * Initializes the service.
@@ -50,14 +53,26 @@ class CoreProxyOnlyService : Service(), ServiceControl {
             if (!cdnSniStartInProgress.compareAndSet(false, true)) return START_STICKY
             Thread({
                 try {
-                    if (!CoreServiceManager.startCoreLoop(null)) {
-                        LogUtil.e(AppConfig.TAG, "StartCore-Proxy: Failed to start CDN/SNI core loop")
-                        stopSelf()
+                    val started = CoreServiceManager.startCoreLoop(null)
+                    if (!started) {
+                        if (!cdnSniStartCancelled.get()) {
+                            LogUtil.e(AppConfig.TAG, "StartCore-Proxy: Failed to start CDN/SNI core loop")
+                            stopSelf()
+                        }
+                    } else if (cdnSniStartCancelled.get()) {
+                        // The service may have been stopped while Psiphon was still
+                        // establishing its carrier. Never leave a late-started tunnel alive.
+                        CoreServiceManager.stopCoreLoop()
                     }
                 } finally {
+                    cdnSniStartThread = null
                     cdnSniStartInProgress.set(false)
                 }
-            }, "cdn-sni-proxy-start").apply { isDaemon = true }.start()
+            }, "cdn-sni-proxy-start").apply {
+                isDaemon = true
+                cdnSniStartThread = this
+                start()
+            }
             return START_STICKY
         }
 
@@ -74,6 +89,8 @@ class CoreProxyOnlyService : Service(), ServiceControl {
      * Destroys the service.
      */
     override fun onDestroy() {
+        cdnSniStartCancelled.set(true)
+        cdnSniStartThread?.interrupt()
         super.onDestroy()
         CoreServiceManager.stopCoreLoop()
     }
