@@ -578,6 +578,7 @@ class RadarConfigActivity : ComponentActivity() {
         }
         val (usesTls, sni) = tlsTarget(uri, host)
         var lastError: Exception? = null
+        var bestTlsFailure: RadarCandidate? = null
         for (address in addresses.take(4)) {
             try {
                 var tcpMs = 0L
@@ -593,7 +594,7 @@ class RadarConfigActivity : ComponentActivity() {
                         tlsNote = result.second
                     }
                 }
-                return RadarCandidate(
+                val candidate = RadarCandidate(
                     uri = uri,
                     latency = tcpMs,
                     note = if (usesTls) "TCP پاسخ داد؛ تست TLS انجام شد و سلامت تونل تأیید نشده"
@@ -605,10 +606,18 @@ class RadarConfigActivity : ComponentActivity() {
                     tlsLatency = tlsLatency,
                     tlsNote = tlsNote,
                 )
+                // A TCP-open edge is not enough for TLS profiles. Keep the fastest
+                // diagnostic result, but continue through the remaining DNS answers
+                // until one completes a certificate-validated SNI handshake.
+                if (!usesTls || isProbeReachable(candidate)) return candidate
+                if (bestTlsFailure == null || tcpMs < (bestTlsFailure?.latency ?: Long.MAX_VALUE)) {
+                    bestTlsFailure = candidate
+                }
             } catch (e: Exception) {
                 lastError = e
             }
         }
+        bestTlsFailure?.let { return it }
         val detail = if (lastError is java.net.SocketTimeoutException) {
             "مهلت اتصال TCP تمام شد"
         } else {
@@ -778,8 +787,25 @@ class RadarConfigActivity : ComponentActivity() {
 
     private fun get(url: String, timeout: Int): String {
         val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = timeout; c.readTimeout = timeout
+        c.connectTimeout = timeout
+        c.readTimeout = timeout
         c.setRequestProperty("User-Agent", "G-ST-VPN-Radar/1.0")
-        return try { c.inputStream.bufferedReader().use { it.readText().take(2_000_000) } } finally { c.disconnect() }
+        return try {
+            c.inputStream.bufferedReader().use { reader ->
+                // Bound bytes read, not just the returned string: readText().take()
+                // still loads an arbitrarily large repository feed into memory first.
+                val limit = 2_000_000
+                val output = StringBuilder(minOf(limit, c.contentLength.takeIf { it > 0 } ?: 8192))
+                val buffer = CharArray(8192)
+                while (output.length < limit) {
+                    val count = reader.read(buffer, 0, minOf(buffer.size, limit - output.length))
+                    if (count < 0) break
+                    output.append(buffer, 0, count)
+                }
+                output.toString()
+            }
+        } finally {
+            c.disconnect()
+        }
     }
 }
