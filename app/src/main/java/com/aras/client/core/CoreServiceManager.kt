@@ -109,6 +109,18 @@ object CoreServiceManager {
             doStartCoreLoop(service, vpnInterface)
             return true
         } catch (e: Exception) {
+            // Roll back every resource acquired before startup completed. In particular,
+            // a failed Xray start must not leave the Psiphon/Aether carrier running.
+            runCatching { networkMonitor?.unregister() }
+            networkMonitor = null
+            currentVpnInterface = null
+            runCatching { HelperProcessSupport.reset() }
+            runCatching { CoreNativeManager.reconcileBrowserDialer("") }
+            runCatching { browserDialer?.stop() }
+            browserDialer = null
+            runCatching { service.unregisterReceiver(mMsgReceive) }
+            ConnectionStatsManager.onSessionStopped()
+
             val message = e.message?.takeUnless { it.isBlank() } ?: e.javaClass.simpleName
             LogUtil.e(AppConfig.TAG, "StartCore-Manager: $message", e)
             notifyTileState(service, AppConfig.MSG_STATE_START_FAILURE, message)
