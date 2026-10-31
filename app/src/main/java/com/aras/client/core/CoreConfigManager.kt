@@ -5,6 +5,7 @@ import android.text.TextUtils
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.aras.client.AppConfig
+import com.aras.client.core.aether.AetherCoreManager
 import com.aras.client.dto.ConfigResult
 import com.aras.client.dto.CoreConfigContext
 import com.aras.client.dto.XrayConfig
@@ -42,7 +43,12 @@ object CoreConfigManager {
             if (configContext.isCustom) {
                 return buildXrayCustomConfig(configContext)
             }
-            return toConfigResult(configContext, buildUnifiedConfig(configContext))
+            val selectedProfile = MmkvManager.decodeServerConfig(guid)
+            if (selectedProfile?.configType == EConfigType.CDN_SNI) {
+                return buildCdnSniRuntimeConfig(configContext)
+            }
+            val result = toConfigResult(configContext, buildUnifiedConfig(configContext))
+            return result
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to get Xray config", e)
             return ConfigResult(
@@ -51,6 +57,44 @@ object CoreConfigManager {
                 errorMessage = "Failed to get Xray config: ${e.message ?: e.javaClass.simpleName}"
             )
         }
+    }
+
+    /**
+     * Build standalone CDN/SNI with a Psiphon SOCKS outbound. The Psiphon
+     * carrier is started before this config is built; Xray remains the sole TUN owner.
+     */
+    private fun buildCdnSniRuntimeConfig(configContext: CoreConfigContext): ConfigResult {
+        val profile = MmkvManager.decodeServerConfig(configContext.guid)
+            ?: return ConfigResult(false, configContext.guid, errorMessage = "CDN/SNI profile could not be loaded")
+        val settings = com.aras.client.core.cdn.CdnSniConfig.settingsOf(profile)
+            ?: return ConfigResult(
+                status = false,
+                guid = configContext.guid,
+                errorMessage = "CDN/SNI needs a valid IPv4 edge address and SNI hostname"
+            )
+
+        val base = initXrayConfig(configContext)
+        base.log.loglevel = MmkvManager.decodeSettingsString(AppConfig.PREF_LOGLEVEL) ?: "warning"
+        base.remarks = profile.remarks
+        configureInbounds(base)
+        configureDns(configContext, base, emptyMap())
+        configureFakeDns(base)
+        configureLocalDns(configContext, base)
+        configureRootModeDns(base)
+
+        val root = JsonUtil.parseString(JsonUtil.toJsonPretty(base).orEmpty())
+            ?.takeIf { it.isJsonObject }?.asJsonObject
+            ?: return ConfigResult(false, configContext.guid, errorMessage = "CDN/SNI could not create the base config")
+        // Replace the template's sample proxy with the Psiphon SOCKS listener.
+        // The resulting config has no direct TCP fallback.
+        com.aras.client.core.cdn.CdnSniConfig.removeTemplateProxyOutbound(root)
+        com.aras.client.core.cdn.CdnSniConfig.inject(root, AetherCoreManager.socksPort)
+        com.aras.client.core.cdn.CdnSniConfig.validateInjectedConfig(root, AetherCoreManager.socksPort)?.let { error ->
+            return ConfigResult(false, configContext.guid, errorMessage = error)
+        }
+        val json = JsonUtil.toJsonPretty(root)
+            ?: return ConfigResult(false, configContext.guid, errorMessage = "CDN/SNI config serialization failed")
+        return ConfigResult(true, configContext.guid, json)
     }
 
     /**
@@ -68,6 +112,14 @@ object CoreConfigManager {
                 )
             if (configContext.isCustom) {
                 return buildXrayCustomConfig(configContext)
+            }
+            // CDN/SNI profiles deliberately have no resolved proxy outbound. Reusing
+            // buildUnifiedConfig() here throws "resolvedOutbounds must not be empty",
+            // which made the speed-test/config-validation path reject this profile even
+            // though it has its own standalone runtime builder.
+            val selectedProfile = MmkvManager.decodeServerConfig(guid)
+            if (selectedProfile?.configType == EConfigType.CDN_SNI) {
+                return buildCdnSniRuntimeConfig(configContext)
             }
             val xrayConfig = buildUnifiedConfig(configContext)
             postProcessForSpeedtest(xrayConfig)

@@ -11,6 +11,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.aras.client.handler.MmkvManager
+import com.aras.client.ui.compose.ThemeManager
 import com.aras.client.ui.main.MainAction
 import com.aras.client.ui.main.MainDestination
 import com.aras.client.ui.main.MainMoreMenuAction
@@ -148,6 +149,8 @@ fun RdrMainHost(
                     menuOpen = false
                     onNavigate(dest.toMainDestination())
                 },
+                isDark = isDark,
+                onToggleTheme = { ThemeManager.toggleRdrxAppearance(isDark) },
                 fromRight = true,
             )
         }

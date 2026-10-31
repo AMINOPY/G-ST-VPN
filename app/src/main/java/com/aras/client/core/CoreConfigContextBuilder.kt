@@ -36,6 +36,12 @@ object CoreConfigContextBuilder {
             return CoreConfigContext(context = context, guid = guid, isCustom = true)
         }
 
+        // CDN/SNI has no normal proxy server/outbound. Its dedicated runtime builder
+        // starts from the Xray template and routes through the separately started Psiphon SOCKS carrier.
+        if (config.configType == EConfigType.CDN_SNI) {
+            return CoreConfigContext(context = context, guid = guid)
+        }
+
         // Step 1: Resolve the main outbound (always tag = TAG_PROXY).
         val primaryResolvedOutbound = resolveOutbound(AppConfig.TAG_PROXY, config) ?: run {
             LogUtil.e(AppConfig.TAG, "Failed to resolve main outbound for '${config.remarks}'")
@@ -68,6 +74,8 @@ object CoreConfigContextBuilder {
     fun resolveChainProfiles(context: Context, guid: String): List<ProfileItem> {
         val config = MmkvManager.decodeServerConfig(guid) ?: return emptyList()
         if (config.configType == EConfigType.CUSTOM) return listOf(config)
+        // CDN/SNI owns a dedicated Psiphon carrier; subscription neighbours must not wrap it.
+        if (config.configType == EConfigType.CDN_SNI) return listOf(config)
         return when (config.configType) {
             EConfigType.POLICYGROUP -> resolvePolicyGroupProfiles(config)
             EConfigType.PROXYCHAIN -> resolveProxyChainProfiles(config)
@@ -222,6 +230,11 @@ object CoreConfigContextBuilder {
      * When no chain is available, return a single-node result.
      */
     private fun resolveProxyChainProfilesFromGroup(config: ProfileItem): List<ProfileItem> {
+        // A Psiphon-only Aether profile is itself the Xray exit; subscription neighbours
+        // must not wrap it in another hop, but the profile can still live in its chosen group.
+        if (config.configType == EConfigType.AETHER && config.aetherPsiphon == "only") {
+            return listOf(config)
+        }
         if (config.subscriptionId.isEmpty()) {
             return listOf(config)
         }

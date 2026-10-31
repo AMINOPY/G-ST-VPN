@@ -109,6 +109,18 @@ object CoreServiceManager {
             doStartCoreLoop(service, vpnInterface)
             return true
         } catch (e: Exception) {
+            // Roll back every resource acquired before startup completed. In particular,
+            // a failed Xray start must not leave the Psiphon/Aether carrier running.
+            runCatching { networkMonitor?.unregister() }
+            networkMonitor = null
+            currentVpnInterface = null
+            runCatching { HelperProcessSupport.reset() }
+            runCatching { CoreNativeManager.reconcileBrowserDialer("") }
+            runCatching { browserDialer?.stop() }
+            browserDialer = null
+            runCatching { service.unregisterReceiver(mMsgReceive) }
+            ConnectionStatsManager.onSessionStopped()
+
             val message = e.message?.takeUnless { it.isBlank() } ?: e.javaClass.simpleName
             LogUtil.e(AppConfig.TAG, "StartCore-Manager: $message", e)
             notifyTileState(service, AppConfig.MSG_STATE_START_FAILURE, message)
@@ -174,7 +186,8 @@ object CoreServiceManager {
         // anywhere in the chain, not just the selected profile: an entry proxy is the
         // outermost hop of every profile in its subscription, so its daemon is what
         // the whole subscription depends on.
-        val helpers = HelperProcessSupport.acquire(service, CoreConfigContextBuilder.resolveChainProfiles(service, guid))
+        val helperProfiles = HelperProcessSupport.profilesForXraySession(CoreConfigContextBuilder.resolveChainProfiles(service, guid))
+        val helpers = HelperProcessSupport.acquire(service, helperProfiles)
         helpers.error?.let { reason ->
             LogUtil.e(AppConfig.TAG, "StartCore-Manager: $reason")
             HelperProcessSupport.reset()

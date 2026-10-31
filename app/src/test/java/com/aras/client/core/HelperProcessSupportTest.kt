@@ -1,6 +1,7 @@
 package com.aras.client.core
 
 import com.aras.client.dto.entities.ProfileItem
+import com.aras.client.core.aether.AetherCore
 import com.aras.client.enums.EConfigType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -80,4 +81,75 @@ class HelperProcessSupportTest {
 
         assertEquals(listOf("warp"), HelperProcessSupport.helperProfilesOf(chain).map { it.remarks })
     }
+    @Test
+    fun `standalone CDN SNI adds a Psiphon only carrier for Xray`() {
+        val cdn = ProfileItem.create(EConfigType.CDN_SNI).apply {
+            remarks = "CDN/SNI"
+            cdnSniTargets = "104.16.1.2"
+            cdnSniFront = "front.example"
+        }
+
+        val sessionProfiles = HelperProcessSupport.profilesForXraySession(listOf(cdn))
+        val carrier = sessionProfiles.last()
+
+        assertEquals(EConfigType.CDN_SNI, sessionProfiles.first().configType)
+        assertEquals(EConfigType.AETHER, carrier.configType)
+        assertEquals("only", carrier.aetherPsiphon)
+        assertEquals("cdn", carrier.aetherPsiphonMode)
+        assertEquals("104.16.1.2", carrier.aetherPsiphonCdnIps)
+        assertEquals("front.example", carrier.aetherPsiphonCdnSni)
+        assertEquals(listOf("CDN/SNI Psiphon carrier"), HelperProcessSupport.helperProfilesOf(sessionProfiles).map { it.remarks })
+        val arguments = AetherCore.of(carrier).arguments
+        assertTrue(arguments.contains("--psiphon-only"))
+        assertTrue(arguments.contains("--psiphon-mode"))
+        assertTrue(arguments.contains("cdn"))
+        assertTrue(arguments.contains("--psiphon-cdn-ips"))
+        assertTrue(arguments.contains("104.16.1.2"))
+        assertTrue(arguments.contains("--psiphon-cdn-sni"))
+        assertTrue(arguments.contains("front.example"))
+    }
+
+    @Test
+    fun `AUTO US selects a US Psiphon exit while AUTO IR leaves exit automatic`() {
+        val autoUs = ProfileItem.create(EConfigType.CDN_SNI).apply {
+            cdnSniMode = "auto_us"
+            cdnSniTargets = "104.16.1.2"
+            cdnSniFront = "front.example"
+        }
+        val autoIr = ProfileItem.create(EConfigType.CDN_SNI).apply {
+            cdnSniMode = "auto_ir"
+            cdnSniTargets = "104.16.1.2"
+            cdnSniFront = "front.example"
+        }
+
+        assertEquals("US", HelperProcessSupport.profilesForXraySession(listOf(autoUs)).last().aetherPsiphonRegion)
+        assertEquals(null, HelperProcessSupport.profilesForXraySession(listOf(autoIr)).last().aetherPsiphonRegion)
+    }
+
+    @Test
+    fun `multiple manual CDN candidates reach the Psiphon carrier`() {
+        val cdn = ProfileItem.create(EConfigType.CDN_SNI).apply {
+            remarks = "CDN/SNI"
+            cdnSniTargets = "104.16.1.2\n104.16.1.3"
+            cdnSniFront = "WWW.Google.com،www.cloudflare.com"
+        }
+
+        val carrier = HelperProcessSupport.profilesForXraySession(listOf(cdn)).last()
+        assertEquals("104.16.1.2,104.16.1.3", carrier.aetherPsiphonCdnIps)
+        assertEquals("www.google.com,www.cloudflare.com", carrier.aetherPsiphonCdnSni)
+        val arguments = AetherCore.of(carrier).arguments
+        assertTrue(arguments.contains("104.16.1.2,104.16.1.3"))
+        assertTrue(arguments.contains("www.google.com,www.cloudflare.com"))
+    }
+
+    @Test
+    fun `invalid CDN SNI does not start a carrier`() {
+        val cdn = ProfileItem.create(EConfigType.CDN_SNI).apply {
+            cdnSniTargets = "not-an-ip"
+            cdnSniFront = "front.example"
+        }
+
+        assertEquals(listOf(cdn), HelperProcessSupport.profilesForXraySession(listOf(cdn)))
+    }
+
 }

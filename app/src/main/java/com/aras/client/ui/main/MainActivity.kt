@@ -46,6 +46,7 @@ import com.aras.client.ui.export.ExportActivity
 import com.aras.client.ui.logcat.LogcatActivity
 import com.aras.client.ui.perappproxy.PerAppProxyActivity
 import com.aras.client.ui.routing.RoutingSettingActivity
+import com.aras.client.ui.radar.RadarConfigActivity
 import com.aras.client.ui.server.ProfileEditorResult
 import com.aras.client.ui.server.ServerAetherActivity
 import com.aras.client.ui.server.ServerMieruActivity
@@ -144,8 +145,13 @@ class MainActivity : HelperBaseComponentActivity() {
         intent.removeExtra("radar_config")
         intent.action = null
         if (rawConfig.isNotBlank()) {
-            mainViewModel.onAction(MainAction.ImportBatchConfig(rawConfig))
-            mainViewModel.onAction(MainAction.RefreshGroups)
+            val autoConnect = intent.getBooleanExtra("radar_auto_connect", false)
+            if (autoConnect) {
+                mainViewModel.importRadarConfigAndConnect(rawConfig)
+            } else {
+                mainViewModel.onAction(MainAction.ImportBatchConfig(rawConfig))
+                mainViewModel.onAction(MainAction.RefreshGroups)
+            }
         }
     }
 
@@ -255,6 +261,7 @@ class MainActivity : HelperBaseComponentActivity() {
                     MainAction.ImportClipboard -> importClipboard()
                     MainAction.ImportConfigLocal -> importConfigLocal()
                     MainAction.ImportArascFile -> importArascFile()
+                    MainAction.OpenSubscriptions -> navigateTo(MainDestination.Subscriptions)
                     is MainAction.ImportManually -> importManually(action.type)
                     MainAction.RestartService -> LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
                     MainAction.LocateSelectedServer -> mainViewModel.triggerLocateSelectedServer()
@@ -385,7 +392,12 @@ class MainActivity : HelperBaseComponentActivity() {
     }
 
     private fun navigateTo(destination: MainDestination) {
+        if (destination == MainDestination.RadarConfig) {
+            startActivity(Intent(this, RadarConfigActivity::class.java))
+            return
+        }
         val intent = when (destination) {
+            MainDestination.RadarConfig -> Intent(this, RadarConfigActivity::class.java)
             MainDestination.Hybrid -> Intent(this, HybridActivity::class.java)
             MainDestination.AI -> Intent(this, AiDiagnosticsActivity::class.java)
             MainDestination.Subscriptions -> Intent(this, SubSettingActivity::class.java)
@@ -460,9 +472,11 @@ class MainActivity : HelperBaseComponentActivity() {
             EConfigType.WIREGUARD.value -> Intent(this, ServerWireguardActivity::class.java)
             EConfigType.HYSTERIA2.value -> Intent(this, ServerHysteria2Activity::class.java)
             EConfigType.ANYTLS.value -> Intent(this, ServerAnytlsActivity::class.java)
+            EConfigType.CUSTOM.value -> Intent(this, ServerCustomConfigActivity::class.java)
             EConfigType.AMNEZIAWG.value -> Intent(this, ServerAmneziawgActivity::class.java)
             EConfigType.AETHER.value -> Intent(this, ServerAetherActivity::class.java)
             EConfigType.MIERU.value -> Intent(this, ServerMieruActivity::class.java)
+            EConfigType.CDN_SNI.value -> Intent(this, com.aras.client.ui.server.ServerCdnSniActivity::class.java)
             else -> Intent(this, ServerHttpActivity::class.java).apply {
                 putExtra("createConfigType", createConfigType)
             }
@@ -631,6 +645,7 @@ class MainActivity : HelperBaseComponentActivity() {
             EConfigType.AMNEZIAWG -> ServerAmneziawgActivity::class.java
             EConfigType.AETHER -> ServerAetherActivity::class.java
             EConfigType.MIERU -> ServerMieruActivity::class.java
+            EConfigType.CDN_SNI -> com.aras.client.ui.server.ServerCdnSniActivity::class.java
             else -> ServerHttpActivity::class.java
         }
         val intent = Intent(this, activityClass).apply {

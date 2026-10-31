@@ -10,14 +10,14 @@ import org.junit.Test
  * one rather than the flag it did not know: one unknown option and the process exits
  * with its help text instead of running.
  *
- * These are the flags aether 2.1.0 — the build that ships in the app — accepts. The
- * list was taken by running the real binary with each flag; two that an earlier
- * version of this app emitted, `--psiphon-server-entries` and `--psiphon-cdn-sets`,
- * are rejected by it and must not come back.
+ * These are the flags Aether v2.3.0 — the version pinned by install_aether_core.sh — accepts.
+ * The v2.3.0 CLI explicitly supports `--psiphon-cdn-sets`; only the older
+ * `--psiphon-server-entries` option is rejected (the server list belongs in the
+ * Psiphon overlay config instead).
  */
 class AetherFlagTest {
 
-    /** Verified against aether 2.1.0, not taken from anyone's documentation. */
+    /** Verified against Aether v2.3.0, not taken from anyone's documentation. */
     private val accepted = setOf(
         "--bind", "--http-proxy", "--upstream", "--mark", "--exit-loc", "--exit-loc-secs",
         "--stats", "--stats-secs", "--quick-reconnect", "--no-quick-reconnect",
@@ -36,15 +36,15 @@ class AetherFlagTest {
         "--tor-pt", "--tor-pt-dir", "--tor-dir",
         "--psiphon", "--psiphon-reverse", "--psiphon-only", "--psiphon-mode",
         "--psiphon-config", "--psiphon-cdn-ips", "--psiphon-cdn-sni", "--psiphon-bind",
-        "--psiphon-http", "--psiphon-region", "--psiphon-dir", "--psiphon-bin",
+        "--psiphon-http", "--psiphon-region", "--psiphon-dir", "--psiphon-bin", "--psiphon-cdn-sets",
         "--team", "--access-id", "--access-secret", "--access-email", "--access-token",
         "--gateway", "--route-block", "--route-direct", "--routes",
         "--config", "--wg-config", "--masque-config",
         "--tls-groups", "--perf", "--log-level", "--verbose",
     )
 
-    /** Flags this app used to emit, which aether 2.1.0 rejects outright. */
-    private val rejected = setOf("--psiphon-server-entries", "--psiphon-cdn-sets")
+    /** Flags the pinned core rejects outright. */
+    private val rejected = setOf("--psiphon-server-entries")
 
     private fun profile(block: ProfileItem.() -> Unit = {}) =
         ProfileItem(configType = EConfigType.AETHER).apply(block)
@@ -53,7 +53,7 @@ class AetherFlagTest {
         val flags = arguments.filter { it.startsWith("-") }
         flags.forEach { flag ->
             assertTrue(
-                "aether 2.1.0 rejects '$flag' and refuses the whole command line with it",
+                "Aether v2.3.0 rejects '$flag' and refuses the whole command line with it",
                 flag in accepted,
             )
             assertTrue("'$flag' is one this app was rejected for", flag !in rejected)
@@ -98,8 +98,8 @@ class AetherFlagTest {
 
     @Test
     fun `a psiphon profile emits only accepted flags`() {
-        // The one that used to break: the server list is no longer a flag, and the
-        // CDN edge lists have no flag at all in this core.
+        // The server list is supplied through the Psiphon overlay; CDN edge sets
+        // are supported by the pinned v2.3.0 CLI.
         val arguments = AetherCoreManager.buildArguments(
             profile {
                 server = "198.51.100.9"

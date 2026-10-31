@@ -1,6 +1,7 @@
 package com.aras.client.core.aether
 
 import android.content.Context
+import android.os.Build
 import com.aras.client.AppConfig
 import com.aras.client.dto.AetherEndpoint
 import com.aras.client.dto.AetherRange
@@ -27,6 +28,7 @@ import java.net.Socket
 import java.util.Locale
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -87,6 +89,8 @@ object AetherCoreManager {
     private const val READY_POLL_MS = 500L
     private const val DEFAULT_LOG_LEVEL = "info"
     private const val MAX_READY_WAIT_MS = 30_000L
+    // Aether 2.3.0's Psiphon startup timeout defaults to 180 seconds.
+    private const val PSIPHON_READY_WAIT_MS = 190_000L
 
     /**
      * Names the app process that spawned a core process. Rust ignores SIGPIPE and the core
@@ -121,7 +125,7 @@ object AetherCoreManager {
     const val PSIPHON_CONFIG_ENV = "AETHER_PSIPHON_CONFIG"
     const val PSIPHON_DIR_ENV = "AETHER_PSIPHON_DIR"
 
-    private val psiphonReady = Regex("psiphon ready|proxy started: psiphon", RegexOption.IGNORE_CASE)
+    private val psiphonReady = Regex("psiphon is ready|psiphon ready|proxy started: psiphon", RegexOption.IGNORE_CASE)
     private val torReady = Regex("tor ready|proxy started: tor", RegexOption.IGNORE_CASE)
 
     /** The work directory, shared with [AetherIdentityManager]. */
@@ -271,16 +275,15 @@ object AetherCoreManager {
                 val shape = AetherPsiphonMode.fromString(profile.aetherPsiphonMode)
                 addAll(listOf("--psiphon-mode", shape.type))
                 // The CDN lists feed the fronted transports alone, which direct never uses.
-                val cdnIps = profile.aetherPsiphonCdnIps
+                        val cdnIps = profile.aetherPsiphonCdnIps
                     ?.takeIf { it.isNotBlank() && shape != AetherPsiphonMode.DIRECT }
                 cdnIps?.let { addAll(listOf("--psiphon-cdn-ips", it)) }
-                if (cdnIps != null) {
+                if (shape != AetherPsiphonMode.DIRECT) {
                     profile.aetherPsiphonCdnSni?.takeIf { it.isNotBlank() }
                         ?.let { addAll(listOf("--psiphon-cdn-sni", it)) }
+                    AetherPsiphonCdnSet.join(AetherPsiphonCdnSet.parse(profile.aetherPsiphonCdnSets))
+                        ?.let { addAll(listOf("--psiphon-cdn-sets", it)) }
                 }
-                // aether 2.1 has no --psiphon-cdn-sets: which edge lists the client
-                // tries is decided by --psiphon-mode and its own list. The profile
-                // still carries the field so a link from a newer client round-trips.
                 profile.aetherPsiphonRegion?.takeIf { it.isNotBlank() }
                     ?.let { addAll(listOf("--psiphon-region", it)) }
 
@@ -338,7 +341,28 @@ object AetherCoreManager {
     fun binary(context: Context): File =
         File(context.applicationInfo.nativeLibraryDir, BINARY_NAME)
 
-    fun isAvailable(context: Context): Boolean = binary(context).canExecute()
+    fun isAvailable(context: Context): Boolean =
+        isExecutableForDevice(binary(context), "Aether")
+
+    /** A human-readable report used by diagnostics and connection error paths. */
+    fun nativeBinaryReport(context: Context): String = buildList {
+        add(report(binary(context), "Aether"))
+        add(report(psiphonBinary(context), "Psiphon"))
+        add(report(transportBinary(context), "Lyrebird"))
+    }.joinToString("; ")
+
+    private fun isExecutableForDevice(file: File, label: String): Boolean {
+        val check = AetherNativeBinary.inspect(file, Build.SUPPORTED_ABIS.toList())
+        if (!check.available) {
+            LogUtil.e(AppConfig.TAG, "AetherCore: $label binary check failed (${check.reason}) at ${file.absolutePath}")
+        }
+        return check.available
+    }
+
+    private fun report(file: File, label: String): String {
+        val check = AetherNativeBinary.inspect(file, Build.SUPPORTED_ABIS.toList())
+        return "$label=${if (check.available) "ready/${check.abi}" else check.reason}"
+    }
 
     private fun workDir(context: Context): File =
         File(context.filesDir, WORK_DIR).apply { mkdirs() }
@@ -361,8 +385,8 @@ object AetherCoreManager {
     ): String? {
         reapStale()
         val exe = binary(context)
-        if (!exe.canExecute()) {
-            LogUtil.e(AppConfig.TAG, "AetherCore: ${exe.name} is not present or not executable")
+        if (!isExecutableForDevice(exe, "Aether")) {
+            LogUtil.e(AppConfig.TAG, "AetherCore: ${exe.name} is not present, executable, or ABI-compatible")
             return null
         }
         val process = try {
@@ -432,9 +456,9 @@ object AetherCoreManager {
             put(AETHER_CONFIG_ENV, File(work, AetherIdentityManager.BASE_FILE).absolutePath)
             put(AETHER_MASQUE_CONFIG_ENV, File(work, AetherIdentityManager.MASQUE_FILE).absolutePath)
             put(AETHER_WG_CONFIG_ENV, File(work, AetherIdentityManager.WIREGUARD_FILE).absolutePath)
-            psiphonBinary(context).takeIf { it.canExecute() }
+            psiphonBinary(context).takeIf { isExecutableForDevice(it, "Psiphon") }
                 ?.let { put(PSIPHON_BIN_ENV, it.absolutePath) }
-            transportBinary(context).takeIf { it.canExecute() }?.let { transport ->
+            transportBinary(context).takeIf { isExecutableForDevice(it, "Lyrebird") }?.let { transport ->
                 put(TOR_PT_ENV, torTransports.joinToString(";") { "$it=${transport.absolutePath}" })
             }
             // The Psiphon client and lyrebird are programs built for Linux that read
@@ -523,8 +547,14 @@ object AetherCoreManager {
     private const val DEFAULT_RESOLVERS = "1.1.1.1,8.8.8.8"
 
     /** Whether this build carries the helper processes a Psiphon or Tor profile needs. */
+    fun psiphonAvailable(context: Context): Boolean =
+        isExecutableForDevice(psiphonBinary(context), "Psiphon")
+
+    fun torTransportAvailable(context: Context): Boolean =
+        isExecutableForDevice(transportBinary(context), "Lyrebird")
+
     fun carriersAvailable(context: Context): Boolean =
-        psiphonBinary(context).canExecute() && transportBinary(context).canExecute()
+        psiphonAvailable(context) && torTransportAvailable(context)
 
     /**
      * Starts the core and waits for its listener to answer.
@@ -540,8 +570,8 @@ object AetherCoreManager {
         stop()
         reapStale()
         val exe = binary(context)
-        if (!exe.canExecute()) {
-            LogUtil.e(AppConfig.TAG, "AetherCore: ${exe.name} is not present or not executable")
+        if (!isExecutableForDevice(exe, "Aether")) {
+            LogUtil.e(AppConfig.TAG, "AetherCore: ${exe.name} is not present, executable, or ABI-compatible")
             return false
         }
         val builder = ProcessBuilder(listOf(exe.absolutePath) + core.arguments)
@@ -558,19 +588,59 @@ object AetherCoreManager {
         session.set(core)
 
         // The session core runs until it is stopped, so its output is drained in the
-        // background; reading it here would block the start forever.
-        pumpOutput(started, LinkedBlockingQueue(), onOutput)
+        // background; reading it here would block the start forever. A Psiphon-only
+        // carrier is not ready merely because its local SOCKS socket has bound: wait
+        // for Psiphon itself to report that its proxy is running before Xray can start.
+        val needsPsiphonReady = "--psiphon-only" in core.arguments
+        val psiphonReadySeen = AtomicBoolean(!needsPsiphonReady)
+        pumpOutput(started, LinkedBlockingQueue()) { line ->
+            if (needsPsiphonReady && psiphonReady.containsMatchIn(line)) {
+                psiphonReadySeen.set(true)
+            }
+            onOutput(line)
+        }
 
-        val ready = awaitListener(core.port)
+        // Aether briefly binds and drops the SOCKS port before starting Psiphon
+        // to check that it is available. Wait for the Psiphon-ready log first, then
+        // probe the listener; otherwise that temporary preflight bind could look ready.
+        val psiphonReportedReady =
+            !needsPsiphonReady || awaitPsiphonReady(psiphonReadySeen, PSIPHON_READY_WAIT_MS)
+        val listenerReady = psiphonReportedReady && awaitListener(
+            core.port,
+            if (needsPsiphonReady) PSIPHON_READY_WAIT_MS else MAX_READY_WAIT_MS,
+        )
+        val ready = psiphonReportedReady && listenerReady
         if (!ready) {
-            LogUtil.e(AppConfig.TAG, "AetherCore: listener on ${core.port} never came up")
+            LogUtil.e(
+                AppConfig.TAG,
+                when {
+                    !psiphonReportedReady -> "AetherCore: Psiphon did not report a ready proxy"
+                    else -> "AetherCore: listener on ${core.port} never came up"
+                }
+            )
             stop()
         }
         return ready
     }
 
-    private fun awaitListener(port: Int): Boolean {
-        val deadline = System.currentTimeMillis() + MAX_READY_WAIT_MS
+    private fun awaitPsiphonReady(ready: AtomicBoolean, timeoutMs: Long): Boolean {
+        if (ready.get()) return true
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (ready.get()) return true
+            if (process?.isAlive == false) return false
+            try {
+                Thread.sleep(READY_POLL_MS)
+            } catch (e: InterruptedException) {
+                Thread.currentThread().interrupt()
+                return false
+            }
+        }
+        return ready.get()
+    }
+
+    private fun awaitListener(port: Int, timeoutMs: Long): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {
             if (probe(port)) return true
             if (process?.isAlive == false) return false

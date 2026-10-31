@@ -1,10 +1,34 @@
 package com.aras.client.ui.main
 
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.ContentPaste
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Hub
+import androidx.compose.material.icons.outlined.InsertDriveFile
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.Radar
+import androidx.compose.material.icons.outlined.RssFeed
+import androidx.compose.material.icons.outlined.Security
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,17 +48,23 @@ import com.aras.client.extension.isComplexType
 import com.aras.client.ui.compose.AppDropdownMenuItems
 import com.aras.client.ui.compose.SelectListDialog
 
-private enum class ImportMenuAction(@StringRes val labelRes: Int, val action: MainAction) {
-    QRCode(R.string.menu_item_import_config_qrcode, MainAction.ImportQRcode),
-    Clipboard(R.string.menu_item_import_config_clipboard, MainAction.ImportClipboard),
-    LocalFile(R.string.menu_item_import_config_local, MainAction.ImportConfigLocal),
-    ArascFile(R.string.menu_item_import_config_arasc, MainAction.ImportArascFile),
-    // Deliberately below the .arasc entry rather than inside the "Add manually"
-    // protocol submenu.
-    Aether(R.string.menu_item_import_config_manually_aether, MainAction.ImportManually(EConfigType.AETHER.value)),
-    Manual(R.string.menu_item_import_config_manually, MainAction.ImportManualMenu),
-    PolicyGroup(R.string.menu_item_import_config_policy_group, MainAction.ImportManually(EConfigType.POLICYGROUP.value)),
-    ProxyChain(R.string.menu_item_import_config_proxy_chain, MainAction.ImportManually(EConfigType.PROXYCHAIN.value))
+private enum class ImportMenuAction(
+    @StringRes val labelRes: Int,
+    val action: MainAction,
+    val icon: ImageVector,
+) {
+    QRCode(R.string.menu_item_import_config_qrcode, MainAction.ImportQRcode, Icons.Outlined.QrCodeScanner),
+    Clipboard(R.string.menu_item_import_config_clipboard, MainAction.ImportClipboard, Icons.Outlined.ContentPaste),
+    LocalFile(R.string.menu_item_import_config_local, MainAction.ImportConfigLocal, Icons.Outlined.InsertDriveFile),
+    ArascFile(R.string.menu_item_import_config_arasc, MainAction.ImportArascFile, Icons.Outlined.FolderOpen),
+    CustomConfig(R.string.add_server_custom_json, MainAction.ImportManually(EConfigType.CUSTOM.value), Icons.Outlined.Code),
+    // Deliberately below the .arasc entry rather than inside the "Add manually" protocol submenu.
+    Aether(R.string.menu_item_import_config_manually_aether, MainAction.ImportManually(EConfigType.AETHER.value), Icons.Outlined.Hub),
+    CdnSni(R.string.menu_item_cdn_sni, MainAction.ImportManually(EConfigType.CDN_SNI.value), Icons.Outlined.Security),
+    Manual(R.string.menu_item_import_config_manually, MainAction.ImportManualMenu, Icons.Outlined.Edit),
+    PolicyGroup(R.string.menu_item_import_config_policy_group, MainAction.ImportManually(EConfigType.POLICYGROUP.value), Icons.Outlined.AccountTree),
+    ProxyChain(R.string.menu_item_import_config_proxy_chain, MainAction.ImportManually(EConfigType.PROXYCHAIN.value), Icons.Outlined.Link),
+    Subscriptions(R.string.add_server_subscription, MainAction.OpenSubscriptions, Icons.Outlined.RssFeed)
 }
 
 private enum class ImportManualProtocolMenuAction(@StringRes val labelRes: Int, val action: MainAction) {
@@ -94,6 +124,156 @@ internal fun serverMenuActions(
     // saves the profile back as a different protocol.
     if (!editable && action == ServerMenuAction.Edit) return@filter false
     (includeManagementActions || action.isShareAction) && (!isComplexProfile || action.supportsComplexProfiles)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddServerSheet(
+    onDismiss: () -> Unit,
+    onAction: (MainAction) -> Unit,
+    onOpenRadarConfig: () -> Unit,
+) {
+    var showProtocolMenu by remember { mutableStateOf(false) }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = androidx.compose.ui.Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                stringResource(R.string.add_server_sheet_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = androidx.compose.ui.Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+            AddServerGroup(R.string.add_server_group_import)
+            listOf(
+                ImportMenuAction.QRCode,
+                ImportMenuAction.Clipboard,
+                ImportMenuAction.LocalFile,
+                ImportMenuAction.ArascFile,
+                ImportMenuAction.CustomConfig,
+            ).forEach { item ->
+                AddServerMenuItem(item) {
+                    onDismiss()
+                    onAction(item.action)
+                }
+            }
+
+            AddServerGroup(R.string.add_server_group_tunnels)
+            listOf(
+                ImportMenuAction.Aether,
+                ImportMenuAction.CdnSni,
+            ).forEach { item ->
+                AddServerMenuItem(item) {
+                    onDismiss()
+                    onAction(item.action)
+                }
+            }
+
+            AddServerGroup(R.string.add_server_group_chains)
+            AddServerMenuItem(ImportMenuAction.Manual, trailingArrow = true) {
+                showProtocolMenu = true
+            }
+            listOf(
+                ImportMenuAction.PolicyGroup,
+                ImportMenuAction.ProxyChain,
+            ).forEach { item ->
+                AddServerMenuItem(item) {
+                    onDismiss()
+                    onAction(item.action)
+                }
+            }
+
+            AddServerGroup(R.string.add_server_group_discovery)
+            AddServerOption(
+                icon = Icons.Outlined.Radar,
+                label = stringResource(R.string.radar_config_title),
+                onClick = {
+                    onDismiss()
+                    onOpenRadarConfig()
+                },
+            )
+
+            AddServerGroup(R.string.add_server_group_subscriptions)
+            AddServerMenuItem(ImportMenuAction.Subscriptions) {
+                onDismiss()
+                onAction(MainAction.OpenSubscriptions)
+            }
+        }
+    }
+
+    if (showProtocolMenu) {
+        SelectListDialog(
+            options = ImportManualProtocolMenuAction.entries,
+            optionText = { stringResource(it.labelRes) },
+            onSelected = { selected ->
+                showProtocolMenu = false
+                onDismiss()
+                onAction(selected.action)
+            },
+            onDismiss = { showProtocolMenu = false },
+            title = stringResource(R.string.menu_item_import_config_manually),
+        )
+    }
+}
+
+@Composable
+private fun AddServerGroup(labelRes: Int) {
+    Text(
+        stringResource(labelRes),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 4.dp),
+    )
+}
+
+@Composable
+private fun AddServerOption(
+    icon: ImageVector,
+    label: String,
+    trailingArrow: Boolean = false,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        color = androidx.compose.ui.graphics.Color.Transparent,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 13.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(18.dp))
+            Text(
+                label,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f),
+            )
+            if (trailingArrow) {
+                Text("›", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddServerMenuItem(
+    item: ImportMenuAction,
+    trailingArrow: Boolean = false,
+    onClick: () -> Unit,
+) {
+    AddServerOption(
+        icon = item.icon,
+        label = stringResource(item.labelRes),
+        trailingArrow = trailingArrow,
+        onClick = onClick,
+    )
 }
 
 @Composable

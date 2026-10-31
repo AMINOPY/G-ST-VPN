@@ -222,7 +222,7 @@ fun MainScreen(
     )
 
     if (uiTheme == "rdrn" && !rdrShowList) {
-        // RADAR VPN look: six tabs + hamburger menu; the normal config manager opens through onOpenList.
+        // RADAR VPN home: six-tab neon dashboard; normal server management remains the existing list.
         com.aras.client.ui.rdrn.RnMainHost(
             uiState = uiState,
             hasPing = hasPing,

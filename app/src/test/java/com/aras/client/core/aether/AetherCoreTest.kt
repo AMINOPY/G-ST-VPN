@@ -339,9 +339,8 @@ class AetherCoreTest {
             port = 10819,
         )
         assertEquals("1.2.3.4", cdn.valueOf("--psiphon-cdn-ips"))
-        // aether 2.1 has no flag for the edge lists; --psiphon-mode and the client's
-        // own built-in list decide. The profile keeps the field for link round-trip.
-        assertTrue(cdn.none { it.startsWith("--psiphon-cdn-sets") })
+        // Aether 2.3 supports explicit fronting-set selection.
+        assertEquals("cloudflare,github", cdn.valueOf("--psiphon-cdn-sets"))
     }
 
     @Test

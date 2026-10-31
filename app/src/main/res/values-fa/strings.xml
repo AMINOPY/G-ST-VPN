@@ -644,6 +644,14 @@
     <string name="server_lab_aether_vpn_off">ابتدا VPN را خاموش کنید تا جست‌وجو همان شبکه‌ای را ببیند که واقعاً استفاده می‌کنید.</string>
     <string name="server_lab_aether_note">دروازه WARP اغلب به پینگ معمولی پاسخ نمی‌دهد و نشانی خروجی‌اش ایرانی دیده می‌شود — هر دو طبیعی است. اتصال را بررسی کنید، نه پینگ را.</string>
     <string name="server_lab_aether_psiphon">سایفون</string>
+    <string name="add_server_sheet_title">افزودن سرور</string>
+    <string name="add_server_group_import">ورود و افزودن</string>
+    <string name="add_server_group_tunnels">تونل‌ها</string>
+    <string name="add_server_group_chains">سرورها و زنجیره‌ها</string>
+    <string name="add_server_group_discovery">کشف کانفیگ</string>
+    <string name="add_server_group_subscriptions">اشتراک‌ها</string>
+    <string name="add_server_subscription">مدیریت اشتراک‌ها</string>
+    <string name="add_server_custom_json">JSON سفارشی</string>
     <string name="server_lab_aether_psiphon_mode">حالت سایفون</string>
     <string name="server_lab_aether_psiphon_cdn_ips">نشانی‌های CDN سایفون</string>
     <string name="server_lab_aether_psiphon_cdn_sni">نام سرور CDN سایفون</string>
@@ -906,4 +914,32 @@
     <string name="theme_ui_aurora_summary">داشبورد شیشه‌ای آینده‌نگر با جزئیات نورانی</string>
     <string name="theme_ui_style_title">سبک رابط اصلی برنامه</string>
     <string name="menu_dpi_diagnostics">آزمایش تشخیصی DPI</string>
+    <string name="menu_item_cdn_sni">CDN/SNI</string>
+    <string name="cdn_sni_auto_ir">خودکار ایران 🇮🇷</string>
+    <string name="cdn_sni_manual">دستی</string>
+    <string name="cdn_sni_auto_us">خودکار آمریکا 🇺🇸</string>
+    <string name="cdn_sni_auto_scanning">دارم IP و SNIهای قابل‌دسترسی رو بررسی می‌کنم و سرعت TLS رو می‌سنجم…</string>
+    <string name="cdn_sni_auto_not_found">تو این شبکه IP و SNI تأییدشده‌ای پیدا نشد. اینترنت دیگه‌ای رو امتحان کن یا دستی وارد کن.</string>
+    <string name="cdn_sni_auto_hint">حالت خودکار IP و SNIهای قابل‌دسترسی رو تست می‌کنه و سریع‌ترین نتیجهٔ تأییدشده رو ذخیره می‌کنه. اسم منطقه تضمین نمی‌کنه IP واقعاً داخل همون کشور باشه. حالت دستی همیشه در دسترسه.</string>
+    <string name="cdn_sni_psiphon_transport_hint">ترافیک TCP از تونل سایفون عبور می‌کند. UDP در این حالت مسدود می‌شود تا از تونل خارج نشود.</string>
+    <string name="cdn_sni_intro">فقط IP سرور لبهٔ CDN و نام SNI را وارد کن. سایفون مسیر انتقال را برقرار می‌کند و Xray ترافیک TCP را از SOCKS محلی سایفون عبور می‌دهد؛ نیازی به کانفیگ یا UUID نیست.</string>
+    
+    
+    <string name="cdn_sni_targets">آدرس IP سرور CDN</string>
+    <string name="cdn_sni_front">نام سرور (SNI)</string>
+    
+    
+    <string name="cdn_sni_invalid">یک آدرس IPv4 معتبر برای CDN و یک نام میزبان معتبر برای SNI وارد کن</string>
+    <string name="cdn_sni_cert_hint">مرورگر فقط بعد از اینکه به گواهی این روش اعتماد کنی آن را می‌پذیرد. گواهی روی همین گوشی ساخته می‌شود و کلید خصوصی‌اش هرگز از اپ خارج نمی‌شود.</string>
+    <string name="cdn_sni_cert_export">ذخیره گواهی برای اعتماد (Trust)</string>
+    <string name="cdn_sni_cert_steps">فایل را ذخیره کن، سپس در تنظیمات: امنیت ← نصب گواهی ← گواهی CA</string>
+    <string name="cdn_sni_cert_saved">گواهی ذخیره شد</string>
+    <string name="cdn_sni_cert_failed">ذخیره گواهی ممکن نشد</string>
+
+    <string name="radar_config_title">رادار کانفیگ</string>
+    <string name="radar_config_summary">کشف و آزمایش کانفیگ‌های عمومی</string>
+    <string name="menu_section_network_tools">ابزارهای شبکه</string>
+    <string name="rdr_theme_switch_to_light">تغییر به حالت روشن</string>
+    <string name="rdr_theme_switch_to_dark">تغییر به حالت تاریک</string>
+    <string name="cdn_sni_manual_list_hint">در حالت دستی می‌تونی چند IP و SNI وارد کنی؛ موارد را با Enter، ویرگول انگلیسی یا فارسی، نقطه‌ویرگول یا فاصله جدا کن. با تغییر حالت، مقادیرت حفظ می‌شوند.</string>
 </resources>

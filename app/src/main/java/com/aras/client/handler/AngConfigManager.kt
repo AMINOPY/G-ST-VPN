@@ -214,6 +214,8 @@ object AngConfigManager {
             if (ArasExportImportManager.isProtected(guid)) return ""
 
             val config = MmkvManager.decodeServerConfig(guid) ?: return ""
+            // CDN/SNI has no link form: it is a local setup tied to this device's CA.
+            if (config.configType == EConfigType.CDN_SNI) return ""
 
             return config.configType.protocolScheme + when (config.configType) {
                 EConfigType.VMESS -> VmessFmt.toUri(config)

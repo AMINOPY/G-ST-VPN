@@ -7,8 +7,12 @@ import com.aras.client.core.aether.AetherCoreManager
 import com.aras.client.core.mieru.MieruProcessManager
 import com.aras.client.dto.entities.ProfileItem
 import com.aras.client.enums.EConfigType
+import com.aras.client.enums.AetherPsiphon
+import com.aras.client.enums.AetherPsiphonMode
+import com.aras.client.enums.AetherTor
 import com.aras.client.fmt.AetherFmt
 import com.aras.client.util.LogUtil
+import com.aras.client.core.cdn.CdnSniConfig
 
 /**
  * Starts the helper processes a config's *resolved chain* depends on.
@@ -40,6 +44,31 @@ object HelperProcessSupport {
         chain.filter { it.needsHelperProcess }
 
     /**
+     * Add the Psiphon-only carrier required by a standalone CDN/SNI Xray profile.
+     * Aether exposes the Psiphon session as loopback SOCKS; Xray remains the only
+     * process that owns the device VPN/TUN.
+     */
+    fun profilesForXraySession(chain: List<ProfileItem>): List<ProfileItem> {
+        val cdnProfile = chain.firstOrNull { it.configType == EConfigType.CDN_SNI } ?: return chain
+        val settings = CdnSniConfig.settingsOf(cdnProfile) ?: return chain
+        val carrier = ProfileItem.create(EConfigType.AETHER).apply {
+            remarks = "CDN/SNI Psiphon carrier"
+            aetherListenPort = AppConfig.PORT_AETHER_SOCKS.toString()
+            aetherPsiphon = AetherPsiphon.ONLY.type
+            aetherPsiphonMode = AetherPsiphonMode.CDN.type
+            aetherPsiphonCdnIps = settings.edgeIp
+            aetherPsiphonCdnSni = settings.sni
+            // AUTO US selects an international edge list and asks Psiphon for a US exit.
+            // AUTO IR and Manual keep Psiphon's automatic exit selection.
+            aetherPsiphonRegion = cdnProfile.cdnSniMode
+                ?.takeIf { it.equals("auto_us", ignoreCase = true) }
+                ?.let { "US" }
+            aetherPsiphonBundledList = true
+        }
+        return chain + carrier
+    }
+
+    /**
      * Brings up whatever [chain] needs.
      *
      * Returns the profiles this call actually started — pass exactly that back to
@@ -56,6 +85,7 @@ object HelperProcessSupport {
 
         // Serialized: both managers hold one global slot, so two chains claiming
         // them concurrently would silently take each other's daemon.
+        val acquired = mutableListOf<ProfileItem>()
         synchronized(lock) {
             for (helper in helpers) {
                 when (helper.configType) {
@@ -64,17 +94,24 @@ object HelperProcessSupport {
                         when {
                             aetherRefs == 0 -> {
                                 val error = startAether(context, helper)
-                                if (error != null) return Acquired(emptyList(), error)
+                                if (error != null) {
+                                    release(Acquired(acquired.toList(), null))
+                                    return Acquired(emptyList(), error)
+                                }
                                 aetherKey = key
                             }
 
-                            aetherKey != key -> return Acquired(
-                                emptyList(),
-                                "The aether core is already running for a different profile " +
-                                    "(${helper.remarks}); it can only serve one at a time"
-                            )
+                            aetherKey != key -> {
+                                release(Acquired(acquired.toList(), null))
+                                return Acquired(
+                                    emptyList(),
+                                    "The aether core is already running for a different profile " +
+                                        "(${helper.remarks}); it can only serve one at a time"
+                                )
+                            }
                         }
                         aetherRefs++
+                        acquired += helper
                     }
 
                     EConfigType.MIERU -> {
@@ -82,24 +119,31 @@ object HelperProcessSupport {
                         when {
                             mieruRefs == 0 -> {
                                 val error = startMieru(context, helper)
-                                if (error != null) return Acquired(emptyList(), error)
+                                if (error != null) {
+                                    release(Acquired(acquired.toList(), null))
+                                    return Acquired(emptyList(), error)
+                                }
                                 mieruKey = key
                             }
 
-                            mieruKey != key -> return Acquired(
-                                emptyList(),
-                                "The mieru client is already running for a different profile " +
-                                    "(${helper.remarks}); it can only serve one at a time"
-                            )
+                            mieruKey != key -> {
+                                release(Acquired(acquired.toList(), null))
+                                return Acquired(
+                                    emptyList(),
+                                    "The mieru client is already running for a different profile " +
+                                        "(${helper.remarks}); it can only serve one at a time"
+                                )
+                            }
                         }
                         mieruRefs++
+                        acquired += helper
                     }
 
                     else -> Unit
                 }
             }
         }
-        return Acquired(helpers, null)
+        return Acquired(acquired, null)
     }
 
     /** Stops the daemons [acquire] started, once nothing is using them. */
@@ -145,7 +189,22 @@ object HelperProcessSupport {
     }
 
     private fun startAether(context: Context, profile: ProfileItem): String? {
-        if (!AetherCoreManager.isAvailable(context)) return "This build does not carry the aether core"
+        if (!AetherCoreManager.isAvailable(context)) {
+            return "Aether core is unavailable or incompatible with this ABI: " +
+                AetherCoreManager.nativeBinaryReport(context)
+        }
+        if (AetherPsiphon.fromString(profile.aetherPsiphon) != AetherPsiphon.OFF &&
+            !AetherCoreManager.psiphonAvailable(context)
+        ) {
+            return "Aether Psiphon helper is missing or incompatible: " +
+                AetherCoreManager.nativeBinaryReport(context)
+        }
+        if (AetherTor.fromString(profile.aetherTor) != AetherTor.OFF &&
+            !AetherCoreManager.torTransportAvailable(context)
+        ) {
+            return "Aether Tor transport helper is missing or incompatible: " +
+                AetherCoreManager.nativeBinaryReport(context)
+        }
         val core = AetherCore.of(profile)
         LogUtil.i(AppConfig.TAG, "HelperProcess: aether core: ${core.command}")
         val started = AetherCoreManager.start(context, core) { line ->
@@ -180,7 +239,14 @@ object HelperProcessSupport {
         } else {
             AetherFmt.listenPortOf(mieruListenPort) ?: AppConfig.PORT_MIERU_SOCKS.toInt()
         }
-        return "${remarks}|$port"
+        val carrierIdentity = if (configType == EConfigType.AETHER &&
+            AetherPsiphon.fromString(aetherPsiphon) == AetherPsiphon.ONLY
+        ) {
+            "|${aetherPsiphonMode.orEmpty()}|${aetherPsiphonCdnIps.orEmpty()}|${aetherPsiphonCdnSni.orEmpty()}|${aetherPsiphonRegion.orEmpty()}|bundled=${aetherPsiphonBundledList}"
+        } else {
+            ""
+        }
+        return "${remarks}|$port$carrierIdentity"
     }
 
     /** What [acquire] started, and any reason it could not. */

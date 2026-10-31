@@ -87,7 +87,11 @@ object LauncherManager {
                 error(context.getString(R.string.toast_config_file_invalid))
             }
 
-        if (!config.configType.isComplexType()
+        // CDN/SNI profiles intentionally have no ordinary server URL or port:
+        // their endpoint is the dedicated IP + SNI pair validated by CoreConfigManager.
+        // Do not reject them with the generic proxy-profile URL check.
+        if (config.configType != com.aras.client.enums.EConfigType.CDN_SNI
+            && !config.configType.isComplexType()
             && !Utils.isValidUrl(config.server)
             && !Utils.isPureIpAddress(config.server.orEmpty())
         ) {

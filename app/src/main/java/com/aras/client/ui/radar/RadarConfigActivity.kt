@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -16,23 +17,83 @@ import com.aras.client.radar.ui.RadarScanView
 import com.aras.client.ui.compose.AppTheme
 import android.content.Intent
 import com.aras.client.ui.main.MainActivity
+import com.aras.client.core.cdn.CdnSniConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
+import java.net.URLDecoder
+import java.util.concurrent.ExecutorCompletionService
+import java.util.concurrent.TimeUnit
+import java.security.cert.CertificateException
+import javax.net.ssl.SNIHostName
+import javax.net.ssl.SSLSocket
+import javax.net.ssl.SSLSocketFactory
 import android.util.Base64
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+
+private data class RadarSource(val name: String, val url: String, val country: String)
+
+private val radarCountrySources = listOf(
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/United_States.txt", "آمریکا"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Germany.txt", "آلمان"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Türkiye.txt", "ترکیه"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/South_Korea.txt", "کره جنوبی"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Russia.txt", "روسیه"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/United_States.txt", "آمریکا"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Germany.txt", "آلمان"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Türkiye.txt", "ترکیه"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/South_Korea.txt", "کره جنوبی"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Russia.txt", "روسیه"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/us.txt", "آمریکا"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/de.txt", "آلمان"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/tr.txt", "ترکیه"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/kr.txt", "کره جنوبی"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/ru.txt", "روسیه"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/US.txt", "آمریکا"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/DE.txt", "آلمان"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/TR.txt", "ترکیه"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/KR.txt", "کره جنوبی"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/RU.txt", "روسیه"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/France.txt", "فرانسه"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Netherlands.txt", "هلند"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Japan.txt", "ژاپن"),
+    RadarSource("V2RayScrapeByCountry", "https://raw.githubusercontent.com/miladtahanian/V2RayScrapeByCountry/refs/heads/main/Countries/Singapore.txt", "سنگاپور"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/France.txt", "فرانسه"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Netherlands.txt", "هلند"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Japan.txt", "ژاپن"),
+    RadarSource("SoliSpirit/v2ray-configs", "https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/main/Countries/Singapore.txt", "سنگاپور"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/fr.txt", "فرانسه"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/nl.txt", "هلند"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/jp.txt", "ژاپن"),
+    RadarSource("Delta-Kronecker/V2ray-Config", "https://raw.githubusercontent.com/Delta-Kronecker/V2ray-Config/main/config/countries/sg.txt", "سنگاپور"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/FR.txt", "فرانسه"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/NL.txt", "هلند"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/JP.txt", "ژاپن"),
+    RadarSource("Danialsamadi/v2go", "https://raw.githubusercontent.com/Danialsamadi/v2go/main/Splitted-By-Country/SG.txt", "سنگاپور")
+)
 
 private data class RadarCandidate(
     val uri: String,
     val latency: Long?,
     val note: String,
     val dnsLatency: Long? = null,
+    val country: String? = null,
+    val source: String? = null,
+    val host: String? = null,
+    val port: Int? = null,
+    val resolvedIp: String? = null,
+    val udpUnverified: Boolean = false,
+    val tlsLatency: Long? = null,
+    val tlsNote: String? = null,
 )
 
 /** Public-source discovery. TCP reachability is not treated as proof of a working proxy tunnel. */
@@ -42,29 +103,44 @@ class RadarConfigActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
+                val requestedEdgeIp = intent.getStringExtra("cdn_edge_ip").orEmpty().trim()
+                val requestedSni = intent.getStringExtra("cdn_sni_host").orEmpty().trim()
+                val hasAnyCdnSni = requestedEdgeIp.isNotBlank() || requestedSni.isNotBlank()
+                val hasCdnSni = CdnSniConfig.parseIp(requestedEdgeIp) != null &&
+                    CdnSniConfig.parseSni(requestedSni) != null
                 var scanning by remember { mutableStateOf(false) }
                 var message by remember { mutableStateOf("برای شروع، اسکن را اجرا کن.") }
                 val results = remember { mutableStateListOf<RadarCandidate>() }
                 var radar by remember { mutableStateOf<RadarScanView?>(null) }
                 var resultFilter by remember { mutableStateOf("all") }
                 var protocolFilter by remember { mutableStateOf("all") }
+                var countryFilter by remember { mutableStateOf("all") }
+                val availableCountries = results.mapNotNull { it.country }.distinct().sorted()
                 val visibleResults = results.filter { candidate ->
+                    val countryMatches = countryFilter == "all" || candidate.country == countryFilter
+                    val reachable = isProbeReachable(candidate)
                     val reachabilityMatches = when (resultFilter) {
-                        "reachable" -> candidate.latency != null
-                        "failed" -> candidate.latency == null
+                        "reachable" -> reachable
+                        "failed" -> !reachable && !candidate.udpUnverified
                         else -> true
                     }
                     val protocolMatches = protocolFilter == "all" ||
                         protocolOf(candidate.uri) == protocolFilter
-                    reachabilityMatches && protocolMatches
+                    reachabilityMatches && protocolMatches && countryMatches
                 }.sortedWith(
-                    compareBy<RadarCandidate> { it.latency == null }
+                    compareBy<RadarCandidate> { !isProbeReachable(it) }
                         .thenBy { it.latency ?: Long.MAX_VALUE }
                 )
                 Scaffold(topBar = { TopAppBar(title = { Text("رادار کانفیگ") }) }) { padding ->
                     Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("جست‌وجو در منابع عمومی و پیش‌آزمایش دسترسی شبکه", style = MaterialTheme.typography.titleMedium)
-                        Text("پاسخ TCP به‌تنهایی سلامت تونل را ثابت نمی‌کند. هیچ کانفیگی خودکار نصب یا متصل نمی‌شود.", style = MaterialTheme.typography.bodySmall)
+                        Text("اتصال خودکار Xray بدون ورود دستی کانفیگ", style = MaterialTheme.typography.titleMedium)
+                        Text("رادار کانفیگ‌های سازگار را از منابع عمومی پیدا می‌کند و دسترسی شبکه را پیش‌آزمایش می‌کند. پاسخ TCP فقط مرحلهٔ اول است؛ اتصال موفق باید با اجرای Xray و عبور ترافیک واقعی تأیید شود. IP و SNI به‌تنهایی برای ساخت تونل عمومی Xray کافی نیستند.", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            if (hasCdnSni) "حالت تطبیق CDN/SNI: $requestedEdgeIp · $requestedSni. فقط لینک‌های TLS سازگار قابل بازنویسی‌اند؛ نتیجهٔ TCP به‌تنهایی تونل را تأیید نمی‌کند."
+                            else "حالت فعلی: کشف و بررسی TCP؛ انتخاب و اتصال خودکار هنوز به تأیید واقعی تونل نیاز دارد.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
                         AndroidView(
                             factory = { ctx -> RadarScanView(ctx).also { radar = it; it.startScan() } },
                             modifier = Modifier.fillMaxWidth().height(230.dp),
@@ -112,6 +188,26 @@ class RadarConfigActivity : ComponentActivity() {
                                 label = { Text("بدون پاسخ (" + results.count { it.latency == null } + ")") }
                             )
                         }
+                        if (availableCountries.isNotEmpty()) {
+                            androidx.compose.foundation.lazy.LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                item {
+                                    FilterChip(
+                                        selected = countryFilter == "all",
+                                        onClick = { countryFilter = "all" },
+                                        label = { Text("همه کشورها") }
+                                    )
+                                }
+                                items(availableCountries) { country ->
+                                    FilterChip(
+                                        selected = countryFilter == country,
+                                        onClick = { countryFilter = country },
+                                        label = { Text(country) }
+                                    )
+                                }
+                            }
+                        }
                         androidx.compose.foundation.lazy.LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -141,22 +237,66 @@ class RadarConfigActivity : ComponentActivity() {
                             visibleResults.forEach { item ->
                                 Card(Modifier.fillMaxWidth()) {
                                     Column(Modifier.padding(12.dp)) {
+                                        item.country?.let { Text("برچسب کشور منبع: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary) }
+                                        item.source?.let { Text("منبع: $it", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary) }
+                                        item.host?.let { host ->
+                                            Text(
+                                                "میزبان: $host:${item.port ?: "—"}" +
+                                                    (item.resolvedIp?.let { " · IP: $it" } ?: ""),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                         Text(item.uri.take(120), style = MaterialTheme.typography.bodyMedium)
                                         Text(
-                                            if (item.latency == null) {
-                                                (item.dnsLatency?.let { "DNS " + it + " ms · " } ?: "") + item.note
-                                            } else {
-                                                "DNS " + (item.dnsLatency?.toString() ?: "—") + " ms · TCP " + item.latency + " ms · " + item.note
+                                            buildString {
+                                                item.dnsLatency?.let { append("DNS ").append(it).append(" ms · ") }
+                                                item.latency?.let { append("TCP ").append(it).append(" ms · ") }
+                                                item.tlsLatency?.let { append("TLS ").append(it).append(" ms · ") }
+                                                item.tlsNote?.let { append(it).append(" · ") }
+                                                append(item.note)
                                             },
-                                            color = when { item.latency == null -> MaterialTheme.colorScheme.error; item.latency <= 150 -> Color(0xFF00A86B); item.latency <= 300 -> Color(0xFFB8860B); else -> Color(0xFFC62828) })
-                                        if (item.latency != null) {
-                                            Button(onClick = {
-                                                startActivity(Intent(this@RadarConfigActivity, MainActivity::class.java).apply {
-                                                    action = "com.aras.client.action.IMPORT_RADAR_CONFIG"
-                                                    putExtra("radar_config", item.uri)
-                                                })
-                                                finish()
-                                            }) { Text("افزودن برای تست واقعی") }
+                                            color = when {
+                                                item.udpUnverified -> MaterialTheme.colorScheme.tertiary
+                                                item.tlsNote?.contains("ناموفق") == true -> MaterialTheme.colorScheme.error
+                                                item.tlsNote?.contains("مورد اعتماد نیست") == true -> MaterialTheme.colorScheme.tertiary
+                                                item.latency == null -> MaterialTheme.colorScheme.error
+                                                item.latency <= 150 -> Color(0xFF00A86B)
+                                                item.latency <= 300 -> Color(0xFFB8860B)
+                                                else -> Color(0xFFC62828)
+                                            })
+                                        if (item.latency != null || item.udpUnverified || hasAnyCdnSni) {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Button(onClick = {
+                                                    val configToImport = when {
+                                                        hasAnyCdnSni && hasCdnSni -> rewriteTlsConfig(item.uri, requestedEdgeIp, requestedSni)
+                                                        hasAnyCdnSni -> null
+                                                        else -> item.uri
+                                                    }
+                                                    if (configToImport == null) {
+                                                        message = if (hasAnyCdnSni && !hasCdnSni) {
+                                                            "IP یا SNI نامعتبر است؛ به صفحهٔ قبل برگرد و هر دو مقدار را بررسی کن."
+                                                        } else {
+                                                            "این نتیجه کانفیگ VLESS/Trojan با TLS سازگار برای اعمال CDN/SNI ندارد؛ کانفیگ اصلی تغییر نکرد."
+                                                        }
+                                                    } else {
+                                                        startActivity(Intent(this@RadarConfigActivity, MainActivity::class.java).apply {
+                                                            action = "com.aras.client.action.IMPORT_RADAR_CONFIG"
+                                                            putExtra("radar_config", configToImport)
+                                                            putExtra("radar_auto_connect", true)
+                                                        })
+                                                        finish()
+                                                    }
+                                                }) { Text(if (hasCdnSni) "اعمال CDN/SNI و افزودن" else "افزودن برای تست واقعی") }
+                                                OutlinedButton(onClick = {
+                                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                        type = "text/plain"
+                                                        putExtra(Intent.EXTRA_SUBJECT, "G-ST-VPN · کانفیگ رادار")
+                                                        putExtra(Intent.EXTRA_TEXT, item.uri)
+                                                    }
+                                                    startActivity(Intent.createChooser(shareIntent, "اشتراک‌گذاری کانفیگ"))
+                                                }) { Text("اشتراک‌گذاری") }
+                                            }
                                         }
                                     }
                                 }
@@ -167,25 +307,57 @@ class RadarConfigActivity : ComponentActivity() {
                 LaunchedEffect(scanning) {
                     if (!scanning) return@LaunchedEffect
                     try {
-                        val uris = withContext(Dispatchers.IO) { discover().distinct() }
+                        val scanJob = currentCoroutineContext()[Job]
+                        val discovered = withContext(Dispatchers.IO) {
+                            discover { scanJob?.isActive == true }.distinctBy { it.first }
+                        }
                         var reachable = 0
-                        val bounded = uris.take(180)
+                        val bounded = discovered.take(180)
                         if (bounded.isEmpty()) {
                             message = "منابع پاسخ ندادند یا کانفیگ قابل‌خواندن پیدا نشد؛ اتصال اینترنت و دسترسی به GitHub را بررسی کن."
-                        } else if (uris.size > bounded.size) {
+                        } else if (discovered.size > bounded.size) {
                             message = "تعداد زیادی نتیجه پیدا شد؛ برای حفظ سرعت، ۱۸۰ مورد اول بررسی می‌شوند."
                         }
                         var checked = 0
                         for (batch in bounded.chunked(8)) {
                             if (!scanning) break
                             val batchResults = coroutineScope {
-                                batch.map { uri -> async(Dispatchers.IO) { testTcp(uri) } }.map { it.await() }
+                                batch.map { candidate ->
+                                    async(Dispatchers.IO) {
+                                        val uri = candidate.first
+                                        val country = candidate.second
+                                        val source = candidate.third
+                                        val original = testTcp(uri).copy(country = country, source = source)
+                                        val tlsNeedsRecovery = original.tlsNote != null &&
+                                            original.tlsNote != "TLS پاسخ داد"
+                                        if ((original.latency != null && !tlsNeedsRecovery) || !hasCdnSni) {
+                                            original
+                                        } else {
+                                            val recoveredUri = rewriteTlsConfig(uri, requestedEdgeIp, requestedSni)
+                                            if (recoveredUri == null) {
+                                                original.copy(note = original.note + " · CDN/SNI روی این نوع کانفیگ قابل‌اعمال نیست")
+                                            } else {
+                                                val retry = testTcp(recoveredUri).copy(country = country, source = source)
+                                                if (isProbeReachable(retry)) {
+                                                    retry.copy(
+                                                        note = "CDN/SNI recovery · TCP/TLS پاسخ داد؛ سلامت تونل هنوز تأیید نشده"
+                                                    )
+                                                } else {
+                                                    original.copy(
+                                                        note = original.note + " · تلاش CDN/SNI هم پاسخ نداد"
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }.map { it.await() }
                             }
                             for (result in batchResults) {
-                                if (result.latency != null) reachable++
-                                // Every candidate gets a blip: green/yellow for reachable latency,
-                                // red for an unreachable endpoint.
-                                radar?.addTestedCandidate(result.latency ?: -1L)
+                                if (isProbeReachable(result)) reachable++
+                                // TLS profiles count as reachable only after a successful,
+                                // certificate-validated SNI handshake; TCP-only profiles remain
+                                // explicitly preliminary endpoint checks.
+                                radar?.addTestedCandidate(if (isProbeReachable(result)) result.latency!! else -1L)
                                 results.add(result)
                                 checked++
                             }
@@ -211,23 +383,158 @@ class RadarConfigActivity : ComponentActivity() {
         }
     }
 
-    private fun discover(): List<String> {
-        val repos = listOf("barry-far/V2ray-Config", "0xRadikal/Free-v2ray-Configs", "ircfspace/tconfig", "Argh94/V2RayAutoConfig")
-        val found = linkedSetOf<String>()
-        for (repo in repos) try {
-            val metadata = get("https://api.github.com/repos/" + repo, 10000)
-            val branch = Regex("""default_branch"\s*:\s*"([^"]+)""").find(metadata)?.groupValues?.get(1) ?: "main"
-            val tree = get("https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1", 10000)
-            val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"").findAll(tree).map { it.groupValues[1] }
-                .filter { p -> val q = p.lowercase(); (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) && (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country")) }
-                .take(10)
-            for (path in paths) {
-                val raw = get("https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + path.split("/").joinToString("/") { java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20") }, 8000)
-                extract(raw).forEach { found.add(it) }
-                if (found.size >= 250) return found.toList()
+    private fun discover(isActive: () -> Boolean): List<Triple<String, String?, String?>> {
+        val buckets = ArrayList<List<Triple<String, String?, String?>>>()
+
+        // Give the direct country feeds their own bounded window, then continue to
+        // repository-tree discovery even if some feeds are slow or unavailable.
+        val countryTasks: List<() -> List<Triple<String, String?, String?>>> =
+            radarCountrySources.map { source ->
+                {
+                    runCatching {
+                        extract(get(source.url, 12000))
+                            .distinct()
+                            .take(120)
+                            .map { uri -> Triple(uri, source.country, source.name) }
+                    }.getOrDefault(emptyList())
+                }
             }
-        } catch (_: Exception) { /* Other sources may still work. */ }
-        return found.toList()
+        collectSourceBuckets(countryTasks, timeoutMs = 25_000L, isActive = isActive, buckets = buckets)
+        if (!isActive()) return emptyList()
+
+        // Keep all nine user-requested repositories, plus the original discovery fallbacks.
+        // Each repository contributes its own bounded bucket so one large feed cannot starve
+        // the rest. Repository-tree failures are isolated and do not abort the scan.
+        val repos = listOf(
+            "miladtahanian/V2RayScrapeByCountry",
+            "SoliSpirit/v2ray-configs",
+            "Delta-Kronecker/V2ray-Config",
+            "Danialsamadi/v2go",
+            "morpheusadam/v2ray-config",
+            "MatinGhanbari/v2ray-configs",
+            "0xRadikal/Free-v2ray-Configs",
+            "drmikecrypto/PulseConfigs",
+            "rtwo2/FastNodes",
+            "barry-far/V2ray-Config",
+            "ircfspace/tconfig",
+            "Argh94/V2RayAutoConfig",
+        )
+        val repoTasks: List<() -> List<Triple<String, String?, String?>>> = repos.map { repo ->
+            {
+                runCatching {
+                    val metadata = get("https://api.github.com/repos/" + repo, 10000)
+                    val branch = Regex("""default_branch"\s*:\s*"([^"]+)""")
+                        .find(metadata)?.groupValues?.get(1) ?: "main"
+                    val tree = get(
+                        "https://api.github.com/repos/" + repo + "/git/trees/" + branch + "?recursive=1",
+                        10000,
+                    )
+                    val paths = Regex("\"path\"\\s*:\\s*\"([^\"]+)\"")
+                        .findAll(tree)
+                        .map { it.groupValues[1] }
+                        .filter { p ->
+                            val q = p.lowercase()
+                            (q.endsWith(".txt") || q.endsWith(".yaml") || q.endsWith(".yml") || q.endsWith(".json")) &&
+                                (q.contains("config") || q.contains("sub") || q.contains("all") || q.contains("country") || q.contains("best") || q.contains("top"))
+                        }
+                        .sortedBy { p -> if (p.contains("country", ignoreCase = true)) 0 else 1 }
+                        .take(10)
+
+                    val repoFound = linkedMapOf<String, Triple<String, String?, String?>>()
+                    for (path in paths) {
+                        val encoded = path.split("/").joinToString("/") {
+                            java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20")
+                        }
+                        val raw = get(
+                            "https://raw.githubusercontent.com/" + repo + "/" + branch + "/" + encoded,
+                            8000,
+                        )
+                        val country = countryFromPath(path)
+                        for (uri in extract(raw)) {
+                            repoFound.putIfAbsent(uri, Triple(uri, country, repo))
+                            if (repoFound.size >= 120) break
+                        }
+                        if (repoFound.size >= 120) break
+                    }
+                    repoFound.values.toList()
+                }.getOrDefault(emptyList())
+            }
+        }
+        collectSourceBuckets(repoTasks, timeoutMs = 40_000L, isActive = isActive, buckets = buckets)
+        if (!isActive()) return emptyList()
+
+        // Fair round-robin merge, deduplicated by the full share URI.
+        val unique = linkedMapOf<String, Triple<String, String?, String?>>()
+        var round = 0
+        while (unique.size < 500) {
+            var added = false
+            for (bucket in buckets) {
+                if (round < bucket.size && unique.size < 500) {
+                    val candidate = bucket[round]
+                    unique.putIfAbsent(candidate.first, candidate)
+                    added = true
+                }
+            }
+            if (!added) break
+            round++
+        }
+        return unique.values.toList()
+    }
+
+    /**
+     * Collects source buckets concurrently under one deadline and checks cancellation
+     * frequently so the screen's Stop action also stops outstanding network work.
+     */
+    private fun collectSourceBuckets(
+        tasks: List<() -> List<Triple<String, String?, String?>>>,
+        timeoutMs: Long,
+        isActive: () -> Boolean,
+        buckets: MutableList<List<Triple<String, String?, String?>>>,
+    ) {
+        if (tasks.isEmpty() || !isActive()) return
+        val executor = java.util.concurrent.Executors.newFixedThreadPool(6) { task ->
+            Thread(task, "radar-source-discovery").apply { isDaemon = true }
+        }
+        val completion = ExecutorCompletionService<List<Triple<String, String?, String?>>>(executor)
+        val futures = tasks.map { task -> completion.submit(java.util.concurrent.Callable { task() }) }
+        val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs)
+        try {
+            var remaining = futures.size
+            while (remaining > 0 && isActive()) {
+                val remainingNanos = deadline - System.nanoTime()
+                if (remainingNanos <= 0L) break
+                // Poll briefly so a user pressing Stop is not held behind the full
+                // discovery timeout while the current HTTP request is still running.
+                val pollNanos = minOf(remainingNanos, TimeUnit.MILLISECONDS.toNanos(250))
+                val future = completion.poll(pollNanos, TimeUnit.NANOSECONDS) ?: continue
+                remaining--
+                runCatching { future.get() }.getOrNull()
+                    ?.takeIf { it.isNotEmpty() }
+                    ?.let(buckets::add)
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        } finally {
+            futures.forEach { if (!it.isDone) it.cancel(true) }
+            executor.shutdownNow()
+        }
+    }
+
+    private fun countryFromPath(path: String): String? {
+        val normalized = path.lowercase().replace('-', '_')
+        return when {
+            normalized.contains("united_states") || normalized.contains("/us.") || normalized.contains("_us.") -> "آمریکا"
+            normalized.contains("germany") || normalized.contains("/de.") || normalized.contains("_de.") -> "آلمان"
+            normalized.contains("turkiye") || normalized.contains("türkiye") || normalized.contains("turkey") || normalized.contains("/tr.") -> "ترکیه"
+            normalized.contains("south_korea") || normalized.contains("korea") || normalized.contains("/kr.") -> "کره جنوبی"
+            normalized.contains("russia") || normalized.contains("/ru.") -> "روسیه"
+            normalized.contains("france") || normalized.contains("/fr.") -> "فرانسه"
+            normalized.contains("netherlands") || normalized.contains("/nl.") -> "هلند"
+            normalized.contains("japan") || normalized.contains("/jp.") -> "ژاپن"
+            normalized.contains("singapore") || normalized.contains("/sg.") -> "سنگاپور"
+            normalized.contains("iran") || normalized.contains("/ir.") -> "ایران"
+            else -> null
+        }
     }
 
     private fun extract(text: String): List<String> {
@@ -246,38 +553,199 @@ class RadarConfigActivity : ComponentActivity() {
     private fun testTcp(uri: String): RadarCandidate {
         val endpoint = parseEndpoint(uri)
             ?: return RadarCandidate(uri, null, "آدرس یا پورت قابل تشخیص نیست")
+        val host = endpoint.first
+        val port = endpoint.second
         val dnsStart = System.nanoTime()
         val addresses = try {
-            InetAddress.getAllByName(endpoint.first)
+            InetAddress.getAllByName(host)
         } catch (_: Exception) {
-            return RadarCandidate(uri, null, "DNS ناموفق بود یا میزبان در دسترس نیست")
+            return RadarCandidate(uri, null, "DNS ناموفق بود یا میزبان در دسترس نیست", host = host, port = port)
         }
         val dnsMs = (System.nanoTime() - dnsStart) / 1_000_000L
+        val resolvedIp = addresses.firstOrNull()?.hostAddress?.substringBefore('%')
+        val udpProtocol = protocolOf(uri) in setOf("hysteria", "hysteria2", "tuic")
+        if (udpProtocol) {
+            return RadarCandidate(
+                uri = uri,
+                latency = null,
+                note = "پروتکل UDP/QUIC است؛ فقط DNS بررسی شد و تست واقعی تونل لازم است",
+                dnsLatency = dnsMs,
+                host = host,
+                port = port,
+                resolvedIp = resolvedIp,
+                udpUnverified = true,
+            )
+        }
+        val (usesTls, sni) = tlsTarget(uri, host)
         var lastError: Exception? = null
-        for (address in addresses) {
-            val tcpStart = System.nanoTime()
+        var bestTlsFailure: RadarCandidate? = null
+        for (address in addresses.take(4)) {
             try {
+                var tcpMs = 0L
+                var tlsLatency: Long? = null
+                var tlsNote: String? = null
                 Socket().use { socket ->
-                    socket.connect(InetSocketAddress(address, endpoint.second), 1800)
+                    val tcpStart = System.nanoTime()
+                    socket.connect(InetSocketAddress(address, port), 1800)
+                    tcpMs = (System.nanoTime() - tcpStart) / 1_000_000L
+                    if (usesTls) {
+                        val result = probeTls(socket, sni ?: host, port)
+                        tlsLatency = result.first
+                        tlsNote = result.second
+                    }
                 }
-                val tcpMs = (System.nanoTime() - tcpStart) / 1_000_000L
-                return RadarCandidate(
+                val candidate = RadarCandidate(
                     uri = uri,
                     latency = tcpMs,
-                    note = "DNS و پورت پاسخ دادند؛ سلامت تونل تأیید نشده",
+                    note = if (usesTls) "TCP پاسخ داد؛ تست TLS انجام شد و سلامت تونل تأیید نشده"
+                        else "DNS و پورت TCP پاسخ دادند؛ سلامت تونل تأیید نشده",
                     dnsLatency = dnsMs,
+                    host = host,
+                    port = port,
+                    resolvedIp = address.hostAddress?.substringBefore('%'),
+                    tlsLatency = tlsLatency,
+                    tlsNote = tlsNote,
                 )
+                // A TCP-open edge is not enough for TLS profiles. Keep the fastest
+                // diagnostic result, but continue through the remaining DNS answers
+                // until one completes a certificate-validated SNI handshake.
+                if (!usesTls || isProbeReachable(candidate)) return candidate
+                if (bestTlsFailure == null || tcpMs < (bestTlsFailure?.latency ?: Long.MAX_VALUE)) {
+                    bestTlsFailure = candidate
+                }
             } catch (e: Exception) {
                 lastError = e
             }
         }
+        bestTlsFailure?.let { return it }
         val detail = if (lastError is java.net.SocketTimeoutException) {
             "مهلت اتصال TCP تمام شد"
         } else {
             "DNS پاسخ داد، اما پورت TCP در دسترس نیست"
         }
-        return RadarCandidate(uri, null, detail, dnsMs)
+        return RadarCandidate(
+            uri = uri,
+            latency = null,
+            note = detail,
+            dnsLatency = dnsMs,
+            host = host,
+            port = port,
+            resolvedIp = resolvedIp,
+        )
     }
+
+    /** Extract the TLS flag and SNI without changing the original share URI. */
+    private fun tlsTarget(uri: String, fallbackHost: String): Pair<Boolean, String?> {
+        if (uri.startsWith("vmess://", true)) {
+            val encoded = uri.substringAfter("://").substringBefore('#')
+            val raw = runCatching {
+                Base64.decode(encoded, Base64.DEFAULT).toString(Charsets.UTF_8)
+            }.recoverCatching {
+                Base64.decode(encoded, Base64.URL_SAFE or Base64.NO_WRAP).toString(Charsets.UTF_8)
+            }.getOrDefault("")
+            fun field(name: String) =
+                Regex("\\\"$name\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"")
+                    .find(raw)?.groupValues?.get(1)
+            val tls = field("tls").equals("tls", ignoreCase = true)
+            return tls to (field("sni")?.takeIf { it.isNotBlank() } ?: field("host")?.takeIf { it.isNotBlank() } ?: fallbackHost)
+        }
+        val query = uri.substringAfter("?", "").substringBefore('#')
+        val params = query.split("&").mapNotNull { part ->
+            val index = part.indexOf('=')
+            if (index <= 0) null else {
+                val key = runCatching { URLDecoder.decode(part.substring(0, index), "UTF-8") }.getOrDefault(part.substring(0, index))
+                val value = runCatching { URLDecoder.decode(part.substring(index + 1), "UTF-8") }.getOrDefault(part.substring(index + 1))
+                key.lowercase() to value
+            }
+        }.toMap()
+        val security = params["security"]?.lowercase()
+        val scheme = uri.substringBefore("://").lowercase()
+        val tls = security == "tls" || (scheme == "trojan" && security !in setOf("none", "reality"))
+        val sni = params["sni"]?.takeIf { it.isNotBlank() }
+            ?: params["host"]?.takeIf { it.isNotBlank() }
+            ?: fallbackHost
+        return tls to sni
+    }
+
+    /** TCP is not enough for TLS configs: try the real SNI handshake on the same socket. */
+    private fun probeTls(plain: Socket, serverName: String, port: Int): Pair<Long?, String?> {
+        val started = System.nanoTime()
+        var tls: SSLSocket? = null
+        return try {
+            val socket = (SSLSocketFactory.getDefault() as SSLSocketFactory)
+                .createSocket(plain, serverName, port, true) as SSLSocket
+            tls = socket
+            socket.soTimeout = 2500
+            val params = socket.sslParameters
+            val isIpv4 = serverName.matches(Regex("^\\d{1,3}(?:\\.\\d{1,3}){3}$"))
+            if (!isIpv4 && !serverName.contains(':')) {
+                params.serverNames = listOf(SNIHostName(serverName))
+                params.endpointIdentificationAlgorithm = "HTTPS"
+            }
+            socket.sslParameters = params
+            socket.startHandshake()
+            (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)) to "TLS پاسخ داد"
+        } catch (e: Exception) {
+            val certIssue = generateSequence<Throwable>(e) { it.cause }.any { it is CertificateException }
+            if (certIssue) {
+                (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started)) to "TLS پاسخ داد؛ گواهی مورد اعتماد نیست"
+            } else {
+                null to "TLS handshake ناموفق بود"
+            }
+        } finally {
+            runCatching { tls?.close() }
+        }
+    }
+
+
+    /**
+     * Apply CDN/SNI only to VLESS/Trojan links that already explicitly use TLS.
+     * This preserves credentials and does not pretend arbitrary dead servers can be repaired.
+     */
+    private fun rewriteTlsConfig(raw: String, edgeIp: String, sni: String): String? {
+        if (CdnSniConfig.parseIp(edgeIp) == null || CdnSniConfig.parseSni(sni) == null) return null
+        val scheme = raw.substringBefore("://", "").lowercase()
+        if (scheme != "vless" && scheme != "trojan") return null
+        val beforeFragment = raw.substringBefore("#")
+        val fragment = raw.substringAfter("#", "").let { if (raw.contains("#")) "#$it" else "" }
+        if (!beforeFragment.contains("?")) return null
+        val base = beforeFragment.substringBefore("?")
+        val query = beforeFragment.substringAfter("?")
+        val params = query.split("&").filter { it.isNotBlank() }.map { part ->
+            val key = java.net.URLDecoder.decode(part.substringBefore("="), "UTF-8")
+            val value = java.net.URLDecoder.decode(part.substringAfter("=", ""), "UTF-8")
+            key to value
+        }.toMutableList()
+        val security = params.lastOrNull { it.first.equals("security", true) }?.second?.lowercase()
+        if (security != "tls") return null
+        if (params.any { it.first.equals("type", true) && it.second.equals("reality", true) }) return null
+        fun setParam(key: String, value: String) {
+            params.removeAll { it.first.equals(key, true) }
+            params.add(key to value)
+        }
+        setParam("sni", sni)
+        val network = params.lastOrNull { it.first.equals("type", true) }?.second?.lowercase()
+        if (network == "ws") setParam("host", sni)
+        val authorityPattern = Regex("^((?:vless|trojan)://(?:[^@/?#]+@)?)([^:/?#]+)(:\\d+)?", RegexOption.IGNORE_CASE)
+        if (!authorityPattern.containsMatchIn(base)) return null
+        val authorityMatch = authorityPattern.find(base) ?: return null
+        val rewrittenBase = buildString {
+            append(base.substring(0, authorityMatch.range.first))
+            append(authorityMatch.groupValues[1])
+            append(edgeIp)
+            append(authorityMatch.groupValues[3])
+            append(base.substring(authorityMatch.range.last + 1))
+        }
+        val rewrittenQuery = params.joinToString("&") {
+            java.net.URLEncoder.encode(it.first, "UTF-8") + "=" +
+                java.net.URLEncoder.encode(it.second, "UTF-8")
+        }
+        return "$rewrittenBase?$rewrittenQuery$fragment"
+    }
+
+    private fun isProbeReachable(candidate: RadarCandidate): Boolean =
+        candidate.latency != null &&
+            (candidate.tlsNote == null || candidate.tlsNote == "TLS پاسخ داد")
 
     private fun protocolOf(uri: String): String {
         val scheme = uri.substringBefore("://", "").lowercase()
@@ -297,7 +765,21 @@ class RadarConfigActivity : ComponentActivity() {
             val port = Regex("\"port\"\\s*:\\s*\"?(\\d+)").find(raw)?.groupValues?.get(1)?.toIntOrNull() ?: return null
             return host to port
         }
-        val authority = uri.substringAfter("://").substringBefore('/').substringBefore('?').substringBefore('#').substringAfterLast('@')
+        val scheme = uri.substringBefore("://").lowercase()
+        var payload = uri.substringAfter("://").substringBefore('#')
+        // Legacy Shadowsocks shares encode method:password@host:port as one Base64 blob.
+        // Decode it before extracting the endpoint; SIP002 links with a visible @ stay intact.
+        if (scheme == "ss" && !payload.substringBefore('?').contains('@')) {
+            val encoded = payload.substringBefore('?')
+            val decoded = runCatching { Base64.decode(encoded, Base64.DEFAULT) }
+                .recoverCatching { Base64.decode(encoded, Base64.URL_SAFE or Base64.NO_WRAP) }
+                .getOrNull()?.toString(Charsets.UTF_8)
+            if (!decoded.isNullOrBlank()) {
+                val query = payload.substringAfter('?', "")
+                payload = decoded + if (query.isNotBlank()) "?$query" else ""
+            }
+        }
+        val authority = payload.substringBefore('/').substringBefore('?').substringAfterLast('@')
         val host = authority.substringBeforeLast(':').trim('[', ']')
         val port = authority.substringAfterLast(':').toIntOrNull()
         if (host.isBlank() || port == null || port !in 1..65535) null else host to port
@@ -305,8 +787,25 @@ class RadarConfigActivity : ComponentActivity() {
 
     private fun get(url: String, timeout: Int): String {
         val c = URL(url).openConnection() as HttpURLConnection
-        c.connectTimeout = timeout; c.readTimeout = timeout
+        c.connectTimeout = timeout
+        c.readTimeout = timeout
         c.setRequestProperty("User-Agent", "G-ST-VPN-Radar/1.0")
-        return try { c.inputStream.bufferedReader().use { it.readText().take(2_000_000) } } finally { c.disconnect() }
+        return try {
+            c.inputStream.bufferedReader().use { reader ->
+                // Bound bytes read, not just the returned string: readText().take()
+                // still loads an arbitrarily large repository feed into memory first.
+                val limit = 2_000_000
+                val output = StringBuilder(minOf(limit, c.contentLength.takeIf { it > 0 } ?: 8192))
+                val buffer = CharArray(8192)
+                while (output.length < limit) {
+                    val count = reader.read(buffer, 0, minOf(buffer.size, limit - output.length))
+                    if (count < 0) break
+                    output.append(buffer, 0, count)
+                }
+                output.toString()
+            }
+        } finally {
+            c.disconnect()
+        }
     }
 }

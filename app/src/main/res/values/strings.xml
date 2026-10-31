@@ -67,6 +67,14 @@
     <string name="server_lab_aether_obfuscation">Obfuscation</string>
     <string name="menu_item_import_config_manually_aether">Add Aether config manually</string>
     <string name="server_lab_aether_psiphon">Psiphon</string>
+    <string name="add_server_sheet_title">Add server</string>
+    <string name="add_server_group_import">Import</string>
+    <string name="add_server_group_tunnels">Tunnels</string>
+    <string name="add_server_group_chains">Manual servers and chains</string>
+    <string name="add_server_group_discovery">Discovery</string>
+    <string name="add_server_group_subscriptions">Subscriptions</string>
+    <string name="add_server_subscription">Manage subscriptions</string>
+    <string name="add_server_custom_json">Custom JSON</string>
     <string name="server_lab_aether_psiphon_mode">Psiphon mode</string>
     <string name="server_lab_aether_psiphon_cdn_ips">Psiphon CDN IPs</string>
     <string name="server_lab_aether_psiphon_cdn_sni">Psiphon CDN server name</string>
@@ -908,4 +916,32 @@
     <string name="app_icon_calculator">Calculator</string>
     <string name="calculator_launcher_label">Calculator</string>
     <string name="calculator_access_code">Access code (4–12 digits; hold AC to restore icon)</string>
+    <string name="menu_item_cdn_sni">CDN/SNI</string>
+    <string name="cdn_sni_auto_ir">AUTO IR 🇮🇷</string>
+    <string name="cdn_sni_manual">Manual</string>
+    <string name="cdn_sni_auto_us">AUTO US 🇺🇸</string>
+    <string name="cdn_sni_auto_scanning">Checking reachable IP/SNI pairs and measuring TLS handshake speed…</string>
+    <string name="cdn_sni_auto_not_found">No verified IP/SNI pair was found on this network. Try another network or enter values manually.</string>
+    <string name="cdn_sni_auto_hint">AUTO tests reachable IP/SNI pairs and saves the fastest verified result. Region labels are preferences, not a guarantee of the physical CDN location. Manual entry is always available.</string>
+    <string name="cdn_sni_psiphon_transport_hint">TCP traffic travels through Psiphon. UDP is blocked in this mode so it cannot bypass the tunnel.</string>
+    <string name="cdn_sni_intro">Enter a CDN edge IP and its SNI. Psiphon establishes the fronted transport and Xray routes TCP through its local SOCKS listener; no imported config or UUID is needed.</string>
+    
+    
+    <string name="cdn_sni_targets">CDN edge IP address</string>
+    <string name="cdn_sni_front">SNI (server name)</string>
+    
+    
+    <string name="cdn_sni_invalid">Enter a valid IPv4 CDN edge address and a valid SNI hostname</string>
+    <string name="cdn_sni_cert_hint">Browsers only accept this setup after you trust its certificate. The certificate is made on this device and its private key never leaves the app.</string>
+    <string name="cdn_sni_cert_export">Save certificate to trust</string>
+    <string name="cdn_sni_cert_steps">Save the file, then in Settings choose Security, Install a certificate, CA certificate</string>
+    <string name="cdn_sni_cert_saved">Certificate saved</string>
+    <string name="cdn_sni_cert_failed">Could not save the certificate</string>
+
+    <string name="radar_config_title">Radar Config</string>
+    <string name="radar_config_summary">Discover and test public server configs</string>
+    <string name="menu_section_network_tools">Network tools</string>
+    <string name="rdr_theme_switch_to_light">Switch to light appearance</string>
+    <string name="rdr_theme_switch_to_dark">Switch to dark appearance</string>
+    <string name="cdn_sni_manual_list_hint">Manual mode accepts multiple IPs and SNI hostnames. Separate entries with Enter, commas, semicolons, or spaces. Switching modes keeps your entries.</string>
 </resources>
